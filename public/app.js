@@ -122,6 +122,7 @@ function openModal(id, focusSelector) {
     backdrop.hidden = false
     openModalId = id
     document.body.setAttribute('data-modal', '')
+    document.querySelectorAll('body > .topbar, body > main').forEach(el => { el.inert = true })
     document.querySelector(`[aria-controls="${id}"]`)?.setAttribute('aria-expanded', 'true')
   }
   const target = (focusSelector && backdrop.querySelector(focusSelector)) || backdrop.querySelector(FOCUSABLE)
@@ -135,6 +136,7 @@ function closeModal() {
   document.querySelector(`[aria-controls="${openModalId}"]`)?.setAttribute('aria-expanded', 'false')
   openModalId = null
   document.body.removeAttribute('data-modal')
+  document.querySelectorAll('body > .topbar, body > main').forEach(el => { el.inert = false })
   const back = modalReturnFocus
   modalReturnFocus = null
   if (back && back.isConnected) back.focus()
@@ -149,7 +151,7 @@ document.addEventListener('keydown', event => {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
 })
-document.addEventListener('mousedown', event => {
+document.addEventListener('click', event => {
   if (!openModalId) return
   // The backdrop itself, or an explicit close button. Never a click inside the dialog.
   if (event.target === $(openModalId) || event.target.closest('[data-close-modal]')) closeModal()

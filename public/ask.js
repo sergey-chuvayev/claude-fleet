@@ -6,7 +6,13 @@ let askJob = null, askPoll = null, askRequest = 0
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
 $('ask-shortcut').textContent = isMac ? '⌘K' : 'Ctrl K'
 
-const openAsk = () => openModal('ask-backdrop', '#ask-input')
+const openAsk = () => { renderAsk(); openModal('ask-backdrop', '#ask-input') }
+$('ask-welcome').addEventListener('click', event => {
+  const suggestion = event.target.closest('[data-question]')
+  if (!suggestion) return
+  $('ask-input').value = suggestion.dataset.question
+  $('ask-input').focus()
+})
 $('ask-sessions').addEventListener('click', () => modalIsOpen('ask-backdrop') ? closeModal() : openAsk())
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') { event.preventDefault(); openAsk() }
@@ -64,6 +70,8 @@ function hitCard(hit, match) {
 
 function renderAsk() {
   const job = askJob
+  $('ask-welcome').hidden = !!job
+  $('ask-results').setAttribute('aria-busy', String(job?.status === 'searching' || job?.status === 'thinking'))
   if (!job) return update('ask-results', '')
   const stats = job.id ? `<span class="ask-stats">${job.sessions} session${job.sessions === 1 ? '' : 's'} · ${job.passages} passages · ${job.searchMs} ms</span>` : ''
   let status
@@ -84,7 +92,7 @@ function renderAsk() {
   } else if (job.hits.length) {
     cards = `<p class="ask-section">Keyword matches${job.ai ? ' · none judged relevant' : ''}</p>` + job.hits.map(h => hitCard(h, null)).join('')
   } else if (job.id) {
-    cards = '<p class="ask-empty">No transcript mentions those words.</p>'
+    cards = '<p class="ask-empty">No matching threads yet. Try a project name, a feature, or a few words you remember.</p>'
   }
   update('ask-results', `<div class="ask-head"><span class="ask-question">“${esc(job.question)}”</span>${stats}</div>${status}${answer}${cards}`)
 }
