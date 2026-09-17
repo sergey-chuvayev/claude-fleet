@@ -25,10 +25,16 @@ function openLaunch(source=null) {
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
   if(source){$('launch-cwd').value=source.cwd || '';$('launch-form').elements.name.value=source.title || source.name || ''}
   $('launch-cwd').readOnly=!!source
-  // Resuming already knows its project, so the cursor belongs in the message.
-  openModal('launch-backdrop', source ? '[name=prompt]' : '#launch-cwd')
+  openModal('launch-backdrop', '[name=prompt]')
 }
 $('new-session').addEventListener('click',()=>modalIsOpen('launch-backdrop') ? closeModal() : openLaunch())
+document.addEventListener('keydown', event => {
+  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'n') {
+    event.preventDefault()
+    if (modalIsOpen('launch-backdrop')) $('launch-form').elements.prompt.focus()
+    else openLaunch()
+  }
+})
 $('launch-form').addEventListener('input',()=>{launchRequestId=null})
 $('launch-form').addEventListener('submit',async event=>{
   event.preventDefault()

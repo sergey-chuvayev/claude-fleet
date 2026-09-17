@@ -133,3 +133,63 @@ test('the browser scripts load together without redeclaring a shared-scope ident
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load in the shared scope: ${error.message}`) }
   }
 })
+
+test('a terminal session survives registry removal and restart, and resumes its saved conversation', async () => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-handoff-')))
+  const previous = process.env.CLAUDE_FLEET_DIR
+  process.env.CLAUDE_FLEET_DIR = root
+  let manager
+  try {
+    const cwd = path.join(root, 'work')
+    const project = path.join(root, 'projects', 'work')
+    fs.mkdirSync(cwd)
+    fs.mkdirSync(project, {recursive:true})
+    fs.mkdirSync(path.join(root, 'sessions'))
+    const sessionId = 'saved-terminal'
+    const registry = path.join(root, 'sessions', 'terminal.json')
+    const record = {type:'user',cwd,timestamp:new Date().toISOString(),message:{content:'Continue my work'}}
+    fs.writeFileSync(path.join(project, `${sessionId}.jsonl`), JSON.stringify(record)+'\n'+JSON.stringify({type:'ai-title',aiTitle:'My saved work'})+'\n')
+    fs.writeFileSync(registry, JSON.stringify({sessionId,pid:process.pid,cwd,entrypoint:'cli'}))
+    const observer = path.join(root, 'projects', 'observer-sessions')
+    fs.mkdirSync(observer)
+    fs.writeFileSync(path.join(observer, 'observer.jsonl'), JSON.stringify(record))
+    fs.writeFileSync(path.join(project, 'sidechain.jsonl'), JSON.stringify({...record,isSidechain:true}))
+    fs.writeFileSync(path.join(project, 'broken.jsonl'), '{broken')
+    fs.writeFileSync(path.join(project, 'empty.jsonl'), JSON.stringify({type:'ai-title',aiTitle:'No conversation'}))
+    delete require.cache[require.resolve('./fleet')]
+    let {collect} = require('./fleet')
+    assert.equal(collect().sessions.length, 1, 'indexer, subagent and empty transcripts must not become offline sessions')
+    assert.equal(collect().sessions.filter(s=>s.sessionId===sessionId).length, 1)
+    assert.equal(collect().sessions[0].alive, true)
+    fs.unlinkSync(registry)
+    let saved = collect().sessions.find(s=>s.sessionId===sessionId)
+    assert.ok(saved, 'deleting the process registration must not delete the conversation')
+    assert.equal(saved.alive, false)
+    assert.equal(saved.state, 'dead')
+    assert.equal(saved.cwd, cwd)
+    assert.equal(saved.title, 'My saved work')
+    delete require.cache[require.resolve('./fleet')]
+    ;({collect} = require('./fleet'))
+    assert.ok(collect().sessions.some(s=>s.sessionId===sessionId), 'history must survive a Fleet restart')
+    const {ManagedSessions} = require('./managed')
+    let resumed
+    manager = new ManagedSessions({directory:path.join(root,'managed'),externalSessions:()=>collect().sessions,queryFactory:async args=>{
+      resumed=args.options.resume
+      return {close(){},async *[Symbol.asyncIterator](){yield {type:'result',result:'Resumed',is_error:false}}}
+    }})
+    manager.create({cwd,prompt:'Keep going',resumeSessionId:sessionId,requestId:require('node:crypto').randomUUID()})
+    for(let i=0;i<100 && !resumed;i++) await new Promise(resolve=>setTimeout(resolve,5))
+    assert.equal(resumed, sessionId)
+    // A reopened terminal replaces the offline row instead of duplicating it.
+    fs.writeFileSync(registry, JSON.stringify({sessionId,pid:process.pid,cwd,entrypoint:'cli'}))
+    const reopened=collect().sessions.filter(s=>s.sessionId===sessionId)
+    assert.equal(reopened.length,1)
+    assert.equal(reopened[0].alive,true)
+  } finally {
+    if(manager) await manager.close()
+    if(previous===undefined) delete process.env.CLAUDE_FLEET_DIR
+    else process.env.CLAUDE_FLEET_DIR=previous
+    delete require.cache[require.resolve('./fleet')]
+    fs.rmSync(root,{recursive:true,force:true})
+  }
+})

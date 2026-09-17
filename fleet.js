@@ -199,6 +199,7 @@ function readTranscript(file) {
     } catch {
       continue
     }
+    if (d.isSidechain) continue
     // The model field always reads "claude-opus-5"; only the transcript text
     // carries the [1m] suffix that distinguishes a 1M-context session.
     if (!data.oneM && line.indexOf('[1m]') !== -1 && /claude-[a-z0-9.-]+\[1m\]/.test(line)) data.oneM = true
@@ -349,13 +350,25 @@ function collect() {
   const now = Date.now()
   const sessions = []
 
+  // The registry describes running processes, not saved conversations: Claude
+  // removes registrations on exit. Join it with durable transcripts so handoff
+  // remains possible after exit and after Fleet itself restarts.
+  const registrations = []
   for (const f of files) {
-    let meta
     try {
-      meta = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'))
-    } catch {
-      continue
-    }
+      const meta = JSON.parse(fs.readFileSync(path.join(SESSIONS_DIR, f), 'utf8'))
+      if (meta && typeof meta === 'object') registrations.push(meta)
+    } catch {}
+  }
+  const registered = new Set(registrations.map(meta => meta.sessionId))
+  for (const [sessionId, file] of index) {
+    if (registered.has(sessionId) || file.includes('observer-sessions')) continue
+    const t = readTranscript(file)
+    if (!t?.cwd || !t.messages || t.cwd.includes('observer-sessions')) continue
+    registrations.push({sessionId, cwd:t.cwd, startedAt:t.firstTs, status:'stopped'})
+  }
+
+  for (const meta of registrations) {
     const alive = isAlive(meta.pid)
     const file = meta.sessionId ? index.get(meta.sessionId) : null
     const t = file ? readTranscript(file) : null
@@ -377,7 +390,7 @@ function collect() {
     const ctx = t && t.contextTokens
 
     sessions.push({
-      pid: meta.pid,
+      pid: meta.pid || null,
       sessionId: meta.sessionId,
       shortId: meta.sessionId ? meta.sessionId.slice(0, 8) : null,
       name: meta.name || null,
@@ -427,8 +440,7 @@ function collect() {
 }
 
 // Look up a transcript by session id without going through the process registry.
-// A Fleet-managed session has a transcript but no registry entry of its own, so
-// collect() never sees it. Both caches apply, so an idle session costs one stat().
+// Both caches apply, so an idle session costs one stat().
 function transcriptFor(sessionId) {
   if (!sessionId) return null
   const file = transcriptIndex().get(sessionId)
