@@ -122,7 +122,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,defaultCwd:path.dirname(__dirname),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,supportsSessionReferences:true,defaultCwd:path.dirname(__dirname),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
       if(url.pathname==='/manifest.webmanifest'){
         const theme=currentTheme()
         res.writeHead(200,{'content-type':TYPES['.webmanifest'],'cache-control':'no-cache'})

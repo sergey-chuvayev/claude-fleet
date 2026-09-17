@@ -423,3 +423,20 @@ body[data-modal]{overflow:hidden}
   .modal-launch .launch-footer .button{margin-left:auto}
   .modal-launch .form-error{padding-inline:20px}
 }
+
+/* Session references share the command picker and stay with each draft. */
+.reference-tray{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 0 10px}
+.reference-chip{display:inline-flex;align-items:center;max-width:100%;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));border-radius:8px;background:color-mix(in oklab,var(--accent) 7%,var(--panel));overflow:hidden}
+.reference-chip button{border:0;background:transparent;color:var(--text);padding:7px 9px;font-size:11px;min-height:32px}
+.reference-chip button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.reference-chip button:last-child{color:var(--muted);border-left:1px solid var(--line)}
+.reference-chip button:hover{background:var(--raised)}
+.reference-note{font-size:10px;color:var(--muted)}
+.reference-empty{padding:14px;color:var(--muted);font-size:12px}
+.block-reference{padding:10px 13px;border-bottom:1px solid var(--line);font-size:11px}
+.block-reference summary{cursor:pointer;color:var(--accent);overflow-wrap:anywhere}
+.block-reference summary span,.block-reference p{color:var(--muted);font-size:10px}
+.block-reference pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--muted)}
+.session[draggable=true]{cursor:grab}
+.session[draggable=true]:active{cursor:grabbing}
+.reference-state{font-size:10px;color:var(--muted)}

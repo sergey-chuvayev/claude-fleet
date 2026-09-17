@@ -167,6 +167,7 @@ function readTranscript(file) {
   }
 
   const data = {
+    recentConversation: [],
     latestResponse: null,
     latestResponseAt: null,
     links: [],
@@ -221,6 +222,12 @@ function readTranscript(file) {
       const content = d.message && d.message.content
       const visible = typeof content === 'string' ? content : Array.isArray(content)
         ? content.filter(b => b.type === 'text').map(b => b.text || '').join('\n\n') : ''
+      const toolResult = Array.isArray(content) && content.some(b => b.type === 'tool_result')
+      const cleaned = visible.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '').trim()
+      if (!toolResult && cleaned) {
+        data.recentConversation.push({role:d.type,text:cleaned.slice(-1600)})
+        if (data.recentConversation.length > 12) data.recentConversation.shift()
+      }
       if (d.type === 'assistant' && visible.trim()) {
         data.latestResponse = visible.slice(-12000)
         data.latestResponseAt = d.timestamp || null
