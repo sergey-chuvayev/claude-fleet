@@ -1,0 +1,7 @@
+node_modules/
+.fleet/
+.firecrawl/
+*.log
+Claude Fleet.app/
+.DS_Store
+.claude/settings.local.json
