@@ -9,6 +9,7 @@ const { ManagedSessions } = require('./managed.js')
 const { readTheme, themeCss } = require('./theme.js')
 const { collect: collectCatalog } = require('./catalog.js')
 const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./search.js')
+const { Archive } = require('./archive.js')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
   { value:'', displayName:'Project default', description:'Whatever this project is configured to use' },
@@ -19,7 +20,7 @@ const MODEL_FALLBACK = [
 const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs()} = {}) {
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive()} = {}) {
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
   let eventTimer=null, storageError=null
@@ -70,9 +71,16 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       const rank=s=>s.managedStatus==='approval'?0:s.state==='busy'?1:s.state==='idle'?2:s.state==='stale'?3:4
       return rank(a)-rank(b) || (b.lastActivity||0)-(a.lastActivity||0)
     })
+    // Archived rows are still sent, flagged: the dashboard needs them to offer an
+    // Archived filter, and the counts above them describe the fleet you are working.
     const counts={busy:0,idle:0,stale:0,dead:0}
-    sessions.forEach(s=>counts[s.state]++)
-    return {...snap,sessions,counts,total:sessions.length,storageError}
+    let archived=0
+    for(const s of sessions){
+      s.archived=archive.isArchived(s)
+      if(s.archived) archived++
+      else counts[s.state]++
+    }
+    return {...snap,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,storageError}
   }
   const authorized=(req)=>{
     const supplied=req.headers['x-fleet-token']
@@ -110,6 +118,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
+        if(url.pathname==='/api/archive') return json(res,200,{changed:archive.set(data.ids,data.archived!==false),archived:archive.archived.size})
+        if(url.pathname==='/api/archive/rule') return json(res,200,{rule:archive.setRule(data)})
         const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|close|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
@@ -174,7 +184,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   server.requestTimeout=15000
   server.headersTimeout=10000
   async function close(){clearTimeout(eventTimer);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
-  return {server,manager,search,close,getSnapshot}
+  return {server,manager,search,archive,close,getSnapshot}
 }
 
 if(require.main===module){
