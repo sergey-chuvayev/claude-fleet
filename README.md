@@ -98,6 +98,25 @@ session's own process and never appear as separate rows at all.
 
 </details>
 
+### Old sessions can be put away
+
+Every transcript Claude has ever written is a row, so a machine that has been
+working for a month opens on ninety Offline sessions and three live ones. **Archive**
+in the inspector takes one out of the list; under the **Offline** filter, a strip
+offers to archive everything untouched past a threshold in one go, and to keep
+doing it.
+
+Archiving is a view, not an edit. Nothing moves and nothing is deleted:
+`claude --resume <session id>` still reaches an archived session, Ask still finds
+it, and **Restore** puts the row back. The set lives in `.fleet/archive.json`,
+alongside Fleet's own conversations rather than inside `~/.claude`.
+
+The standing rule only ever reaches sessions whose process has exited. A session
+that is alive stays in the list however long it has been quiet, because a quiet
+session you can still talk to is the one thing this dashboard exists to show you.
+Restoring a session by hand also exempts it from the rule permanently, so the next
+refresh cannot quietly undo the decision you just made.
+
 ### The conversation is a stack of blocks
 
 ![The Fleet console showing a rendered Markdown answer with an inline table, above a composer](docs/console.png)
@@ -237,7 +256,8 @@ requests, requires a per-server token for actions, serves only explicit UI asset
 and does not enable CORS. **Do not expose this server through a public proxy.**
 
 Managed agents can modify files and run tools as permitted by your Claude settings
-and approvals. Monitoring external sessions only ever reads their state.
+and approvals. Monitoring external sessions only ever reads their state, and
+archiving one changes only Fleet's own record of what to show.
 
 Asking a question reads every transcript in the window, including sessions from
 other projects, and sends the matched excerpts (not whole transcripts) to Claude as
@@ -261,6 +281,7 @@ for the app itself.
 |---|---|
 | [`server.js`](server.js) | Local HTTP API, event stream, origin and token checks, static assets |
 | [`fleet.js`](fleet.js) | Cached, read-only collection of external Claude sessions |
+| [`archive.js`](archive.js) | Which sessions are put away, the age rule, and its store |
 | [`managed.js`](managed.js) | SDK runs, approvals, tool blocks, persistence, cancellation |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
