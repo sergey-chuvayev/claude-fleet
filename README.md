@@ -38,7 +38,7 @@ your machine. There is no service, no account, and no telemetry.
 ## Install
 
 ```bash
-npm install -g @sergey-chuvayev/claude-fleet
+npm install -g @sergeychuvayev/claude-fleet
 claude-fleet
 ```
 
@@ -46,7 +46,7 @@ That prints the URL it bound to and opens it. If port 7777 is taken, Fleet tries
 the next ten. To try it without installing anything:
 
 ```bash
-npx @sergey-chuvayev/claude-fleet
+npx @sergeychuvayev/claude-fleet
 ```
 
 ```bash
