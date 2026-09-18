@@ -193,3 +193,31 @@ test('a terminal session survives registry removal and restart, and resumes its 
     fs.rmSync(root,{recursive:true,force:true})
   }
 })
+
+// Cost is the one number on a row that is money, so its edge cases matter more than most:
+// a fraction of a cent rendered as "$0.00" reads as "this was free", which is a lie.
+test('the cost label never rounds a real spend down to nothing', () => {
+  const vm = require('node:vm')
+  const context = vm.createContext({
+    window: {}, document: { getElementById: () => null, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], createElement: () => ({ style: {}, classList: { add() {} }, querySelectorAll: () => [] }), body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete' },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
+  catch (error) { if (error && error.name === 'SyntaxError') throw error }
+  const money = expression => vm.runInContext(expression, context)
+  // Nothing to show rather than a zero: a monitored terminal session reports no cost,
+  // and "$0.00" would claim it was free rather than unknown.
+  assert.equal(money('money(0)'), null)
+  assert.equal(money('money(null)'), null)
+  assert.equal(money('money(undefined)'), null)
+  assert.equal(money('money(-1)'), null)
+  assert.equal(money('money(0.004)'), '<$0.01')
+  assert.equal(money('money(0.0001)'), '<$0.01')
+  assert.equal(money('money(0.01)'), '$0.01')
+  assert.equal(money('money(0.426)'), '$0.43')
+  assert.equal(money('money(12.3)'), '$12.30')
+})

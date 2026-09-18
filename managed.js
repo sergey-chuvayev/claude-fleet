@@ -149,7 +149,7 @@ class ManagedSessions extends EventEmitter {
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
       kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null,
-      worktreeBranch:s.worktree?.branch || null,
+      worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
     }))
   }
   create(body) {

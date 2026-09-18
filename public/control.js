@@ -18,6 +18,9 @@ async function initializeControls() {
   if(!response.ok) throw new Error('Agent controls are unavailable. Restart the updated Fleet server.')
   const data=await response.json()
   controlToken=data.token
+  // The running server's version, not the version on disk: a restart is what picks up an
+  // update, and without this the difference is invisible until something 404s.
+  if(data.version) $('app-version').textContent=`v${data.version}`
   if(!$('launch-cwd').value) $('launch-cwd').value=data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
