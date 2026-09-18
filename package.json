@@ -34,8 +34,10 @@
     "permissions.js",
     "search.js",
     "server.js",
+    "teams.js",
     "theme.js",
-    "update.js"
+    "update.js",
+    "worktree.js"
   ],
   "scripts": {
     "start": "node bin/claude-fleet.js start",
