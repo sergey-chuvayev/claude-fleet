@@ -1,5 +1,5 @@
 {
-  "name": "@sergey-chuvayev/claude-fleet",
+  "name": "@sergeychuvayev/claude-fleet",
   "version": "0.1.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
