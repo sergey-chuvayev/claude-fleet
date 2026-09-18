@@ -443,3 +443,12 @@ body[data-modal]{overflow:hidden}
 .archived-note{margin-top:14px}
 .detail-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:end}
 @media(max-width:720px){.archive-bar{padding-inline:12px}.archive-auto{margin-left:0}}
+
+/* ---- Update pill -------------------------------------------------------- */
+/* Shown only when npm has a newer Fleet. Accent-tinted so it reads as an offer
+   sitting next to Refresh, never as an error. */
+.topbar .update-pill{border-color:color-mix(in oklab,var(--accent) 55%,var(--line));background:color-mix(in oklab,var(--accent) 14%,var(--raised));color:color-mix(in oklab,var(--accent) 72%,var(--text));font-weight:600;font-variant-numeric:tabular-nums}
+.topbar .update-pill:hover:not(:disabled){background:color-mix(in oklab,var(--accent) 24%,var(--raised))}
+.topbar .update-pill:disabled{opacity:.72;cursor:default}
+@media(prefers-reduced-motion:no-preference){.update-pill:not([hidden]){animation:update-pill-in .3s ease-out}}
+@keyframes update-pill-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}

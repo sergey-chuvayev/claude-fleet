@@ -6,6 +6,7 @@ const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
+const { stateDir } = require('./paths')
 
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
 // Used until a live run reports the runtime's own list, which replaces it.
@@ -44,7 +45,7 @@ function requestId(value) {
 }
 
 class ManagedSessions extends EventEmitter {
-  constructor({ directory = path.join(__dirname, '.fleet'), queryFactory, externalSessions = () => [] } = {}) {
+  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [] } = {}) {
     super()
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
@@ -83,7 +84,7 @@ class ManagedSessions extends EventEmitter {
       catch (error) {
         if (error.code !== 'EEXIST') throw error
         const pid = Number(fs.readFileSync(this.lock, 'utf8'))
-        if (!Number.isInteger(pid) || pid <= 0) throw new Error('Invalid Fleet lock file; inspect .fleet/server.lock.')
+        if (!Number.isInteger(pid) || pid <= 0) throw new Error(`Invalid Fleet lock file; inspect ${this.lock}.`)
         try { process.kill(pid, 0) }
         catch (e) { if (e.code === 'ESRCH') { fs.unlinkSync(this.lock); continue } }
         throw new Error(`Fleet controls are already running (PID ${pid}). Open that server instead.`)

@@ -35,25 +35,48 @@ those you can message, approve, interrupt and resume.
 Everything runs on `127.0.0.1` against the Claude account already configured on
 your machine. There is no service, no account, and no telemetry.
 
-## Quick start
+## Install
 
 ```bash
-git clone <this repo> claude-fleet && cd claude-fleet
+npm install -g @sergey-chuvayev/claude-fleet
+claude-fleet
+```
+
+That prints the URL it bound to and opens it. If port 7777 is taken, Fleet tries
+the next ten. To try it without installing anything:
+
+```bash
+npx @sergey-chuvayev/claude-fleet
+```
+
+```bash
+claude-fleet start        # no browser window
+PORT=8080 claude-fleet    # pick a port
+claude-fleet install-app  # put "Claude Fleet" in ~/Applications (macOS)
+claude-fleet update       # install the latest published version
+claude-fleet --help       # every command and variable
+```
+
+Requires **Node 22+** and a working `claude` on your PATH.
+
+Fleet checks npm for a newer version a few times a day and shows a pill in the
+top bar when there is one. Clicking it installs the update and reloads; nothing
+is installed without that click. From a git checkout the pill tells you to
+`git pull` instead of offering to overwrite your working copy.
+
+<details>
+<summary><b>Running from a checkout</b></summary>
+
+```bash
+git clone https://github.com/sergey-chuvayev/claude-fleet && cd claude-fleet
 npm install
 ./start.sh
 ```
 
-`start.sh` prints the URL it actually bound to and opens it. If port 7777 is
-taken, Fleet tries the next ten.
+`start.sh` is the same entry point as the installed `claude-fleet` command, so
+both prefer the `claude` already on your PATH over the one bundled with the SDK.
 
-```bash
-npm start            # server only, default port 7777
-PORT=8080 npm start  # pick a port
-npm test             # data, controller, permissions, theme and HTTP tests
-npm run app          # build "Claude Fleet.app", a macOS launcher
-```
-
-Requires **Node 22+** and a working `claude` on your PATH.
+</details>
 
 ## What it does
 
@@ -239,11 +262,14 @@ with no image library, so rerun it if you switch themes.
 
 ### It can live in the Dock
 
-`npm run app` builds **Claude Fleet.app** next to the project. Opening it starts
-the server if it is not already listening, then opens Fleet in a Chrome app window
-with no tab strip or address bar. It falls back to Edge, then Brave, then your
-default browser, and logs to `~/Library/Logs/claude-fleet.log`. The bundle holds no
-credentials and no copy of the project, only the path to it.
+`claude-fleet install-app` puts **Claude Fleet.app** in `~/Applications`. Opening
+it starts the server if it is not already listening, then opens Fleet in a Chrome
+app window with no tab strip or address bar. It falls back to Edge, then Brave,
+then your default browser, and logs to `~/Library/Logs/claude-fleet.log`. The
+bundle holds no credentials and no copy of the project, only the paths to node and
+to Fleet's entry point — which npm keeps stable, so updates do not break it. If you
+later switch Node versions with a version manager, rerun `claude-fleet install-app`;
+until you do, the app says so in a notification rather than failing silently.
 
 Fleet also serves a web app manifest, so you can install it from the browser
 instead: in Chrome, **⋮ → Cast, Save and Share → Install page as app**; in Safari,
@@ -291,13 +317,23 @@ for the app itself.
 | `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
 | `public/control.js` | Launch form, composer, approvals, streamed updates |
 | `public/ask.js` | The Ask panel, its polling, and the result cards |
+| [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
+| [`update.js`](update.js) | The npm version check, its cache, and the self-install |
+| [`bin/claude-fleet.js`](bin/claude-fleet.js) | The installed command: start, install-app, update |
 | `build/` | Vendored browser bundle, icon drawing, macOS launcher |
+
+Fleet keeps its own state — conversations, attachments, the archive, the process
+lock — in `~/.claude-fleet`, never in the install directory, which npm replaces on
+every update. A pre-install `.fleet/` next to a checkout is copied over on first
+run and left in place.
 
 ### Environment
 
 | Variable | Effect |
 |---|---|
 | `PORT` | Preferred port, default 7777 |
+| `CLAUDE_FLEET_HOME` | Where Fleet keeps its own state, default `~/.claude-fleet` |
+| `CLAUDE_FLEET_DEFAULT_CWD` | Directory a new agent starts in when none is picked |
 | `CLAUDE_FLEET_DIR` | Claude home to read sessions from, default `~/.claude` |
 | `CLAUDE_FLEET_EXECUTABLE` | Absolute path to the `claude` binary, or `bundled` for the SDK's own |
 | `CLAUDE_FLEET_WARP_DIR` | Warp configuration directory to theme from |
@@ -305,8 +341,9 @@ for the app itself.
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |
 
 The SDK ships its own Claude runtime, which can lag the CLI you actually use and
-so offer an older set of models. `start.sh` and the Mac app therefore prefer the
-`claude` on your PATH. Running `npm start` directly does not apply this preference.
+so offer an older set of models. The `claude-fleet` command therefore prefers the
+`claude` on your PATH. Running `node server.js` directly does not apply this
+preference.
 
 ### Development
 
@@ -314,6 +351,12 @@ so offer an older set of models. `start.sh` and the Mac app therefore prefer the
 npm test          # node --test across *.test.js
 npm run vendor    # rebuild public/vendor/libs.js after changing its inputs
 ```
+
+Tests run against a throwaway `CLAUDE_FLEET_HOME` (see `test-setup.js`), so a test
+run never touches your real state.
+
+Releasing is a tag push. `npm version patch && git push --follow-tags` runs the
+suite, checks the tag against `package.json`, and publishes to npm with provenance.
 
 `app.js`, `blocks.js` and `control.js` are classic scripts sharing one global
 scope, so a duplicate top-level `const` across files is a `SyntaxError` that kills

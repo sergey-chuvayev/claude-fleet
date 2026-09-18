@@ -1,9 +1,10 @@
 'use strict'
 // Which saved sessions the operator has put away. Archiving is a view over
 // ~/.claude, never a change to it: an archived session still resumes with
-// `claude --resume` and still answers an Ask. Fleet's own state, in .fleet/.
+// `claude --resume` and still answers an Ask. Fleet's own state, in ~/.claude-fleet.
 const fs = require('node:fs')
 const path = require('node:path')
+const { stateDir } = require('./paths')
 
 const DAY = 24 * 60 * 60 * 1000
 const DEFAULT_RULE = { enabled: false, days: 14 }
@@ -30,7 +31,7 @@ const trim = map => map.size <= MAX_ENTRIES ? map
   : new Map([...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_ENTRIES))
 
 class Archive {
-  constructor({ directory = path.join(__dirname, '.fleet') } = {}) {
+  constructor({ directory = stateDir() } = {}) {
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.file = path.join(directory, 'archive.json')
     this.archived = new Map() // sessionId -> when it was put away

@@ -352,3 +352,75 @@ function composerKeydown(event) {
   if (event.key === 'Tab') { event.preventDefault(); return insertPick(picked) }
   if (event.key === 'Escape') { event.preventDefault(); return closePicker() }
 }
+
+// ---- Updates -------------------------------------------------------------
+// The server asks npm whether a newer Fleet has been published; the pill only
+// appears when there is one, and nothing installs without a click.
+let fleetUpdate = null, fleetUpdateBusy = false
+
+// Takes its state as arguments rather than reading the two globals, so the states
+// can be exercised one by one from a test.
+function renderUpdate(update = fleetUpdate, busy = fleetUpdateBusy) {
+  const pill = $('update-pill')
+  if (!update || !update.available) { pill.hidden = true; return }
+  pill.hidden = false
+  pill.disabled = busy || !update.canInstall
+  if (busy) {
+    pill.textContent = update.state === 'installed' ? 'Restarting…' : 'Installing…'
+    pill.title = 'Fleet will reload itself when this finishes.'
+    return
+  }
+  pill.textContent = `↑ v${update.latest}`
+  // A checkout is the operator's to pull; only an npm install can replace itself.
+  pill.title = update.canInstall
+    ? `Claude Fleet v${update.latest} is available. Click to install it and reload.`
+    : update.channel === 'source'
+      ? `v${update.latest} is published. This Fleet runs from a git checkout — update it with git pull.`
+      : `v${update.latest} is published. This Fleet was not installed with npm, so it cannot update itself.`
+}
+async function pollUpdate() {
+  try {
+    const response = await fetch('/api/update', { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+    if (!response.ok) return
+    fleetUpdate = (await response.json()).update
+    renderUpdate()
+  } catch {} // An older server, or no network. Either way there is nothing to show.
+}
+// The server hands the port to the new version, so wait for it to answer again
+// rather than reloading into a closed socket.
+async function waitForRestart(deadline = Date.now() + 60000) {
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 700))
+    try {
+      const response = await fetch('/api/control', { cache: 'no-store', signal: AbortSignal.timeout(3000) })
+      if (response.ok) return location.reload()
+    } catch {}
+  }
+  fleetUpdateBusy = false
+  renderUpdate()
+  toast('Fleet installed the update but did not come back. Start it again.')
+}
+$('update-pill').addEventListener('click', async () => {
+  if (fleetUpdateBusy || !fleetUpdate || !fleetUpdate.canInstall) return
+  fleetUpdateBusy = true
+  renderUpdate()
+  try {
+    const data = await api('/api/update', {})
+    fleetUpdate = data.update
+    renderUpdate()
+    if (data.update.restarting) return waitForRestart()
+    fleetUpdateBusy = false
+    renderUpdate()
+    toast(`v${data.update.installed} installed. Restart Fleet to use it.`)
+  } catch (error) {
+    fleetUpdateBusy = false
+    fleetUpdate = { ...fleetUpdate, state: 'failed' }
+    renderUpdate()
+    toast(error.message || 'The update could not be installed.')
+  }
+})
+pollUpdate()
+// The first check runs in the background on the server; ask again once it has had
+// time to answer, then settle into a slow poll for long-lived windows.
+setTimeout(pollUpdate, 9000)
+setInterval(pollUpdate, 60 * 60 * 1000)
