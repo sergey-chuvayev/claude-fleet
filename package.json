@@ -48,8 +48,7 @@
     "node": ">=22"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.177",
