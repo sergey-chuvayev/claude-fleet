@@ -75,36 +75,89 @@ const hasUnseen = s => !!s.lastActivity && key(s) !== selected && (seen[key(s)] 
 
 function render() {
   if (!snapshot) return
-  const {sessions, counts, total} = snapshot
-  const background = sessions.filter(s => s.background)
+  const {sessions, total} = snapshot
+  // Archived sessions are put away, not deleted: they leave every count and every
+  // filter but their own, and the transcript behind them is untouched.
+  const archived = sessions.filter(s => s.archived)
+  const live = sessions.filter(s => !s.archived)
+  const background = live.filter(s => s.background)
   // How many spawned sessions each visible session is running, for its row badge.
   const spawnCounts = new Map()
   for (const s of background) if (s.spawnedByPid) spawnCounts.set(s.spawnedByPid, (spawnCounts.get(s.spawnedByPid) || 0) + 1)
-  const foreground = sessions.filter(s => !s.background)
+  const foreground = live.filter(s => !s.background)
   const visibleCounts = { busy:0, idle:0, stale:0, dead:0 }
   for (const s of foreground) visibleCounts[s.state] = (visibleCounts[s.state] || 0) + 1
-  const pool = filter === 'background' ? background : foreground
+  // Restoring the last archived session should not strand you on an empty filter.
+  if (filter === 'archived' && !archived.length) filter = 'all'
+  const pool = filter === 'archived' ? archived : filter === 'background' ? background : foreground
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
-  const shown = pool.filter(s => filter === 'all' || filter === 'background' || s.state === filter)
+  const shown = pool.filter(s => filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter)
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
-  update('filters', [['all','All sessions',total - background.length],...STATES.map(s => [s,LABELS[s],(visibleCounts[s] || 0)]),...(background.length ? [['background','Background',background.length]] : [])].map(([s,label,n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join(''))
+  update('filters', [['all','All sessions',foreground.length],...STATES.map(s => [s,LABELS[s],(visibleCounts[s] || 0)]),...(background.length ? [['background','Background',background.length]] : []),...(archived.length ? [['archived','Archived',archived.length]] : [])].map(([s,label,n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join(''))
+  renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
   update('session-list', shown.length ? shown.map(s => {
     const p = percent(s)
-    return `<button class="session" data-session="${esc(key(s))}" aria-pressed="${selected === key(s)}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}</span><span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>`
+    return `<button class="session" data-session="${esc(key(s))}" aria-pressed="${selected === key(s)}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span><span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>`
   }).join('') : `<div class="empty">${filter === 'background' ? 'No background sessions right now.' : total ? 'No sessions match your filters.<br>Try another search or select All sessions.' : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'}</div>`)
   const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
   renderDetail(current)
   if (typeof selectControl === 'function') selectControl(current)
 }
+// ── The archive ──────────────────────────────────────────────────────────────
+// Putting a session away hides its row and nothing else: the transcript stays in
+// ~/.claude, `claude --resume` still reaches it, and Ask still finds it. One age
+// threshold serves both the one-off sweep and the standing rule, so the button and
+// the checkbox can never disagree about what "old" means.
+const DAY_MS = 86400000
+const SWEEP_DAYS = [3, 7, 14, 30]
+const archiveRule = () => (snapshot && snapshot.archiveRule) || { enabled: false, days: 14 }
+const sweepTargets = () => {
+  const cutoff = Date.now() - archiveRule().days * DAY_MS
+  return (snapshot ? snapshot.sessions : []).filter(s => !s.archived && !s.managed && s.state === 'dead' && s.sessionId && s.lastActivity && s.lastActivity < cutoff)
+}
+// Boolean attributes are written the way the browser serialises them, so an
+// unchanged bar compares equal and a refresh never closes an open dropdown.
+function renderArchiveBar(offline, archivedCount) {
+  const bar = $('archive-bar')
+  if (!bar) return
+  if (filter !== 'dead' && filter !== 'archived') { bar.hidden = true; return }
+  bar.hidden = false
+  if (filter === 'archived') return update('archive-bar', `<span class="archive-text">${archivedCount} session${archivedCount === 1 ? '' : 's'} put away. Each one still resumes in a terminal and still answers an Ask.</span><button class="button" id="archive-restore-all">Restore all</button>`)
+  const rule = archiveRule()
+  const stale = offline.filter(s => s.lastActivity && Date.now() - s.lastActivity > rule.days * DAY_MS).length
+  // A stored threshold that is not one of the presets is still offered, so the
+  // dropdown can never show a different number than the rule is actually using.
+  const days = [...new Set([...SWEEP_DAYS, rule.days])].sort((a, b) => a - b)
+  update('archive-bar', `<span class="archive-text">Archive offline sessions untouched for over</span><select id="archive-days" class="archive-days" aria-label="Age after which an offline session counts as old">${days.map(d => `<option value="${d}"${d === rule.days ? ' selected=""' : ''}>${d} days</option>`).join('')}</select>${stale ? `<button class="button" id="archive-sweep">Archive ${stale}</button>` : '<span class="archive-none">Nothing that old</span>'}<label class="archive-auto"><input type="checkbox" id="archive-rule"${rule.enabled ? ' checked=""' : ''}> Keep tidying automatically</label>`)
+}
+async function setArchived(ids, archived) {
+  if (!ids.length) return
+  try {
+    await api('/api/archive', { ids, archived })
+    toast(`${ids.length} session${ids.length === 1 ? '' : 's'} ${archived ? 'archived' : 'restored'}`)
+    await tick()
+  } catch (error) { toast(error.message || 'Could not update the archive.') }
+}
+document.addEventListener('change', async event => {
+  const target = event.target
+  if (target.id !== 'archive-days' && target.id !== 'archive-rule') return
+  const rule = archiveRule()
+  try {
+    await api('/api/archive/rule', target.id === 'archive-days'
+      ? { enabled: rule.enabled, days: Number(target.value) }
+      : { enabled: target.checked, days: rule.days })
+    await tick()
+  } catch (error) { toast(error.message || 'Could not save the archive rule.') }
+})
 function renderDetail(s) {
   if (!s) { update('detail-content','<div class="detail-empty"><span class="empty-symbol">⌘</span><h2>The full picture.</h2><p>Select a session to inspect it.</p></div>'); return }
   const p = percent(s)
   const links = (s.links || []).filter(l => /^https:\/\/(github\.com|linear\.app)\//.test(l.url))
   const facts = [['Project',s.cwdShort],['Branch',s.branch],['Model',s.model?.replace('claude-','')],['Permissions',s.permissionMode || 'Default'],['Control',s.managed ? 'Fleet-managed' : s.alive ? 'Terminal · monitor only' : 'Saved · ready to continue'],['Session',s.sessionId]]
-  update('detail-content', `<div class="detail-top"><span class="eyebrow">SESSION INSPECTOR</span>${status(s)}</div><h2>${esc(s.title || s.name || 'Untitled session')}</h2><div class="detail-name">${esc(s.name || s.shortId)} · Active ${age(s.lastActivity)} ago</div><div class="context-label"><span>Context window</span><span class="${heat(p)}">${p === null ? 'Not available' : `${tokens(s.contextTokens)} / ${tokens(s.contextLimit)} · ${Math.round(p)}%`}</span></div><div class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></div>${p >= 75 ? `<p class="note ${heat(p)}">${p >= 90 ? 'Context nearly full. Compaction may happen soon.' : 'Context is getting full.'}</p>` : ''}${s.managed ? '' : `<section class="detail-section"><h3>Latest response <span>${s.latestResponseAt ? age(s.latestResponseAt)+' ago' : ''}</span></h3><div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div></section>`}${s.lastPrompt && !s.managed ? `<section class="detail-section"><h3>Latest request</h3><div class="response">${esc(s.lastPrompt)}</div></section>` : ''}<section class="detail-section"><h3>Linked work <span>From transcript</span></h3>${links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '⑂' : '◩'} ${esc(l.label)} ↗</a>`).join('')}</div><p class="note" style="margin-top:9px">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>'}</section><section class="detail-section"><h3>Environment</h3><dl class="facts">${facts.map(([label,value]) => `<dt>${label}</dt><dd>${esc(value ?? '—')}</dd>`).join('')}</dl></section>${s.transcriptTruncated ? '<p class="note">Showing the most recent 6 MB of this transcript. Earlier responses and links may be absent.</p>' : ''}<div class="detail-actions"><span class="subtle">${s.messages} recorded messages</span>${s.resumeCmd && !s.managed ? '<button class="button resume" id="copy-resume">Copy resume command ↗</button>' : ''}</div>`)
+  update('detail-content', `<div class="detail-top"><span class="eyebrow">SESSION INSPECTOR</span>${status(s)}</div><h2>${esc(s.title || s.name || 'Untitled session')}</h2><div class="detail-name">${esc(s.name || s.shortId)} · Active ${age(s.lastActivity)} ago</div><div class="context-label"><span>Context window</span><span class="${heat(p)}">${p === null ? 'Not available' : `${tokens(s.contextTokens)} / ${tokens(s.contextLimit)} · ${Math.round(p)}%`}</span></div><div class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></div>${p >= 75 ? `<p class="note ${heat(p)}">${p >= 90 ? 'Context nearly full. Compaction may happen soon.' : 'Context is getting full.'}</p>` : ''}${s.managed ? '' : `<section class="detail-section"><h3>Latest response <span>${s.latestResponseAt ? age(s.latestResponseAt)+' ago' : ''}</span></h3><div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div></section>`}${s.lastPrompt && !s.managed ? `<section class="detail-section"><h3>Latest request</h3><div class="response">${esc(s.lastPrompt)}</div></section>` : ''}<section class="detail-section"><h3>Linked work <span>From transcript</span></h3>${links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '⑂' : '◩'} ${esc(l.label)} ↗</a>`).join('')}</div><p class="note" style="margin-top:9px">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>'}</section><section class="detail-section"><h3>Environment</h3><dl class="facts">${facts.map(([label,value]) => `<dt>${label}</dt><dd>${esc(value ?? '—')}</dd>`).join('')}</dl></section>${s.transcriptTruncated ? '<p class="note">Showing the most recent 6 MB of this transcript. Earlier responses and links may be absent.</p>' : ''}${s.archived ? '<p class="note archived-note">Archived. Hidden from your fleet, still on disk, still resumable and still searchable.</p>' : ''}<div class="detail-actions"><span class="subtle">${s.messages} recorded messages</span><span class="detail-buttons">${s.managed || !s.sessionId ? '' : `<button class="button" id="toggle-archive">${s.archived ? 'Restore' : 'Archive'}</button>`}${s.resumeCmd && !s.managed ? '<button class="button resume" id="copy-resume">Copy resume command ↗</button>' : ''}</span></div>`)
 }
 // ── Modals ───────────────────────────────────────────────────────────────────
 // Ask and New agent are overlays, not panels that push the workspace down. One at
@@ -165,6 +218,12 @@ document.addEventListener('click', async event => {
   if (b.dataset.session) {
     selected = b.dataset.session; render()
     if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({behavior:'instant',block:'start'})
+  }
+  if (b.id === 'archive-sweep') return setArchived(sweepTargets().map(s => s.sessionId), true)
+  if (b.id === 'archive-restore-all') return setArchived(snapshot.sessions.filter(s => s.archived && s.sessionId).map(s => s.sessionId), false)
+  if (b.id === 'toggle-archive') {
+    const s = snapshot?.sessions.find(s => key(s) === selected)
+    if (s?.sessionId) return setArchived([s.sessionId], !s.archived)
   }
   if (b.id === 'copy-resume') {
     const s = snapshot?.sessions.find(s => key(s) === selected)

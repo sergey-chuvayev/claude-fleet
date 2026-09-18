@@ -9,6 +9,10 @@ const { ManagedSessions } = require('./managed.js')
 const { readTheme, themeCss } = require('./theme.js')
 const { collect: collectCatalog } = require('./catalog.js')
 const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./search.js')
+const { Archive } = require('./archive.js')
+const { Updater } = require('./update.js')
+const { defaultCwd } = require('./paths.js')
+const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
   { value:'', displayName:'Project default', description:'Whatever this project is configured to use' },
@@ -19,7 +23,7 @@ const MODEL_FALLBACK = [
 const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs()} = {}) {
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null} = {}) {
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
   let eventTimer=null, storageError=null
@@ -70,9 +74,16 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       const rank=s=>s.managedStatus==='approval'?0:s.state==='busy'?1:s.state==='idle'?2:s.state==='stale'?3:4
       return rank(a)-rank(b) || (b.lastActivity||0)-(a.lastActivity||0)
     })
+    // Archived rows are still sent, flagged: the dashboard needs them to offer an
+    // Archived filter, and the counts above them describe the fleet you are working.
     const counts={busy:0,idle:0,stale:0,dead:0}
-    sessions.forEach(s=>counts[s.state]++)
-    return {...snap,sessions,counts,total:sessions.length,storageError}
+    let archived=0
+    for(const s of sessions){
+      s.archived=archive.isArchived(s)
+      if(s.archived) archived++
+      else counts[s.state]++
+    }
+    return {...snap,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,storageError}
   }
   const authorized=(req)=>{
     const supplied=req.headers['x-fleet-token']
@@ -103,13 +114,24 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       const url=new URL(req.url,`http://${req.headers.host}`)
       if(req.method==='POST') {
         if(!authorized(req)) return json(res,403,{error:'Reload Fleet before sending commands.'})
-        if(storageError && !/^\/api\/managed\/[\w-]+\/stop$/.test(url.pathname)) return json(res,503,{error:storageError})
+        // Stopping an agent and installing an update both stay available when the
+        // session store is unwritable: one is an escape hatch, the other may be the fix.
+        if(storageError && url.pathname!=='/api/update' && !/^\/api\/managed\/[\w-]+\/stop$/.test(url.pathname)) return json(res,503,{error:storageError})
         // Only the two endpoints that carry a message accept image-sized bodies.
         const carriesMessage=url.pathname==='/api/managed' || /^\/api\/managed\/[\w-]+\/messages$/.test(url.pathname)
         const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : 65536)
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
+        if(url.pathname==='/api/archive') return json(res,200,{changed:archive.set(data.ids,data.archived!==false),archived:archive.archived.size})
+        if(url.pathname==='/api/archive/rule') return json(res,200,{rule:archive.setRule(data)})
+        if(url.pathname==='/api/update'){
+          const update=await updater.apply()
+          // The new code is on disk but this process is still the old one. Hand the
+          // port over once the answer has been written, so the page knows to wait.
+          if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
+          return json(res,200,{update:{...update,restarting:!!restart}})
+        }
         const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|close|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
@@ -122,7 +144,13 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,defaultCwd:path.dirname(__dirname),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,defaultCwd:defaultCwd(),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/update'){
+        // Answer from the cache and refresh behind the request: a page load should
+        // never wait on npm's registry, and the dashboard asks again shortly after.
+        updater.check().catch(()=>{})
+        return json(res,200,{update:updater.status()})
+      }
       if(url.pathname==='/manifest.webmanifest'){
         const theme=currentTheme()
         res.writeHead(200,{'content-type':TYPES['.webmanifest'],'cache-control':'no-cache'})
@@ -174,12 +202,31 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   server.requestTimeout=15000
   server.headersTimeout=10000
   async function close(){clearTimeout(eventTimer);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
-  return {server,manager,search,close,getSnapshot}
+  return {server,manager,search,archive,updater,close,getSnapshot}
 }
 
-if(require.main===module){
+// Starting the server is the CLI's job too, so it lives in a function rather than
+// in a `require.main` block: bin/claude-fleet.js calls this, which keeps argv[1]
+// pointing at the installed command that a restart needs to re-run.
+function main(){
   let app
-  try{app=createApp()}catch(error){console.error(error.message);process.exit(1)}
+  // Hand the port to the version that was just installed. argv[1] is the entry npm
+  // put on PATH; the update replaced what it points at, so re-running it runs the
+  // new code. The session lock and the port are both released by close() first.
+  const restart=async()=>{
+    const entry=process.argv[1]
+    const held=app.server.address()?.port || port
+    // The page that asked for this is already open and waiting to be reloaded, so
+    // the replacement must not raise a second window. Dropping --open is not enough:
+    // with no command, the CLI opens one by default. --no-open says it outright.
+    const args=[...process.argv.slice(2).filter(a=>a!=='--open'),'--no-open']
+    await app.close()
+    const child=require('node:child_process').spawn(process.execPath,[entry,...args],{detached:true,stdio:'ignore',env:{...process.env,PORT:String(held)}})
+    child.on('error',error=>{console.error(`Could not restart Fleet: ${error.message}`);process.exit(1)})
+    child.unref()
+    setTimeout(()=>process.exit(0),100).unref()
+  }
+  try{app=createApp({restart})}catch(error){console.error(error.message);process.exit(1)}
   let attempt=0,port=Number(process.env.PORT||7777)
   app.server.on('error',async error=>{
     if(error.code==='EADDRINUSE' && attempt++<10){app.server.listen(++port,HOST);return}
@@ -187,9 +234,11 @@ if(require.main===module){
   })
   app.server.on('listening',()=>{
     const url=`http://${HOST}:${app.server.address().port}`
-    console.log(`\n  Claude Fleet → ${url}\n  Local dashboard + managed agents · ctrl-c to stop\n`)
+    console.log(`\n  Claude Fleet v${VERSION} → ${url}\n  Local dashboard + managed agents · ctrl-c to stop\n`)
     // Index transcripts in the background so the first question does not wait for it.
     setTimeout(()=>warmSearch().catch(()=>{}),1500).unref()
+    // And ask npm whether there is a newer Fleet, well after the page has loaded.
+    setTimeout(()=>app.updater.check().catch(()=>{}),5000).unref()
     if(process.argv.includes('--open')) {
       const opener=process.platform==='darwin'?'open':'xdg-open'
       const child=require('node:child_process').spawn(opener,[url],{stdio:'ignore'})
@@ -200,5 +249,7 @@ if(require.main===module){
   let closing=false
   const shutdown=async()=>{if(closing)return;closing=true;await app.close();process.exit(0)}
   process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown)
+  return app
 }
-module.exports={createApp}
+if(require.main===module) main()
+module.exports={createApp,main}

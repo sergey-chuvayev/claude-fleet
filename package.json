@@ -1,17 +1,55 @@
 {
-  "name": "claude-fleet",
+  "name": "@sergey-chuvayev/claude-fleet",
   "version": "0.1.0",
-  "private": true,
   "description": "A local control room for Claude Code sessions",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "dashboard",
+    "agents",
+    "cli",
+    "anthropic"
+  ],
+  "homepage": "https://github.com/sergey-chuvayev/claude-fleet#readme",
+  "bugs": "https://github.com/sergey-chuvayev/claude-fleet/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sergey-chuvayev/claude-fleet.git"
+  },
+  "license": "MIT",
+  "author": "Sergey Chuvayev",
+  "bin": {
+    "claude-fleet": "bin/claude-fleet.js"
+  },
+  "files": [
+    "bin/",
+    "public/",
+    "build/make-app.sh",
+    "archive.js",
+    "catalog.js",
+    "fleet.js",
+    "managed.js",
+    "paths.js",
+    "permissions.js",
+    "search.js",
+    "server.js",
+    "theme.js",
+    "update.js"
+  ],
   "scripts": {
-    "start": "node server.js",
-    "test": "node --test *.test.js",
+    "start": "node bin/claude-fleet.js start",
+    "test": "node --require ./test-setup.js --test *.test.js",
     "vendor": "esbuild build/vendor-entry.js --bundle --minify --format=iife --target=es2022 --outfile=public/vendor/libs.js",
     "icons": "node build/make-icons.js",
-    "app": "bash build/make-app.sh"
+    "app": "node bin/claude-fleet.js install-app",
+    "prepack": "npm run vendor"
   },
   "engines": {
     "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.177",
