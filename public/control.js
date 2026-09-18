@@ -20,10 +20,37 @@ async function initializeControls() {
   controlToken=data.token
   if(!$('launch-cwd').value) $('launch-cwd').value=data.defaultCwd
 }
+let launchTeams=null, launchTeamsLoading=false
+function updateLaunchTeam() {
+  const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
+  $('launch-title').textContent=resumeSource ? 'Continue this conversation in Fleet.' : team ? 'Give your team a brief.' : 'Give your next task a home.'
+  document.querySelector('label[for="launch-prompt"]').textContent=team ? 'Brief for the manager' : 'What are we working on?'
+  document.querySelector('.launch-task-note').textContent=team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'Big ideas, small fixes. Every task starts here.'
+  $('launch-prompt').placeholder=team ? 'Describe the goal, boundaries, verification steps, and what a good result looks like.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
+  if(!$('launch-submit').disabled) $('launch-submit').textContent=team ? 'Launch initiative ↗' : 'Launch agent ↗'
+  $('launch-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
+  $('launch-team-note').textContent=resumeSource ? 'Continuing with the existing agent.' : team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? 'No team keeps this a single-agent conversation.' : 'Teams unavailable. Reopen this dialog to retry; single agents are still available.'
+}
+async function loadLaunchTeams() {
+  if(!$('launch-team')) {
+    document.querySelector('.launch-fields').insertAdjacentHTML('afterbegin','<label for="launch-team">Team<select id="launch-team" name="teamId" aria-describedby="launch-team-note"><option value="">No team · single agent</option></select><span class="note" id="launch-team-note" role="status"></span></label>')
+    $('launch-team').addEventListener('change',()=>{launchRequestId=null;updateLaunchTeam()})
+  }
+  if(launchTeams || launchTeamsLoading){updateLaunchTeam();return}
+  launchTeamsLoading=true;updateLaunchTeam()
+  try {
+    const data=await api('/api/teams')
+    if(!Array.isArray(data.teams)) throw new Error('Invalid teams')
+    launchTeams=data.teams
+    for(const team of launchTeams) $('launch-team').add(new Option(team.name,team.id))
+  } catch { launchTeams=null }
+  finally {launchTeamsLoading=false;updateLaunchTeam()}
+}
 function openLaunch(source=null) {
   resumeSource=source
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
   if(source){$('launch-cwd').value=source.cwd || '';$('launch-form').elements.name.value=source.title || source.name || ''}
+  loadLaunchTeams()
   $('launch-cwd').readOnly=!!source
   openModal('launch-backdrop', '[name=prompt]')
 }
@@ -41,17 +68,17 @@ $('launch-form').addEventListener('submit',async event=>{
   const button=$('launch-submit'); if(button.disabled)return
   button.disabled=true;button.textContent='Launching…';$('launch-error').hidden=true
   const form=event.currentTarget
-  form.querySelectorAll('input,textarea').forEach(el=>el.disabled=true)
+  form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=true)
   launchRequestId ||= crypto.randomUUID()
   try{
-    const data=await api('/api/managed',{cwd:form.elements.cwd.value,name:form.elements.name.value,prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
+    const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource ? {teamId:form.elements.teamId.value}: {}),cwd:form.elements.cwd.value,name:form.elements.name.value,prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
     selected=data.session.id;filter='all'
     form.elements.prompt.value='';launchRequestId=null
     closeModal()
-    await tick();toast('Agent launched')
+    await tick();toast(form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
   }catch(error){$('launch-error').textContent=error.message;$('launch-error').hidden=false}
-  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea').forEach(el=>el.disabled=false)}
+  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=false);if($('launch-team'))updateLaunchTeam()}
 })
 function selectControl(session) {
   const next=session?.managedId || null
@@ -155,7 +182,11 @@ function renderControl() {
 function renderApprovals(approvals) {
   $('approvals').innerHTML=approvals.map(p=>{
     const question=p.tool==='AskUserQuestion'
-    return `<form class="approval" data-approval="${esc(p.id)}"><div class="eyebrow">${question?'CLAUDE HAS A QUESTION':'APPROVAL REQUIRED'}</div><h4>${esc(p.description || p.tool)}</h4>${p.reason && !question ? `<p class="approval-reason">${esc(p.reason)}</p>` : ''}${question ? (p.input.questions || []).map((q,i)=>`<fieldset><legend>${esc(q.question)}</legend>${(q.options || []).map(o=>`<label class="answer-option"><input type="${q.multiSelect?'checkbox':'radio'}" name="q${i}" value="${esc(o.label)}"><span>${esc(o.label)}${o.description?`<small>${esc(o.description)}</small>`:''}</span></label>`).join('')}<label class="other-answer">Your answer<input type="text" name="other${i}" placeholder="Or type your own answer" maxlength="4000"></label></fieldset>`).join('') : `<pre class="tool-input">${esc(JSON.stringify(p.input,null,2))}</pre>`}<div class="approval-actions"><button class="button" type="button" data-deny="${esc(p.id)}">${question?'Skip question':'Deny'}</button><button class="button resume" type="submit">${question?'Send answer':'Allow once'}</button></div><p class="form-error" role="alert" hidden></p></form>`
+    // Inside an initiative, which role wants this is the whole question. "Approve rm?" with
+    // no name attached is how an operator ends up approving something the developer asked
+    // for while believing the manager did.
+    const who=p.role ? ` · ${esc(p.role.toUpperCase())}` : ''
+    return `<form class="approval" data-approval="${esc(p.id)}"><div class="eyebrow">${question?'CLAUDE HAS A QUESTION':'APPROVAL REQUIRED'}${who}</div><h4>${esc(p.description || p.tool)}</h4>${p.reason && !question ? `<p class="approval-reason">${esc(p.reason)}</p>` : ''}${question ? (p.input.questions || []).map((q,i)=>`<fieldset><legend>${esc(q.question)}</legend>${(q.options || []).map(o=>`<label class="answer-option"><input type="${q.multiSelect?'checkbox':'radio'}" name="q${i}" value="${esc(o.label)}"><span>${esc(o.label)}${o.description?`<small>${esc(o.description)}</small>`:''}</span></label>`).join('')}<label class="other-answer">Your answer<input type="text" name="other${i}" placeholder="Or type your own answer" maxlength="4000"></label></fieldset>`).join('') : `<pre class="tool-input">${esc(JSON.stringify(p.input,null,2))}</pre>`}<div class="approval-actions"><button class="button" type="button" data-deny="${esc(p.id)}">${question?'Skip question':'Deny'}</button><button class="button resume" type="submit">${question?'Send answer':'Allow once'}</button></div><p class="form-error" role="alert" hidden></p></form>`
   }).join('')
   $('approvals').querySelectorAll('form').forEach(form=>{
     const approval=approvals.find(p=>p.id===form.dataset.approval)

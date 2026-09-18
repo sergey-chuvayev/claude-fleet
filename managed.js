@@ -7,6 +7,8 @@ const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
 const { stateDir } = require('./paths')
+const { getTeam, compile } = require('./teams')
+const worktrees = require('./worktree')
 
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
 // Used until a live run reports the runtime's own list, which replaces it.
@@ -146,6 +148,8 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null,
+      worktreeBranch:s.worktree?.branch || null,
     }))
   }
   create(body) {
@@ -170,10 +174,17 @@ class ManagedSessions extends EventEmitter {
       resume = source.sessionId
     }
     this.checkCapacity()
-    const s = {id:randomUUID(),sessionId:resume,name,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[]}
+    // A team turns this conversation into an initiative: the manager takes the main thread
+    // and the work happens on a branch of its own rather than in the operator's checkout.
+    const team = body.teamId ? getTeam(text(body.teamId,'Team',60)) : null
+    if (body.teamId && !team) fail('That team does not exist.')
+    if (team && resume) fail('A resumed conversation cannot be given a team.',409)
+    const id = randomUUID()
+    const worktree = team ? worktrees.create({cwd,id,name}) : null
+    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,worktree}
     this.sessions.set(s.id,s)
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
-    catch (error) { this.sessions.delete(s.id); throw error }
+    catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
     return s
   }
   checkCapacity() {
@@ -264,6 +275,11 @@ class ManagedSessions extends EventEmitter {
         ...(s.sessionId ? {resume:s.sessionId} : {}),
       }
       if (s.selectedModel) options.model = s.selectedModel
+      // `agent` puts the manager on the main thread, so the operator's messages reach it and
+      // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
+      // Both compose with the claude_code preset above, which keeps the built-in tools.
+      const team = getTeam(s.teamId)
+      if (team) Object.assign(options, compile(team))
       if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
       run.query = await this.queryFactory({prompt,options})
       if (run.stopping) { run.query.close(); return }
@@ -371,7 +387,7 @@ class ManagedSessions extends EventEmitter {
     if (!reason) return Promise.resolve({behavior:'allow',updatedInput:input})
     return new Promise(resolve => {
       const id=randomUUID()
-      const approval={id,tool,input,at:Date.now(),reason,description:context.title || context.decisionReason || null}
+      const approval={id,tool,input,at:Date.now(),reason,description:context.title || context.decisionReason || null,role:roleAsking(s,context)}
       let settled=false
       const finish=result=>{
         if(settled)return
@@ -424,7 +440,11 @@ class ManagedSessions extends EventEmitter {
     this.sessions.delete(id)
     try { this.save() } catch (error) { this.emit('storage-error',error) }
     this.emit('change',id)
-    return {id, sessionId:s.sessionId}
+    // An initiative's worktree is left on disk on purpose. Forgetting a conversation is a
+    // change to Fleet's records; deleting a branch with uncommitted work on it is a change
+    // to the operator's code, and the two should never happen with the same click. The path
+    // comes back so the caller can say where the work went.
+    return {id, sessionId:s.sessionId, worktree:s.worktree?.path || null, branch:s.worktree?.branch || null}
   }
   async close() {
     this.closed=true
@@ -435,6 +455,21 @@ class ManagedSessions extends EventEmitter {
   }
 }
 // An empty choice means "leave it to the project", which is the SDK's own default.
+// Who is asking for this approval. Inside an initiative, "the session wants to run rm" is
+// not good enough: the operator needs to know which role wants it. The SDK marks a
+// subagent's request with an agentID but not with the role name, so the name is recovered
+// from the delegation that is in flight. With two delegations running at once that is
+// ambiguous, and an honest null beats a confident guess at the wrong role.
+function roleAsking(s,context) {
+  const team = getTeam(s.teamId)
+  if (!team) return null
+  // No agentID means the request came from the main thread, which is the manager by
+  // definition. The role name comes from the team rather than a literal, because a future
+  // team is free to call that role something else.
+  if (!context.agentID) return team.manager
+  const running = s.messages.filter(m => m.role==='tool' && (m.tool==='Agent' || m.tool==='Task') && m.status==='running')
+  return running.length === 1 ? (running[0].input?.subagent_type || null) : null
+}
 function modelChoice(value) {
   if (value === undefined || value === null || value === '') return ''
   if (typeof value !== 'string' || !/^[\w.:-]{1,80}$/.test(value)) fail('That model name is not valid.')

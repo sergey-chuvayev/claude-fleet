@@ -526,3 +526,156 @@ test('a lock left by a process that is gone is cleared rather than blocking the 
   try{ assert.equal(manager.readLock().pid,process.pid) }
   finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
+
+// --- Initiatives -----------------------------------------------------------------
+// A team is only real if it reaches the SDK, so these assert on the options the
+// transport actually receives rather than on what the session says about itself.
+const {execFileSync}=require('node:child_process')
+function gitRepo(){
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-initiative-repo-'))
+  const git=(...args)=>execFileSync('git',args,{cwd:dir,stdio:'ignore'})
+  git('init','-q','-b','main');git('config','user.email','t@example.invalid');git('config','user.name','T')
+  fs.writeFileSync(path.join(dir,'README.md'),'hi');git('add','README.md');git('commit','-qm','initial')
+  return dir
+}
+const finished=()=>({close(){},async *[Symbol.asyncIterator](){yield {type:'result',result:'done',is_error:false,total_cost_usd:0}}})
+
+test('a team puts the manager on the main thread and the work on its own branch',async()=>{
+  const calls=[]
+  const {directory,manager}=setup(async args=>{calls.push(args);return finished()})
+  const repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix the login redirect',requestId:randomUUID(),teamId:'bugfix'})
+    await until(()=>s.status==='idle')
+    assert.equal(s.kind,'initiative')
+    assert.equal(s.teamId,'bugfix')
+    // The operator talks to the main thread, so naming the manager there is what makes
+    // "you only talk to the manager" true by construction rather than by instruction.
+    assert.equal(calls[0].options.agent,'manager')
+    assert.deepEqual(Object.keys(calls[0].options.agents).sort(),['developer','manager','qa'])
+    // The preset must survive alongside the agent, or the team loses its built-in tools.
+    assert.equal(calls[0].options.systemPrompt.preset,'claude_code')
+    // The team works on a branch of its own; the operator's checkout is untouched.
+    assert.notEqual(s.cwd,fs.realpathSync(repo))
+    assert.equal(calls[0].options.cwd,s.cwd)
+    assert.match(s.worktree.branch,/^initiative\//)
+    assert.equal(execFileSync('git',['rev-parse','--abbrev-ref','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),'main')
+    const [summary]=manager.summaries()
+    assert.equal(summary.kind,'initiative')
+    assert.equal(summary.teamName,'Bug fix')
+    // Forgetting the conversation must not delete a branch that may hold real work.
+    const gone=await manager.remove(s.id)
+    assert.equal(gone.branch,s.worktree.branch)
+    assert.ok(fs.existsSync(s.worktree.path),'the worktree outlives the Fleet record on purpose')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('a plain agent is untouched by any of this',async()=>{
+  const calls=[]
+  const {directory,manager}=setup(async args=>{calls.push(args);return finished()})
+  try{
+    const s=manager.create({cwd:directory,prompt:'Just do the thing',requestId:randomUUID()})
+    await until(()=>s.status==='idle')
+    assert.equal(s.kind,'agent')
+    assert.equal(s.worktree,null)
+    assert.equal(calls[0].options.agent,undefined)
+    assert.equal(calls[0].options.agents,undefined)
+    assert.equal(calls[0].options.cwd,fs.realpathSync(directory))
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('an unknown team, or a team on a resumed conversation, is refused',async()=>{
+  const {directory,manager}=setup(async()=>finished())
+  const repo=gitRepo()
+  try{
+    assert.throws(()=>manager.create({cwd:repo,prompt:'x',requestId:randomUUID(),teamId:'ghost'}),/does not exist/)
+    // Nothing should be left behind by a launch that was refused.
+    assert.equal(manager.sessions.size,0)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('an initiative outside a git repository is refused at launch',async()=>{
+  const {directory,manager}=setup(async()=>finished())
+  try{
+    assert.throws(()=>manager.create({cwd:directory,prompt:'x',requestId:randomUUID(),teamId:'bugfix'}),/needs a git repository/)
+    assert.equal(manager.sessions.size,0)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('the browser can list teams and launch an initiative over HTTP',async()=>{
+  const calls=[]
+  const {directory,manager}=setup(async args=>{calls.push(args);return finished()})
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  const repo=gitRepo()
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const base=`http://127.0.0.1:${app.server.address().port}`
+    const config=await (await fetch(base+'/api/control')).json()
+
+    const {teams}=await (await fetch(base+'/api/teams')).json()
+    assert.equal(teams[0].id,'bugfix')
+    assert.deepEqual(teams[0].roles.map(r=>r.name).sort(),['developer','manager','qa'])
+    // Prompts are large and the browser has no use for them.
+    assert.equal(JSON.stringify(teams).includes('You are the manager of an initiative'),false)
+
+    // Creation lives on /api/managed. /api/sessions is the read-only snapshot, and
+    // pointing the launch form at it is a silent way to break every launch.
+    const launch=await fetch(base+'/api/managed',{method:'POST',
+      headers:{'content-type':'application/json','x-fleet-token':config.token,origin:base},
+      body:JSON.stringify({cwd:repo,prompt:'Fix the login redirect',teamId:'bugfix',requestId:randomUUID()})})
+    assert.equal(launch.status,201)
+    const {session}=await launch.json()
+    assert.equal(session.kind,'initiative')
+    assert.equal(session.teamId,'bugfix')
+    await until(()=>calls.length===1)
+    assert.equal(calls[0].options.agent,'manager')
+
+    // A bad team id must fail as a request error, not a 500.
+    const bad=await fetch(base+'/api/managed',{method:'POST',
+      headers:{'content-type':'application/json','x-fleet-token':config.token,origin:base},
+      body:JSON.stringify({cwd:repo,prompt:'x',teamId:'ghost',requestId:randomUUID()})})
+    assert.equal(bad.status,400)
+  }finally{await app.close?.();await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('an approval says which role is asking for it',async()=>{
+  const seen=[]
+  const {directory,manager}=setup(async args=>({close(){},async *[Symbol.asyncIterator](){
+    // The manager asks from the main thread: no agentID.
+    const ask=args.options.canUseTool('Bash',{command:'rm -rf build'},{signal:args.options.abortController.signal,toolUseID:'t1'})
+    yield {type:'assistant',message:{content:[{type:'text',text:'thinking'}]}}
+    seen.push(await ask)
+    // Now a delegation is in flight, and the request carries a sub-agent id.
+    yield {type:'assistant',message:{content:[{type:'tool_use',id:'d1',name:'Agent',input:{subagent_type:'developer',description:'Fix it',prompt:'Fix it properly'}}]}}
+    seen.push(await args.options.canUseTool('Bash',{command:'rm -rf dist'},{signal:args.options.abortController.signal,toolUseID:'t2',agentID:'sub-1'}))
+    yield {type:'result',result:'done',is_error:false}
+  }}))
+  const repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix the login redirect',requestId:randomUUID(),teamId:'bugfix',approvalMode:'ask'})
+    await until(()=>s.approvals.length===1)
+    assert.equal(s.approvals[0].role,'manager','a main-thread request is the manager')
+    manager.decide(s.id,s.approvals[0].id,{decision:'allow'})
+    await until(()=>s.approvals.length===1 && s.approvals[0].input.command==='rm -rf dist')
+    assert.equal(s.approvals[0].role,'developer','a request from a subagent names the delegate')
+    manager.decide(s.id,s.approvals[0].id,{decision:'allow'})
+    await until(()=>s.status==='idle')
+    assert.equal(seen.length,2)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('a plain agent carries no role on its approvals',async()=>{
+  const {directory,manager}=setup(async args=>({close(){},async *[Symbol.asyncIterator](){
+    const ask=args.options.canUseTool('Bash',{command:'rm -rf build'},{signal:args.options.abortController.signal,toolUseID:'t1'})
+    yield {type:'assistant',message:{content:[{type:'text',text:'x'}]}}
+    await ask
+    yield {type:'result',result:'done',is_error:false}
+  }}))
+  try{
+    const s=create(manager,directory)
+    await until(()=>s.approvals.length===1)
+    assert.equal(s.approvals[0].role,null)
+    manager.decide(s.id,s.approvals[0].id,{decision:'allow'})
+    await until(()=>s.status==='idle')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})

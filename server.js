@@ -12,6 +12,7 @@ const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./se
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
 const { defaultCwd } = require('./paths.js')
+const { listTeams } = require('./teams.js')
 const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
@@ -167,6 +168,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return res.end(themeCss(currentTheme()))
       }
       if(url.pathname==='/api/models') return json(res,200,{models:manager.models || MODEL_FALLBACK})
+      if(url.pathname==='/api/teams') return json(res,200,{teams:listTeams()})
       if(url.pathname==='/api/sessions') return json(res,200,getSnapshot())
       if(url.pathname==='/api/events') {
         if(clients.size>=20) return json(res,429,{error:'Too many dashboard connections.'})
