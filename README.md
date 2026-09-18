@@ -192,6 +192,34 @@ conversation on every question.
 
 </details>
 
+### An initiative is a team behind one conversation
+
+Some work is too big for one agent and too small to project-manage by hand. Launch it with a
+**team** instead of alone and you get an *initiative*: a manager that plans and delegates, a
+developer that implements, and a QA that independently verifies, all behind a single
+conversation.
+
+You talk to the manager and only to the manager. That is not a rule in a prompt: the manager
+holds the main thread, and the rest of the team is reachable only through the Agent tool, so
+they have no channel to you at all. Their work arrives as delegation blocks in the
+conversation, each showing the role, the mandate it was given, and the report it sent back.
+
+The manager has no edit tools. Its only way to ship is to delegate, which is the entire point
+of having a team rather than an agent with a long prompt. QA has no edit tools either: it
+reproduces the problem, runs the project's own gates, and returns PASS or FAIL with evidence,
+so a developer's account of its own work is never the last word.
+
+An initiative works in a git worktree of its own, branched from wherever the project is
+checked out, so a team editing files cannot collide with your own editing or with another
+initiative. It finishes by opening a pull request. Pushing stops for your approval like any
+other publishing command, so nothing leaves the machine without you.
+
+Closing an initiative forgets Fleet's record of the conversation and leaves the worktree and
+its branch alone. Deleting code is never the same click as tidying a list.
+
+Teams cost roughly an order of magnitude more tokens than a single agent, and only earn it
+when the work genuinely splits. For a one-line fix, launch an agent.
+
 ### Approvals that stay out of the way
 
 Every agent runs in one of three modes, chosen at launch and changeable from the
@@ -309,6 +337,8 @@ for the app itself.
 | [`fleet.js`](fleet.js) | Cached, read-only collection of external Claude sessions |
 | [`archive.js`](archive.js) | Which sessions are put away, the age rule, and its store |
 | [`managed.js`](managed.js) | SDK runs, approvals, tool blocks, persistence, cancellation |
+| [`teams.js`](teams.js) | The roles an initiative runs, and how they compile into SDK options |
+| [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
 | [`theme.js`](theme.js) | Reads the local Warp palette and renders it as CSS variables |

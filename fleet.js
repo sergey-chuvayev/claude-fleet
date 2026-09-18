@@ -59,7 +59,7 @@ function toolTarget(name, input) {
   if (!input || typeof input !== 'object') return null
   const first = value => (typeof value === 'string' ? value.split('\n')[0].trim().slice(0, 120) : null)
   if (name === 'Bash' || name === 'BashOutput') return first(input.description) || first(input.command)
-  if (name === 'Task') return first(input.description)
+  if (name === 'Task' || name === 'Agent') return first(input.description)
   if (name === 'WebSearch') return first(input.query)
   if (name === 'WebFetch') return first(input.url)
   if (name === 'Grep' || name === 'Glob') return first(input.pattern)

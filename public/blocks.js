@@ -7,7 +7,7 @@
 const LIBS = () => window.FleetLibs || null
 const ICONS = {
   Bash: '⚡', BashOutput: '⚡', Read: '▤', Write: '✎', Edit: '✎', NotebookEdit: '✎',
-  Grep: '⌕', Glob: '⌕', WebSearch: '⌕', WebFetch: '↓', Task: '✳', Skill: '◆',
+  Grep: '⌕', Glob: '⌕', WebSearch: '⌕', WebFetch: '↓', Task: '✳', Agent: '✳', Skill: '◆',
   TodoWrite: '☑', AskUserQuestion: '?', ExitPlanMode: '▸',
 }
 const EXTENSIONS = {
@@ -18,9 +18,13 @@ const EXTENSIONS = {
 }
 // Mirrors toolTarget() in managed.js: the input key already shown in the block header.
 const TARGET_KEYS = {
-  Bash: 'command', BashOutput: 'bash_id', Task: 'description', WebSearch: 'query',
+  Bash: 'command', BashOutput: 'bash_id', Task: 'description', Agent: 'description', WebSearch: 'query',
   WebFetch: 'url', Grep: 'pattern', Glob: 'pattern', Skill: 'skill',
 }
+// The runtime names this tool `Agent`; `Task` is the older name for the same call and still
+// appears in transcripts recorded before the rename. Both carry {subagent_type, description,
+// prompt}, so both render as a delegation.
+const isDelegation = name => name === 'Agent' || name === 'Task'
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const languageFor = file => EXTENSIONS[String(file || '').split('.').pop().toLowerCase()] || null
 const duration = ms => ms == null ? null : ms < 1000 ? `${ms}ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 60000)}m ${Math.round(ms % 60000 / 1000)}s`
@@ -87,7 +91,8 @@ function toolBody(message) {
     const mark = t => t.status === 'completed' ? '☑' : t.status === 'in_progress' ? '▸' : '☐'
     return `<ul class="block-todos">${todos.map(t => `<li class="todo-${escapeHtml(t.status)}"><span aria-hidden="true">${mark(t)}</span>${escapeHtml(t.content || t.activeForm || '')}</li>`).join('')}</ul>`
   }
-  if (name === 'Task' || name === 'Skill') return codeHtml(input.prompt || input.args || input.description || '', 'plaintext')
+  if (isDelegation(name)) return `<details class="delegation-mandate" data-delegation="mandate"><summary>Mandate</summary>${proseHtml(input.prompt || input.description || 'No mandate recorded.')}</details>`
+  if (name === 'Skill') return codeHtml(input.prompt || input.args || input.description || '', 'plaintext')
   if (name === 'AskUserQuestion') return ''
   // The header already shows the main argument, so repeating it as JSON is noise.
   const shown = TARGET_KEYS[name] || 'file_path'
@@ -95,6 +100,12 @@ function toolBody(message) {
   return Object.keys(rest).length ? codeHtml(JSON.stringify(rest, null, 2), 'json') : ''
 }
 function resultHtml(message) {
+  if (isDelegation(message.tool)) {
+    const report = String(message.result || '')
+    if (!report) return `<p class="block-note">${message.status === 'running' ? 'Awaiting report…' : message.status === 'error' ? 'Delegation failed without a report.' : 'No report returned.'}</p>`
+    const long = report.length > 1200 || report.split('\n').length > 16
+    return `<details class="delegation-report" data-delegation="report"${long ? '' : ' open'}><summary>Returned report${long ? ' · long' : ''}</summary>${proseHtml(report)}${message.truncated ? '<p class="block-note">Report truncated by Fleet.</p>' : ''}</details>`
+  }
   if (!message.result) return ''
   const language = message.tool === 'Read' ? languageFor(message.input?.file_path) : message.status === 'error' ? 'plaintext' : null
   const note = message.truncated ? '<p class="block-note">Output truncated by Fleet.</p>' : ''
@@ -107,10 +118,10 @@ function blockHtml(message, { streaming = false } = {}) {
     const icon = ICONS[message.tool] || '▸'
     const meta = [duration(message.ms), clock(message.at)].filter(Boolean).join(' · ')
     const state = message.status === 'error' ? 'is-failed' : message.status === 'running' ? 'is-running' : message.status === 'interrupted' ? 'is-interrupted' : 'is-done'
-    const stateLabel = state === 'is-done' ? '' : state.slice(3)
+    const stateLabel = state === 'is-done' ? isDelegation(message.tool) ? 'done' : '' : state.slice(3)
     const target = message.target ? `<span class="block-target" title="${escapeHtml(message.target)}">${escapeHtml(message.target)}</span>` : ''
     const auto = message.approval === 'auto' ? '<span class="block-auto" title="Fleet approved this automatically">auto</span>' : ''
-    return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool">${escapeHtml(message.tool)}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
+    return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.tool)}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
   }
   const who = message.role === 'user' ? 'YOU' : 'CLAUDE'
   const icon = message.role === 'user' ? '›' : '✳'
@@ -152,14 +163,16 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
       element.className = 'block'
       element.dataset.block = message.id
       // Long tool output starts collapsed, the way a long command block does in a terminal.
-      if (message.role === 'tool' && (message.result || '').length > 1200) element.classList.add('collapsed')
+      if (message.role === 'tool' && !isDelegation(message.tool) && (message.result || '').length > 1200) element.classList.add('collapsed')
     }
     if (element.dataset.sig !== sig) {
       element.dataset.sig = sig
       element.dataset.role = message.role
       element.dataset.tool = message.tool || ''
       element.dataset.status = message.status || ''
+      const disclosures = new Map([...element.querySelectorAll('[data-delegation]')].map(el => [el.dataset.delegation, el.open]))
       element.innerHTML = blockHtml(message, { streaming })
+      for (const el of element.querySelectorAll('[data-delegation]')) if (disclosures.has(el.dataset.delegation)) el.open = disclosures.get(el.dataset.delegation)
       element.querySelector('[data-collapse]')?.addEventListener('click', event => {
         const collapsed = element.classList.toggle('collapsed')
         event.currentTarget.setAttribute('aria-expanded', String(!collapsed))
