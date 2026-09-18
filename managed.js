@@ -78,22 +78,45 @@ class ManagedSessions extends EventEmitter {
       }
     } catch (error) { this.releaseLock(); throw new Error(`Cannot read Fleet session store: ${error.message}`) }
   }
+  // The lock used to hold a bare PID. It now holds {pid, port} so that a second
+  // `claude-fleet` can put the running dashboard on screen instead of only naming the
+  // process that beat it to the lock. A bare PID is still read: the file outlives an
+  // upgrade, and a stale one must not read as corrupt.
+  readLock() {
+    const raw = fs.readFileSync(this.lock, 'utf8').trim()
+    try {
+      const parsed = JSON.parse(raw)
+      if (Number.isInteger(parsed?.pid) && parsed.pid > 0) return { pid: parsed.pid, port: Number(parsed.port) || null }
+    } catch {}
+    const pid = Number(raw)
+    return Number.isInteger(pid) && pid > 0 ? { pid, port: null } : null
+  }
   acquireLock() {
     for (let attempt = 0; attempt < 2; attempt++) {
-      try { fs.writeFileSync(this.lock, String(process.pid), { flag: 'wx', mode: 0o600 }); return }
+      try { fs.writeFileSync(this.lock, JSON.stringify({ pid: process.pid }), { flag: 'wx', mode: 0o600 }); return }
       catch (error) {
         if (error.code !== 'EEXIST') throw error
-        const pid = Number(fs.readFileSync(this.lock, 'utf8'))
-        if (!Number.isInteger(pid) || pid <= 0) throw new Error(`Invalid Fleet lock file; inspect ${this.lock}.`)
-        try { process.kill(pid, 0) }
+        const held = this.readLock()
+        if (!held) throw new Error(`Invalid Fleet lock file; inspect ${this.lock}.`)
+        try { process.kill(held.pid, 0) }
         catch (e) { if (e.code === 'ESRCH') { fs.unlinkSync(this.lock); continue } }
-        throw new Error(`Fleet controls are already running (PID ${pid}). Open that server instead.`)
+        // Carries the holder so main() can open it rather than print and exit 1. Being
+        // already running is the normal case, not a failure.
+        const conflict = new Error(`Fleet controls are already running (PID ${held.pid})`)
+        conflict.code = 'FLEET_ALREADY_RUNNING'
+        conflict.holder = held
+        throw conflict
       }
     }
     throw new Error('Cannot acquire Fleet session lock')
   }
+  // Called once the server knows which port it actually got, which is not always the
+  // one it asked for: the listen path walks upwards past anything already bound.
+  recordPort(port) {
+    try { fs.writeFileSync(this.lock, JSON.stringify({ pid: process.pid, port }), { mode: 0o600 }) } catch {}
+  }
   releaseLock() {
-    try { if (fs.readFileSync(this.lock, 'utf8') === String(process.pid)) fs.unlinkSync(this.lock) } catch {}
+    try { if (this.readLock()?.pid === process.pid) fs.unlinkSync(this.lock) } catch {}
   }
   save() {
     clearTimeout(this.saveTimer); this.saveTimer = null
