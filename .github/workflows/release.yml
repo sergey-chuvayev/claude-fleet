@@ -28,7 +28,10 @@ jobs:
           PKG="$(node -p "require('./package.json').version")"
           [ "$TAG" = "$PKG" ] || { echo "Tag $GITHUB_REF_NAME does not match package version $PKG"; exit 1; }
       # prepack rebuilds public/vendor/libs.js, so the tarball cannot ship a stale bundle.
-      - run: npm publish
+      # --provenance lives here rather than in publishConfig: npm can only generate a
+      # provenance statement from a recognised CI run, so setting it in package.json
+      # makes `npm publish` from a workstation fail outright.
+      - run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - uses: softprops/action-gh-release@v2
