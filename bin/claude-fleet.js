@@ -13,18 +13,25 @@ const pkg = require(path.join(ROOT, 'package.json'))
 const HELP = `
   Claude Fleet v${pkg.version} — a local control room for Claude Code sessions
 
-  claude-fleet                 start Fleet and open the dashboard
-  claude-fleet start           start it without opening a browser
+  claude-fleet                 start Fleet and open it as an app window
+  claude-fleet start           start it without opening anything
+  claude-fleet --browser       open a normal browser tab instead of an app window
   claude-fleet install-app     put a "Claude Fleet" app in ~/Applications (macOS)
   claude-fleet update          install the latest published version
   claude-fleet --version       print the version
   claude-fleet --help          this
+
+  The app window is a Chromium window with no tab strip and no address bar. If Fleet
+  is already running, claude-fleet puts that server on screen rather than starting a
+  second one.
 
   Environment
     PORT                       port to listen on (default 7777, next free one if taken)
     CLAUDE_FLEET_HOME          where Fleet keeps its own state (default ~/.claude-fleet)
     CLAUDE_FLEET_DIR           the Claude directory to read (default ~/.claude)
     CLAUDE_FLEET_EXECUTABLE    the claude binary to run; "bundled" uses the SDK's own
+    CLAUDE_FLEET_BROWSER       the Chromium to open the app window with
+    CLAUDE_FLEET_APP_PROFILE   where that window keeps its profile
 `
 
 // A PATH walk rather than `command -v`, because this has to work without a shell

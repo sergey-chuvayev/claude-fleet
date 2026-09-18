@@ -12,6 +12,9 @@ async function until(fn){for(let i=0;i<100;i++){if(fn())return;await delay(5)}th
 function setup(queryFactory,externalSessions){const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-managed-'));return {directory,manager:new ManagedSessions({directory,queryFactory,externalSessions})}}
 // These tests exercise the approval path, so they opt out of the default auto mode.
 const create=(manager,cwd,extra={})=>manager.create({cwd,prompt:'Test task',requestId:randomUUID(),approvalMode:'ask',...extra})
+// assert.throws does not hand back the error, and the lock conflict is interesting for
+// what it carries, not only for its message.
+function refused(directory){try{new ManagedSessions({directory})}catch(error){return error}throw Error('Expected the lock to be refused')}
 
 // Mock the SDK transport, exercise the real manager and HTTP implementation.
 test('streams a turn, approves exactly once, resumes follow-ups and persists across restart',async()=>{
@@ -487,4 +490,39 @@ test('a managed conversation resumed in a terminal is shown as held there, and s
     await until(() => s.status === 'idle')
     assert.equal(s.messages.filter(m => m.role === 'user').length, 2)
   } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive:true, force:true }) }
+})
+
+test('the lock carries the port so a second start can open the running server, and still reads an old bare-PID lock',async()=>{
+  const {directory,manager}=setup()
+  try{
+    // Written before the server has listened, so there is no port to record yet.
+    assert.deepEqual(JSON.parse(fs.readFileSync(manager.lock,'utf8')),{pid:process.pid})
+    manager.recordPort(7781)
+    assert.deepEqual(manager.readLock(),{pid:process.pid,port:7781})
+
+    // A second server is refused, and told where the first one already is.
+    const conflict=refused(directory)
+    assert.match(conflict.message,/already running/)
+    assert.equal(conflict.code,'FLEET_ALREADY_RUNNING')
+    assert.deepEqual(conflict.holder,{pid:process.pid,port:7781})
+
+    // Upgrading in place leaves a lock written by the previous version behind.
+    fs.writeFileSync(manager.lock,String(process.pid))
+    assert.deepEqual(manager.readLock(),{pid:process.pid,port:null})
+    assert.equal(refused(directory).holder.port,null)
+
+    // Garbage is still garbage, and says so rather than being treated as a live PID.
+    fs.writeFileSync(manager.lock,'not a pid')
+    assert.throws(()=>new ManagedSessions({directory}),/Invalid Fleet lock file/)
+    fs.writeFileSync(manager.lock,JSON.stringify({pid:process.pid,port:7781}))
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('a lock left by a process that is gone is cleared rather than blocking the next start',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-managed-'))
+  // PID 2^22 is above every configured pid_max on macOS and Linux, so it cannot exist.
+  fs.writeFileSync(path.join(directory,'server.lock'),JSON.stringify({pid:4194304,port:7777}))
+  const manager=new ManagedSessions({directory})
+  try{ assert.equal(manager.readLock().pid,process.pid) }
+  finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })

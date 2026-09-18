@@ -12,6 +12,7 @@ const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./se
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
 const { defaultCwd } = require('./paths.js')
+const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
@@ -226,7 +227,21 @@ function main(){
     child.unref()
     setTimeout(()=>process.exit(0),100).unref()
   }
-  try{app=createApp({restart})}catch(error){console.error(error.message);process.exit(1)}
+  try{app=createApp({restart})}catch(error){
+    // Already running is the everyday case, not a crash: put the window the operator
+    // asked for on screen and leave quietly. Exiting 1 with no window was the whole
+    // reason a second `claude-fleet` looked like a broken one.
+    if(error.code==='FLEET_ALREADY_RUNNING'){
+      // A lock written by an older Fleet carries no port, so fall back to the one this
+      // run would have asked for. Every lock written from here on records the real one.
+      const running=error.holder?.port||Number(process.env.PORT||7777)
+      const target=`http://${HOST}:${running}`
+      console.log(`\n  ${error.message} → ${target}\n`)
+      if(process.argv.includes('--open')) openDashboard(target,{app:!process.argv.includes('--browser')})
+      process.exit(0)
+    }
+    console.error(error.message);process.exit(1)
+  }
   let attempt=0,port=Number(process.env.PORT||7777)
   app.server.on('error',async error=>{
     if(error.code==='EADDRINUSE' && attempt++<10){app.server.listen(++port,HOST);return}
@@ -234,16 +249,14 @@ function main(){
   })
   app.server.on('listening',()=>{
     const url=`http://${HOST}:${app.server.address().port}`
+    // Write the port where the next `claude-fleet` will look for it.
+    app.manager.recordPort(app.server.address().port)
     console.log(`\n  Claude Fleet v${VERSION} → ${url}\n  Local dashboard + managed agents · ctrl-c to stop\n`)
     // Index transcripts in the background so the first question does not wait for it.
     setTimeout(()=>warmSearch().catch(()=>{}),1500).unref()
     // And ask npm whether there is a newer Fleet, well after the page has loaded.
     setTimeout(()=>app.updater.check().catch(()=>{}),5000).unref()
-    if(process.argv.includes('--open')) {
-      const opener=process.platform==='darwin'?'open':'xdg-open'
-      const child=require('node:child_process').spawn(opener,[url],{stdio:'ignore'})
-      child.on('error',()=>{});child.unref()
-    }
+    if(process.argv.includes('--open')) openDashboard(url,{app:!process.argv.includes('--browser')})
   })
   app.server.listen(port,HOST)
   let closing=false

@@ -29,6 +29,7 @@
     "catalog.js",
     "fleet.js",
     "managed.js",
+    "open.js",
     "paths.js",
     "permissions.js",
     "search.js",
