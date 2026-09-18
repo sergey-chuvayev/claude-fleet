@@ -679,3 +679,32 @@ test('a plain agent carries no role on its approvals',async()=>{
     await until(()=>s.status==='idle')
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
+
+test('what a conversation cost is accumulated across turns and reaches the dashboard',async()=>{
+  let spend=0.02
+  const {directory,manager}=setup(async()=>({close(){},async *[Symbol.asyncIterator](){
+    yield {type:'result',result:'done',is_error:false,total_cost_usd:spend}
+  }}))
+  try{
+    const s=manager.create({cwd:directory,prompt:'First',requestId:randomUUID()})
+    await until(()=>s.status==='idle')
+    assert.equal(manager.summaries()[0].costUsd,0.02)
+    // A second turn adds to the total rather than replacing it: the row shows what the
+    // whole conversation has cost, which is the number worth knowing before sending again.
+    spend=0.03
+    manager.send(s.id,{message:'Second',requestId:randomUUID()})
+    await until(()=>s.status==='idle')
+    assert.ok(Math.abs(manager.summaries()[0].costUsd-0.05)<1e-9,`expected 0.05, got ${manager.summaries()[0].costUsd}`)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('the control endpoint carries the running version, so the UI has something to show',async()=>{
+  const {directory,manager}=setup(async()=>finished())
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const config=await (await fetch(`http://127.0.0.1:${app.server.address().port}/api/control`)).json()
+    // The version of the process that is answering, which is the thing a restart changes.
+    assert.equal(config.version,require('./package.json').version)
+  }finally{await app.close?.();await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})

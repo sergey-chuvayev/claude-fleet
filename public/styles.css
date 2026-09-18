@@ -462,3 +462,6 @@ body[data-modal]{overflow:hidden}
 .delegation-mandate>summary:focus-visible,.delegation-report>summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 .delegation-mandate .block-prose,.delegation-report .block-prose{padding:12px 0 0}
 .delegation-mandate .block-plain,.delegation-report .block-plain{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.app-version{align-self:center;margin-left:8px;color:var(--muted);font-size:10px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.session-cost{font-variant-numeric:tabular-nums}
