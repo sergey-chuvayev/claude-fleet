@@ -2,12 +2,18 @@
 let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
 const drafts=new Map()
 const inFlight=new Set()
-let launchRequestId=null, resumeSource=null, fallbackWarned=false
+let launchRequestId=null, resumeSource=null, fallbackWarned=false, controlHandshake=null
 const managedLabels={starting:'Starting Claude…',running:'Working on your task',approval:'Your input is needed',stopping:'Stopping the agent…',stopped:'Stopped · ready to continue',error:'Turn failed',idle:'Ready for your next message'}
 const isWorking=s=>['starting','running','approval','stopping'].includes(s.status)
 
 async function api(url,body) {
-  if(!controlToken) await initializeControls()
+  // Opening the launch dialog fires several requests at once, and each one would
+  // otherwise race its own handshake. Share the first attempt; a failed one is dropped
+  // so the next call can retry.
+  if(!controlToken) {
+    controlHandshake ||= initializeControls().catch(error=>{controlHandshake=null;throw error})
+    await controlHandshake
+  }
   const response=await fetch(url,{method:body ? 'POST':'GET',headers:body ? {'content-type':'application/json','x-fleet-token':controlToken}: {},body:body ? JSON.stringify(body):undefined,signal:AbortSignal.timeout(15000)})
   const data=await response.json()
   if(!response.ok) throw new Error(data.error || 'The request failed.')
@@ -49,11 +55,63 @@ async function loadLaunchTeams() {
   } catch { launchTeams=null }
   finally {launchTeamsLoading=false;updateLaunchTeam()}
 }
+let launchProjects=null, launchProjectsLoading=false
+// A browser cannot offer a real directory picker — the File System Access API returns a
+// handle and never a path — so the list comes from the server and the free-text path
+// stays as the escape hatch for anything it does not know about.
+const OTHER_PROJECT='__other__'
+// Two checkouts can share a basename, so the parent earns its place in the label.
+const projectLabel=project=>project.parent && project.parent!=='.' ? `${project.name} · ${project.parent}` : project.name
+const pickedProject=()=>resumeSource ? null : launchProjects?.find(p=>p.path===$('launch-project').value)
+// Keep the select showing whatever the path field holds, so hand-typing a known project
+// does not leave the two controls disagreeing about where the agent will run.
+function syncLaunchProject() {
+  if(!launchProjects) return
+  const match=launchProjects.find(p=>p.path===$('launch-cwd').value.trim())
+  $('launch-project').value=match ? match.path : OTHER_PROJECT
+}
+function updateLaunchProject() {
+  const picked=pickedProject()
+  // The path input is what actually submits. Hiding it while it is `required` and empty
+  // gives a form the browser refuses to submit and refuses to explain, so `required`
+  // travels with visibility.
+  $('launch-cwd-field').hidden=!!picked
+  $('launch-cwd').required=!picked
+  $('launch-project').disabled=!!resumeSource || launchProjectsLoading || $('launch-submit').disabled
+  $('launch-project-note').textContent=resumeSource ? 'Continuing where this conversation left off.'
+    : picked ? picked.short
+    : launchProjectsLoading ? 'Looking for your projects…'
+    : launchProjects ? 'Type where this agent should work.'
+    : 'Could not read your projects. Type a path instead.'
+}
+async function loadLaunchProjects() {
+  if(launchProjects || launchProjectsLoading){syncLaunchProject();updateLaunchProject();return}
+  launchProjectsLoading=true;updateLaunchProject()
+  try {
+    const data=await api('/api/projects')
+    if(!Array.isArray(data.projects)) throw new Error('Invalid projects')
+    launchProjects=data.projects
+    $('launch-project').replaceChildren()
+    for(const project of launchProjects) $('launch-project').add(new Option(projectLabel(project),project.path))
+    $('launch-project').add(new Option('Another path…',OTHER_PROJECT))
+    syncLaunchProject()
+  } catch { launchProjects=null;$('launch-project').replaceChildren(new Option('Another path…',OTHER_PROJECT)) }
+  finally {launchProjectsLoading=false;updateLaunchProject()}
+}
+$('launch-project').addEventListener('change',()=>{
+  launchRequestId=null
+  const picked=pickedProject()
+  if(picked) $('launch-cwd').value=picked.path
+  updateLaunchProject()
+  if(!picked) $('launch-cwd').focus()
+})
+$('launch-cwd').addEventListener('input',()=>{syncLaunchProject();updateLaunchProject()})
 function openLaunch(source=null) {
   resumeSource=source
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
   if(source){$('launch-cwd').value=source.cwd || '';$('launch-form').elements.name.value=source.title || source.name || ''}
   loadLaunchTeams()
+  loadLaunchProjects()
   $('launch-cwd').readOnly=!!source
   openModal('launch-backdrop', '[name=prompt]')
 }
@@ -81,7 +139,7 @@ $('launch-form').addEventListener('submit',async event=>{
     await tick();toast(form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
   }catch(error){$('launch-error').textContent=error.message;$('launch-error').hidden=false}
-  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=false);if($('launch-team'))updateLaunchTeam()}
+  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=false);if($('launch-team'))updateLaunchTeam();updateLaunchProject()}
 })
 function selectControl(session) {
   const next=session?.managedId || null

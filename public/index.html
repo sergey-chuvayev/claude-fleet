@@ -34,7 +34,8 @@
       <div class="launch-layout">
         <div class="launch-task"><label for="launch-prompt">What are we working on?</label><textarea id="launch-prompt" name="prompt" rows="8" placeholder="There’s something I’d love your help with…&#10;&#10;Describe the task, what a good result looks like, and anything your agent should know." required maxlength="16000"></textarea><p class="note launch-task-note">Big ideas, small fixes. Every task starts here.</p></div>
         <div class="launch-fields">
-          <label>Project directory<input name="cwd" id="launch-cwd" placeholder="~/projects/my-project" required maxlength="4096" autocomplete="off"><span class="note">Where your agent will work.</span></label>
+          <label for="launch-project">Project<select id="launch-project" aria-describedby="launch-project-note"><option value="">Loading your projects…</option></select><span class="note" id="launch-project-note" role="status">Where your agent will work.</span></label>
+          <label id="launch-cwd-field">Project directory<input name="cwd" id="launch-cwd" placeholder="~/projects/my-project" required maxlength="4096" autocomplete="off"><span class="note">An absolute path, or one starting with ~.</span></label>
           <label><span>Session name <span class="field-optional">optional</span></span><input name="name" placeholder="e.g. A smoother checkout" maxlength="100" autocomplete="off"></label>
           <label>Model<select name="model" id="launch-model"><option value="">Project default</option></select><span class="note">You can switch models later.</span></label>
           <label>Approvals<select name="approvalMode" id="launch-mode"><option value="auto" selected>Auto · ask for risky commands</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select><span class="note" id="launch-mode-note">Destructive or networked shell commands still stop for you.</span></label>
