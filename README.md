@@ -241,7 +241,15 @@ Your existing Claude permission rules and hooks still apply first.
 That list is one array in [`permissions.js`](permissions.js). Edit it to taste.
 
 <details>
-<summary><b>Models, images, slash commands, and sessions held elsewhere</b></summary>
+<summary><b>Projects, models, images, slash commands, and sessions held elsewhere</b></summary>
+
+**Projects.** The launch dialog offers the directories you already work in, newest
+first, so starting an agent does not mean typing an absolute path from memory. The
+list is every cwd recorded in your Claude transcripts, plus any git checkout sitting
+next to `CLAUDE_FLEET_DEFAULT_CWD` that you have never opened. Pick **Another path…**
+to type one by hand; a path you type that Fleet already knows selects itself. A
+browser cannot offer a real folder picker — the File System Access API hands back a
+handle and never a path — so the list is served by Fleet rather than the OS.
 
 **Models.** Picked at launch and switchable from the conversation header. A change
 applies from your next message, because each message starts a fresh query against
@@ -343,6 +351,7 @@ for the app itself.
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
 | [`theme.js`](theme.js) | Reads the local Warp palette and renders it as CSS variables |
 | [`catalog.js`](catalog.js) | Read-only listing of a project's slash commands and skills |
+| [`projects.js`](projects.js) | The directories the launch dialog offers, and where they come from |
 | `public/app.js` | Dashboard layout, session list, filters, monitoring |
 | `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
 | `public/control.js` | Launch form, composer, approvals, streamed updates |
