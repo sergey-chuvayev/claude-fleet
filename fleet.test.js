@@ -124,7 +124,7 @@ test('the browser scripts load together without redeclaring a shared-scope ident
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     // A redeclaration is a SyntaxError raised when the script is instantiated in the
     // shared scope, before any statement runs. Runtime errors from the stub DOM are
@@ -280,6 +280,89 @@ test('a team session renders one nested child row per delegation, with role, mod
   assert.match(list, /data-delegation="qa-1"/)
   assert.match(list, /data-delegation="dev-1"[^]*?Working[^]*?developer[^]*?sonnet-5/)
   assert.match(list, /data-delegation="qa-1"[^]*?Done[^]*?qa[^]*?haiku/)
+})
+
+// Every child row shares its data-session with the parent that owns it, so a poll
+// that only touches age()/elapsed() text must not let focus drift from a selected
+// child row up to the parent it happens to share an id with.
+test('focus on a selected child row survives a re-render that changes the list HTML', () => {
+  const vm = require('node:vm')
+  const parseButtons = html => {
+    const buttons = []
+    const re = /<button\b([^>]*)>/g
+    let match
+    while ((match = re.exec(html))) {
+      const attrs = match[1]
+      const attr = name => attrs.match(new RegExp(`${name}="([^"]*)"`))?.[1]
+      buttons.push({ dataset: { session: attr('data-session'), delegation: attr('data-delegation'), filter: attr('data-filter') }, focus() { focused = this } })
+    }
+    return buttons
+  }
+  let focused = null
+  let buttons = []
+  const sessionList = {
+    _html: '', get innerHTML() { return this._html }, set innerHTML(v) { this._html = v; buttons = parseButtons(v) },
+    scrollTop: 0, contains: node => buttons.includes(node), querySelector: () => null,
+    querySelectorAll: sel => sel === 'button' ? buttons : [],
+  }
+  const elements = new Map([['session-list', sessionList]])
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const documentStub = {
+    getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+    createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+    documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+  }
+  const context = vm.createContext({
+    window: {}, document: documentStub,
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const session = {
+    managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+    branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+    managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+    lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+    contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+    selectedModel: '', messages: 3, links: [], approvals: 0,
+    turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+    error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+    taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+    delegations: [
+      { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+      { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+    ],
+  }
+  const fixture = () => ({ generatedAt: Date.now(), counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1, archiveRule: { enabled: false, days: 14 }, sessions: [session] })
+  context.fixture = fixture()
+  vm.runInContext('snapshot = fixture; selectedChild = "dev-1"; render()', context)
+
+  const devButton = buttons.find(b => b.dataset.delegation === 'dev-1')
+  assert.ok(devButton, 'the delegation row must render')
+  documentStub.activeElement = devButton
+
+  // A normal poll tick: age() moves forward even though nothing about the selected
+  // delegation itself changed, so the list HTML differs and update() redraws it.
+  session.lastActivity = now - 2000
+  context.fixture = fixture()
+  vm.runInContext('snapshot = fixture; render()', context)
+
+  assert.ok(focused, 'focus must be restored to some row after the re-render')
+  assert.equal(focused.dataset.delegation, 'dev-1', 'focus must stay on the child row, not jump to the parent session row that shares its data-session')
 })
 
 // The list route is polled every couple of seconds, so it carries only enough to draw
