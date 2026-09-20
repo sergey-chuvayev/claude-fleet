@@ -708,3 +708,73 @@ test('the control endpoint carries the running version, so the UI has something 
     assert.equal(config.version,require('./package.json').version)
   }finally{await app.close?.();await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
+
+test('custom team snapshots, task hooks and independent reports survive template edits and restart',async()=>{
+  const tasks=require('./tasks'),{getTeam}=require('./teams')
+  const calls=[]
+  const {directory,manager}=setup(async args=>{calls.push(args);return finished()})
+  const repo=gitRepo()
+  let replacement
+  try{
+    const template={...getTeam('delivery'),id:'custom-delivery'}
+    manager.teams.save(template)
+    const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:template.id})
+    await until(()=>s.status==='idle' || s.status==='error')
+    assert.equal(s.error,null)
+    const options=calls[0].options
+    assert.equal(options.maxBudgetUsd,10)
+    assert.equal(options.maxTurns,100)
+    assert.ok(options.mcpServers.fleet)
+    const task=tasks.act(s,{action:'create',title:'Fix login',owner:'developer',criteria:['Keep redirect query parameters.']})
+    const pre=options.hooks.PreToolUse[0].hooks[0]
+    const approved=await pre({tool_name:'Agent',tool_use_id:'dev-test',tool_input:{subagent_type:'developer',prompt:`Fleet task: ${task.id}\nFix the login.`}})
+    assert.match(approved.hookSpecificOutput.updatedInput.prompt,/Keep redirect query parameters/)
+    const denied=await pre({tool_name:'Agent',tool_use_id:'collision',tool_input:{subagent_type:'developer',prompt:`Fleet task: ${task.id}`}})
+    assert.equal(denied.hookSpecificOutput.permissionDecision,'deny')
+    const run={tools:new Map()}
+    manager.event(s,run,{type:'assistant',message:{content:[{type:'tool_use',id:'dev-test',name:'Agent',input:{subagent_type:'developer'}}]}})
+    manager.event(s,run,{type:'user',message:{content:[{type:'tool_result',tool_use_id:'dev-test',content:'Implementation complete'}]}})
+    assert.equal(task.status,'review')
+    template.roles.developer.model='haiku';manager.teams.save(template)
+    assert.equal(s.teamSnapshot.roles.developer.model,'sonnet')
+    assert.equal((await options.hooks.Stop[0].hooks[0]()).decision,'block')
+    await manager.close()
+    replacement=new ManagedSessions({directory,queryFactory:async()=>finished()})
+    assert.equal(replacement.detail(s.id).taskBoard.tasks[0].status,'review')
+    assert.equal(replacement.detail(s.id).teamSnapshot.roles.developer.model,'sonnet')
+    assert.equal(replacement.teams.get(template.id).roles.developer.model,'haiku')
+  }finally{if(replacement)await replacement.close();else await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('team HTTP endpoints validate writes and require same-origin authorization',async()=>{
+  const {getTeam}=require('./teams')
+  const {directory,manager}=setup(async()=>finished())
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const base=`http://127.0.0.1:${app.server.address().port}`
+    const {token}=await (await fetch(base+'/api/control')).json()
+    const team={...getTeam('delivery'),id:'my-delivery'}
+    const post=(data,auth=true)=>fetch(base+'/api/teams',{method:'POST',headers:{'content-type':'application/json',...(auth ? {'x-fleet-token':token}:{})},body:JSON.stringify(data)})
+    assert.equal((await post(team,false)).status,403)
+    assert.equal((await post({...team,workflow:{reviewers:[]}})).status,400)
+    assert.equal((await post(team)).status,200)
+    const stored=await (await fetch(base+'/api/teams/my-delivery')).json()
+    assert.equal(stored.team.roles.developer.prompt,team.roles.developer.prompt)
+    assert.equal((await fetch(base+'/api/teams/missing')).status,404)
+    assert.equal((await fetch(base+'/teams.js')).status,200)
+  }finally{await app.close();app.server.closeAllConnections();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('initiative limits can be changed explicitly while idle without editing its template snapshot',async()=>{
+  const {directory,manager}=setup(async()=>finished()),repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:'delivery'})
+    await until(()=>s.status==='idle')
+    manager.setLimits(s.id,{budgetUsd:20,maxAttempts:5})
+    assert.equal(s.limits.budgetUsd,20);assert.equal(s.teamSnapshot.workflow.budgetUsd,10)
+    assert.throws(()=>manager.setLimits(s.id,{budgetUsd:NaN,maxAttempts:5}))
+    assert.throws(()=>manager.setLimits(s.id,{budgetUsd:20,maxAttempts:11}))
+    s.costUsd=21;assert.throws(()=>manager.setLimits(s.id,{budgetUsd:20,maxAttempts:5}))
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})

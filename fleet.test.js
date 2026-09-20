@@ -124,7 +124,7 @@ test('the browser scripts load together without redeclaring a shared-scope ident
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     // A redeclaration is a SyntaxError raised when the script is instantiated in the
     // shared scope, before any statement runs. Runtime errors from the stub DOM are

@@ -8,6 +8,8 @@ const { gitBranch, turnSummary, toolTarget } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
 const { stateDir } = require('./paths')
 const { getTeam, compile } = require('./teams')
+const { TeamStore } = require('./team-store')
+const tasks = require('./tasks')
 const worktrees = require('./worktree')
 
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
@@ -65,12 +67,14 @@ class ManagedSessions extends EventEmitter {
     this.lock = path.join(directory, 'server.lock')
     this.acquireLock()
     try {
+      this.teams = new TeamStore(directory)
       if (fs.existsSync(this.file)) {
         const data = JSON.parse(fs.readFileSync(this.file, 'utf8'))
         if (data.version !== 1 || !Array.isArray(data.sessions)) throw new Error('Unsupported session store format')
         for (const s of data.sessions) {
           if (!s.id || !Array.isArray(s.messages)) throw new Error('Invalid saved session')
           if (ACTIVE.has(s.status)) { s.status = 'stopped'; s.error = 'Fleet restarted. Send a message to continue this conversation.' }
+          tasks.interrupt(s)
           s.approvals = []
           s.currentTool = null
           for (const m of s.messages) if (m.role === 'tool' && m.status === 'running') m.status = 'interrupted'
@@ -148,7 +152,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s),
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
     }))
   }
@@ -176,12 +180,12 @@ class ManagedSessions extends EventEmitter {
     this.checkCapacity()
     // A team turns this conversation into an initiative: the manager takes the main thread
     // and the work happens on a branch of its own rather than in the operator's checkout.
-    const team = body.teamId ? getTeam(text(body.teamId,'Team',60)) : null
+    const team = body.teamId ? this.teams.get(text(body.teamId,'Team',60)) : null
     if (body.teamId && !team) fail('That team does not exist.')
     if (team && resume) fail('A resumed conversation cannot be given a team.',409)
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
-    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,worktree}
+    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     this.sessions.set(s.id,s)
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
@@ -278,8 +282,41 @@ class ManagedSessions extends EventEmitter {
       // `agent` puts the manager on the main thread, so the operator's messages reach it and
       // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
       // Both compose with the claude_code preset above, which keeps the built-in tools.
-      const team = getTeam(s.teamId)
-      if (team) Object.assign(options, compile(team))
+      const team = s.teamSnapshot || getTeam(s.teamId)
+      if (team) {
+        Object.assign(options, compile(team))
+        if (s.selectedModel) options.agents[team.manager].model=s.selectedModel
+      }
+      if (team?.workflow) {
+        const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
+        if (remaining<=0) throw new Error('Initiative budget reached. Increase the budget explicitly before continuing.')
+        options.maxBudgetUsd=remaining
+        options.maxTurns=100
+        options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
+        options.hooks={
+          PreToolUse:[{hooks:[async input=>{
+            if (!['Agent','Task'].includes(input.tool_name)) return {}
+            const before=structuredClone(s.taskBoard)
+            let applied=false
+            try {
+              const delegation=tasks.start(s,input.tool_use_id,input.tool_input)
+              applied=true
+              const task=s.taskBoard.tasks.find(t=>t.id===delegation.taskId)
+              this.changed(s,true)
+              return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,prompt:input.tool_input.prompt+`\n\nFleet acceptance criteria:\n${task.criteria.map(c=>'- '+c).join('\n')}\nReturn PASS or FAIL with evidence if you are verifying. Do not edit source while verifying.`}}}
+            } catch(error) {if(applied)s.taskBoard=before;return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:error.message}}}
+          }]}],
+          Stop:[{hooks:[async ()=>{
+            const unfinished=s.taskBoard.tasks.filter(t=>!['verified','blocked'].includes(t.status) && t.attempt<(s.limits?.maxAttempts ?? team.workflow.maxAttempts))
+            if (unfinished.length && (run.continuations || 0)<2) {
+              run.continuations=(run.continuations || 0)+1
+              return {decision:'block',reason:'Fleet tasks remain unfinished. Read the board and continue implementation/verification, or record a concrete blocker before stopping.'}
+            }
+            return {}
+          }]}],
+          SubagentStart:[{hooks:[async input=>{run.agentRoles ||= new Map();run.agentRoles.set(input.agent_id,input.agent_type);return {}}]}],
+        }
+      }
       if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
       run.query = await this.queryFactory({prompt,options})
       if (run.stopping) { run.query.close(); return }
@@ -297,6 +334,7 @@ class ManagedSessions extends EventEmitter {
       run.finished = true
       this.cancelApprovals(s.id,'The agent stopped before this request was answered.')
       try { run.query?.close() } catch {}
+      tasks.interrupt(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
@@ -306,7 +344,16 @@ class ManagedSessions extends EventEmitter {
     }
   }
   event(s,run,event) {
-    if (event.session_id) s.sessionId=event.session_id
+    if (event.session_id && !event.parent_tool_use_id) s.sessionId=event.session_id
+    if (s.taskBoard && event.parent_tool_use_id) {
+      const d=s.taskBoard.delegations.find(d=>d.id===event.parent_tool_use_id)
+      if (d && event.type==='assistant') {
+        d.activity=(event.message.content || []).filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
+        d.model=event.message.model || d.model
+        const output=(event.message.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n')
+        if (output) d.output=output.slice(0,24000)
+      }
+    }
     if (event.type === 'system' && event.subtype === 'init') { s.model=event.model; s.status='running' }
     if (event.type === 'stream_event' && !event.parent_tool_use_id) {
       if (event.event.type === 'message_start') { run.assistant=null; run.streamText='' }
@@ -336,6 +383,7 @@ class ManagedSessions extends EventEmitter {
       for (const block of event.message?.content || []) if (block.type==='tool_result') this.toolFinished(s,run,block)
     }
     if (event.type === 'tool_progress') s.currentTool=event.tool_name
+    if (s.taskBoard && event.type==='system' && event.subtype==='task_notification' && event.tool_use_id && event.status!=='completed') tasks.finish(s,event.tool_use_id,event.summary,true)
     if (event.type === 'result') {
       run.result=true
       if (event.is_error) { s.status='error'; s.error=event.errors?.join('\n') || event.result || 'Claude could not finish this turn.' }
@@ -364,8 +412,21 @@ class ManagedSessions extends EventEmitter {
     entry.status = block.is_error ? 'error' : 'done'
     entry.ms = Date.now()-entry.at
     const result = resultText(block.content)
+    if (s.taskBoard) tasks.finish(s,block.tool_use_id,result,!!block.is_error)
     entry.truncated = result.length > MAX_TOOL_RESULT
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
+  }
+  setLimits(id,body) {
+    const s=this.get(id)
+    if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
+    if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
+    const {budgetUsd,maxAttempts}=body
+    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a budget between the amount already spent and $1,000 (minimum $0.10).')
+    if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')
+    const previous=s.limits
+    s.limits={budgetUsd,maxAttempts}
+    try {this.changed(s,true)} catch(error) {s.limits=previous;throw error}
+    return s
   }
   setModelChoice(id,body) {
     const s=this.get(id)
@@ -387,7 +448,7 @@ class ManagedSessions extends EventEmitter {
     if (!reason) return Promise.resolve({behavior:'allow',updatedInput:input})
     return new Promise(resolve => {
       const id=randomUUID()
-      const approval={id,tool,input,at:Date.now(),reason,description:context.title || context.decisionReason || null,role:roleAsking(s,context)}
+      const approval={id,tool,input,at:Date.now(),reason,description:context.title || context.decisionReason || null,role:run.agentRoles?.get(context.agentID) || roleAsking(s,context)}
       let settled=false
       const finish=result=>{
         if(settled)return
@@ -461,7 +522,7 @@ class ManagedSessions extends EventEmitter {
 // from the delegation that is in flight. With two delegations running at once that is
 // ambiguous, and an honest null beats a confident guess at the wrong role.
 function roleAsking(s,context) {
-  const team = getTeam(s.teamId)
+  const team = s.teamSnapshot || getTeam(s.teamId)
   if (!team) return null
   // No agentID means the request came from the main thread, which is the manager by
   // definition. The role name comes from the team rather than a literal, because a future

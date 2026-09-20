@@ -405,3 +405,40 @@ MIT. See [LICENSE](LICENSE).
 <div align="center">
 <sub>Screenshots use synthetic sessions generated for the purpose. Fleet is not affiliated with Anthropic.</sub>
 </div>
+
+### Configurable teams and durable tasks
+
+In **New agent**, choose **Software delivery** to give a brief to a Manager backed by
+Product, Developer, Reviewer and QA roles. Choose **Customize team…** to save your own
+team: rename/add/remove roles, write their instructions, select a Claude model per role,
+and choose allowed tools. Built-in teams are copied; existing custom teams can be edited.
+The original Bug fix preset remains available for existing workflows.
+
+One role is the manager and at least one separate role is a required verifier. A third
+role owns the work. Fleet adds delegation and operator-question tools to the manager;
+workers report back to it. Manager roles cannot use the shell or edit tools. Verifiers
+cannot use direct edit tools; Bash, when enabled for tests, remains a general-purpose
+shell governed by the initiative's approval mode, not a read-only sandbox.
+
+Each initiative snapshots its team and works in its own Git worktree. Template edits
+apply to new initiatives. The Manager creates tasks with owners, acceptance criteria and
+dependencies through Fleet's task tool. The initiative inspector shows the roster,
+task states, assignments and returned reports. Verification comes from actual subagent
+reports, including each required verifier's PASS/FAIL; the Manager cannot mark a task
+verified itself. A failed review returns work for repair and invalidates the previous
+attempt's reviews. “Verified” records the configured agents' verdicts for that attempt,
+not a guarantee that their evaluation is correct or that later work cannot regress it.
+
+Delegations run sequentially in the shared initiative worktree. After an interruption,
+the saved task board survives and unfinished delegations are marked interrupted. Message
+the Manager to resume. The initial limits are three implementation attempts per task and
+$10 in reported SDK usage; **Adjust limits** changes them explicitly while idle. The SDK
+budget is an execution cutoff, not a billing guarantee: usage is reported at turn end,
+and a killed runtime may not report its final spend. Each turn also has a 100-turn SDK
+limit and bounded continuation reminders.
+
+Custom teams live in `teams.json` under Fleet's state directory; task history and team
+snapshots live with the initiative in `sessions.json`. This version supports models
+available through the Claude Agent SDK, up to eight roles per team, and 100 tasks per
+initiative. It finishes at a local branch ready for review; it does not automatically
+publish or merge changes.

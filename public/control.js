@@ -29,14 +29,16 @@ function updateLaunchTeam() {
   $('launch-title').textContent=resumeSource ? 'Continue this conversation in Fleet.' : team ? 'Give your team a brief.' : 'Give your next task a home.'
   document.querySelector('label[for="launch-prompt"]').textContent=team ? 'Brief for the manager' : 'What are we working on?'
   document.querySelector('.launch-task-note').textContent=team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'Big ideas, small fixes. Every task starts here.'
-  $('launch-prompt').placeholder=team ? 'Describe the goal, boundaries, verification steps, and what a good result looks like.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
+  $('launch-prompt').placeholder=team ? 'Describe what you want to accomplish. Your manager will work out the tasks and bring back any questions.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
   if(!$('launch-submit').disabled) $('launch-submit').textContent=team ? 'Launch initiative ↗' : 'Launch agent ↗'
+  if($('customize-team')) $('customize-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
   $('launch-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
   $('launch-team-note').textContent=resumeSource ? 'Continuing with the existing agent.' : team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? 'No team keeps this a single-agent conversation.' : 'Teams unavailable. Reopen this dialog to retry; single agents are still available.'
 }
 async function loadLaunchTeams() {
   if(!$('launch-team')) {
-    document.querySelector('.launch-fields').insertAdjacentHTML('afterbegin','<label for="launch-team">Team<select id="launch-team" name="teamId" aria-describedby="launch-team-note"><option value="">No team · single agent</option></select><span class="note" id="launch-team-note" role="status"></span></label>')
+    document.querySelector('.launch-fields').insertAdjacentHTML('afterbegin','<label for="launch-team">Team<select id="launch-team" name="teamId" aria-describedby="launch-team-note"><option value="">No team · single agent</option></select><span class="note" id="launch-team-note" role="status"></span></label><button type="button" class="button" id="customize-team">Customize team…</button>')
+    $('customize-team').addEventListener('click',()=>window.FleetTeams.open())
     $('launch-team').addEventListener('change',()=>{launchRequestId=null;updateLaunchTeam()})
   }
   if(launchTeams || launchTeamsLoading){updateLaunchTeam();return}
@@ -50,6 +52,7 @@ async function loadLaunchTeams() {
   finally {launchTeamsLoading=false;updateLaunchTeam()}
 }
 function openLaunch(source=null) {
+  window.FleetTeams?.reset()
   resumeSource=source
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
   if(source){$('launch-cwd').value=source.cwd || '';$('launch-form').elements.name.value=source.title || source.name || ''}
@@ -68,6 +71,7 @@ document.addEventListener('keydown', event => {
 $('launch-form').addEventListener('input',()=>{launchRequestId=null})
 $('launch-form').addEventListener('submit',async event=>{
   event.preventDefault()
+  if(window.FleetTeams?.isEditing()){window.FleetTeams.save();return}
   const button=$('launch-submit'); if(button.disabled)return
   button.disabled=true;button.textContent='Launching…';$('launch-error').hidden=true
   const form=event.currentTarget
@@ -81,7 +85,7 @@ $('launch-form').addEventListener('submit',async event=>{
     await tick();toast(form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
   }catch(error){$('launch-error').textContent=error.message;$('launch-error').hidden=false}
-  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=false);if($('launch-team'))updateLaunchTeam()}
+  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=!!el.closest('#team-editor'));if($('launch-team'))updateLaunchTeam()}
 })
 function selectControl(session) {
   const next=session?.managedId || null
@@ -142,6 +146,7 @@ async function refreshControl() {
 }
 function renderControl() {
   const s=controlSession;if(!s || s.id!==controlId || !$('composer'))return
+  window.FleetTeams?.board(s)
   $('conversation-title').textContent=s.aiTitle || s.name
   $('agent-state').textContent=s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status]
   $('agent-state').className=`subtle ${s.status==='approval' ? 'stale' : ''}`

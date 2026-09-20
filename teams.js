@@ -171,9 +171,40 @@ const TEAMS = {
   },
 }
 
+const READ_TOOLS = ['Read','Glob','Grep','WebSearch','WebFetch']
+TEAMS.delivery = {
+  id:'delivery', name:'Software delivery',
+  description:'Turn a brief into scoped work, implementation, independent code review and QA.',
+  manager:'manager',
+  workflow:{reviewers:['reviewer','qa'],maxAttempts:3,budgetUsd:10},
+  roles:{
+    manager:{description:'Owns the goal, plans and delegates work, and talks to you.',prompt:'Read the project instructions and understand the goal. Use the product role when scope needs clarification. Create scoped tasks with testable acceptance criteria. Delegate implementation and independent verification, repair failures, and report evidence. Ask the operator only when a decision changes the scope or work cannot proceed.',model:'opus',tools:READ_TOOLS},
+    product:{description:'Defines scope and measurable acceptance criteria.',prompt:'Read the relevant project context. Produce a concise specification with scope, exclusions, acceptance criteria and edge cases. Return questions to the manager when a material product decision is missing. Do not edit files.',model:'opus',tools:READ_TOOLS},
+    developer:{description:'Implements scoped changes and fixes reported failures.',prompt:DEVELOPER,model:'sonnet',tools:[...READ_TOOLS,'Bash','Write','Edit','NotebookEdit']},
+    reviewer:{description:'Independently reviews correctness and maintainability.',prompt:'Review the actual changes against the task and repository conventions. Check correctness, regression risks, boundaries and error handling. Do not fix the implementation. Return PASS or FAIL followed by concrete evidence and actionable findings. You may run commands for verification; do not modify source files.',model:'opus',tools:[...READ_TOOLS,'Bash']},
+    qa:{description:'Verifies acceptance criteria with reproducible evidence.',prompt:QA,model:'sonnet',tools:[...READ_TOOLS,'Bash']},
+  },
+}
+const TASK_RULES = `
+
+Fleet owns the durable task board. Use mcp__fleet__tasks to read it and create tasks before delegating.
+Each task needs an owner, acceptance criteria and optional dependencies. All configured verification
+roles must verify each deliverable. Include a line "Fleet task: <task ID>" in EVERY Agent prompt.
+Invoke only the owner or a configured verification role. Work sequentially in this shared worktree.
+After the owner returns, delegate each verification role with the original criteria and actual work.
+Verification reports must start with PASS or FAIL and include evidence. A FAIL returns the task to
+its owner; repeat implementation and ALL verification roles. Fleet enforces the attempt limit.
+Do not use background agents. A completed conversation turn is not task completion. Keep going
+until every task is verified, a blocker needs operator input, or the budget/attempt limit is reached.
+The task board is restored on resume: read it before acting; never recreate completed work.
+You are the only role that speaks to the operator. Do not delegate to yourself. Do not edit code.
+Report blockers through the task tool and ask the operator yourself. Finish at a verified local
+branch; do not claim a PR was opened without a real PR URL. A budget limit requires operator action.
+`
+
 function getTeam(id) {
   if (!id) return null
-  return Object.prototype.hasOwnProperty.call(TEAMS, id) ? TEAMS[id] : null
+  return Object.prototype.hasOwnProperty.call(TEAMS, id) ? structuredClone(TEAMS[id]) : null
 }
 
 // What the UI needs to offer a choice. Prompts are large and of no use to the browser.
@@ -193,7 +224,17 @@ function listTeams() {
 function compile(team) {
   if (!team) return null
   if (!team.roles[team.manager]) throw new Error(`Team ${team.id} names a manager role that does not exist.`)
-  return { agent: team.manager, agents: { ...team.roles } }
+  if (!team.workflow) return { agent: team.manager, agents: { ...team.roles } }
+  const agents={}
+  for (const [name,role] of Object.entries(team.roles)) {
+    const manager=name===team.manager
+    agents[name]={...role,
+      tools:[...(role.tools || []),...(manager ? ['Agent','AskUserQuestion','mcp__fleet__tasks'] : [])],
+      disallowedTools:manager ? [...NO_EDITS,'Bash'] : [...NO_DELEGATION,'AskUserQuestion','mcp__fleet__tasks',...(team.workflow.reviewers.includes(name) ? NO_EDITS : [])],
+      prompt:role.prompt+(manager ? TASK_RULES : SUBAGENT_RULE),
+    }
+  }
+  return {agent:team.manager,agents}
 }
 
 module.exports = { TEAMS, getTeam, listTeams, compile, roleNames: team => Object.keys(team.roles) }

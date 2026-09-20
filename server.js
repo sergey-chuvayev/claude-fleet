@@ -12,7 +12,7 @@ const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./se
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
 const { defaultCwd } = require('./paths.js')
-const { listTeams } = require('./teams.js')
+const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
@@ -95,7 +95,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   async function body(req, limit = 65536) {
     if (!(req.headers['content-type'] || '').startsWith('application/json')) throw Object.assign(new Error('JSON content type is required.'),{status:415})
     let size=0, chunks=[]
-    for await(const chunk of req){size+=chunk.length;if(size>limit) throw Object.assign(new Error(limit > 65536 ? 'Attachments are too large for one message.' : 'Request is too large.'),{status:413});chunks.push(chunk)}
+    for await(const chunk of req){size+=chunk.length;if(size>limit) throw Object.assign(new Error(limit > 256000 ? 'Attachments are too large for one message.' : 'Request is too large.'),{status:413});chunks.push(chunk)}
     let data
     try{data=JSON.parse(Buffer.concat(chunks).toString('utf8'))}catch{throw Object.assign(new Error('Invalid JSON.'),{status:400})}
     if(!data || typeof data!=='object' || Array.isArray(data)) throw Object.assign(new Error('Expected a JSON object.'),{status:400})
@@ -121,7 +121,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(storageError && url.pathname!=='/api/update' && !/^\/api\/managed\/[\w-]+\/stop$/.test(url.pathname)) return json(res,503,{error:storageError})
         // Only the two endpoints that carry a message accept image-sized bodies.
         const carriesMessage=url.pathname==='/api/managed' || /^\/api\/managed\/[\w-]+\/messages$/.test(url.pathname)
-        const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : 65536)
+        const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : url.pathname==='/api/teams' ? 256000 : 65536)
+        if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
@@ -134,7 +135,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{update:{...update,restarting:!!restart}})
         }
-        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|close|approvals\/([\w-]+))$/)
+        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
@@ -142,6 +143,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         else if(action==='stop') manager.stop(id)
         else if(action==='mode') manager.setMode(id,data)
         else if(action==='model') manager.setModelChoice(id,data)
+        else if(action==='limits') manager.setLimits(id,data)
         else manager.decide(id,approvalId,data)
         return json(res,200,{session:manager.detail(id)})
       }
@@ -168,7 +170,9 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return res.end(themeCss(currentTheme()))
       }
       if(url.pathname==='/api/models') return json(res,200,{models:manager.models || MODEL_FALLBACK})
-      if(url.pathname==='/api/teams') return json(res,200,{teams:listTeams()})
+      if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
+      const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
+      if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
       if(url.pathname==='/api/sessions') return json(res,200,getSnapshot())
       if(url.pathname==='/api/events') {
         if(clients.size>=20) return json(res,429,{error:'Too many dashboard connections.'})
@@ -195,7 +199,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return json(res,200,{session})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))
