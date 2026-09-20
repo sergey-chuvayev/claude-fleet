@@ -38,6 +38,9 @@ const MAX_TOOL_INPUT = 2000
 const MAX_TOOL_RESULT = 6000
 // Tool names whose result is the point of the block; others are summarised by their input.
 const QUIET_RESULT = new Set(['TodoWrite', 'Write', 'Edit', 'NotebookEdit'])
+// A delegation can run a sub-agent through an unbounded number of tool calls; capped here
+// so a long-running one cannot grow the session file without limit.
+const MAX_DELEGATION_STEPS = 200
 function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error }
 function text(value, name, max) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) fail(`${name} must contain 1–${max} characters.`)
@@ -336,6 +339,7 @@ class ManagedSessions extends EventEmitter {
       try { run.query?.close() } catch {}
       tasks.interrupt(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
+      if (s.taskBoard) for (const d of s.taskBoard.delegations) for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
       s.currentTool=null
@@ -348,10 +352,18 @@ class ManagedSessions extends EventEmitter {
     if (s.taskBoard && event.parent_tool_use_id) {
       const d=s.taskBoard.delegations.find(d=>d.id===event.parent_tool_use_id)
       if (d && event.type==='assistant') {
-        d.activity=(event.message.content || []).filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
+        const content=event.message.content || []
+        d.activity=content.filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
         d.model=event.message.model || d.model
-        const output=(event.message.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n')
+        const output=content.filter(b=>b.type==='text').map(b=>b.text).join('\n')
         if (output) d.output=output.slice(0,24000)
+        // The one place a sub-agent's own tool calls are kept at all: as steps on its
+        // delegation, never as messages (every branch above stays guarded by
+        // `!event.parent_tool_use_id`). No input, no result; those belong to d.report.
+        for (const block of content) if (block.type==='tool_use') this.stepStarted(d,block)
+      }
+      if (d && event.type==='user') {
+        for (const block of event.message?.content || []) if (block.type==='tool_result') this.stepFinished(d,block)
       }
     }
     if (event.type === 'system' && event.subtype === 'init') { s.model=event.model; s.status='running' }
@@ -415,6 +427,22 @@ class ManagedSessions extends EventEmitter {
     if (s.taskBoard) tasks.finish(s,block.tool_use_id,result,!!block.is_error)
     entry.truncated = result.length > MAX_TOOL_RESULT
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
+  }
+  // A sub-agent's tool call becomes a step on its delegation rather than a conversation
+  // entry: name, target, status and timing only, so the operator can see what happened
+  // without the console ever rendering it.
+  stepStarted(d,block) {
+    if (!block.id) return
+    d.steps ||= []
+    if (d.steps.some(step=>step.id===block.id)) return
+    d.steps.push({id:block.id,tool:block.name || 'Tool',target:toolTarget(block.name,block.input),status:'running',at:Date.now(),ms:null})
+    if (d.steps.length > MAX_DELEGATION_STEPS) { d.steps=d.steps.slice(-MAX_DELEGATION_STEPS); d.stepsTruncated=true }
+  }
+  stepFinished(d,block) {
+    const step=d.steps?.find(step=>step.id===block.tool_use_id)
+    if (!step || step.status!=='running') return
+    step.status=block.is_error ? 'error' : 'done'
+    step.ms=Date.now()-step.at
   }
   setLimits(id,body) {
     const s=this.get(id)
