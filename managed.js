@@ -292,7 +292,7 @@ class ManagedSessions extends EventEmitter {
       }
       if (team?.workflow) {
         const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
-        if (remaining<=0) throw new Error('Initiative budget reached. Increase the budget explicitly before continuing.')
+        if (remaining<=0) throw new Error('Usage cap reached. Increase the cap explicitly before continuing.')
         options.maxBudgetUsd=remaining
         options.maxTurns=100
         options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
@@ -449,7 +449,7 @@ class ManagedSessions extends EventEmitter {
     if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
     if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
     const {budgetUsd,maxAttempts}=body
-    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a budget between the amount already spent and $1,000 (minimum $0.10).')
+    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a usage cap between the amount already used and $1,000 (minimum $0.10).')
     if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')
     const previous=s.limits
     s.limits={budgetUsd,maxAttempts}
