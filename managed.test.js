@@ -746,6 +746,92 @@ test('custom team snapshots, task hooks and independent reports survive template
   }finally{if(replacement)await replacement.close();else await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
 
+test('sub-agent tool calls become steps on the delegation, capped, with the model captured, and the console untouched',async()=>{
+  const tasks=require('./tasks')
+  const {directory,manager}=setup(async()=>finished()),repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:'delivery'})
+    await until(()=>s.status==='idle')
+    const task=tasks.act(s,{action:'create',title:'Fix login',owner:'developer',criteria:['Keep redirect query parameters.']})
+    const d=tasks.start(s,'dev-1',{subagent_type:'developer',prompt:`Fleet task: ${task.id}\nFix it.`})
+    const run={tools:new Map()}
+    const messagesBefore=s.messages.length
+
+    // A sub-agent tool_use opens a running step, using the same target helper as toolStarted.
+    manager.event(s,run,{type:'assistant',parent_tool_use_id:'dev-1',message:{model:'claude-sonnet-5',content:[
+      {type:'tool_use',id:'sub-1',name:'Bash',input:{command:'npm test'}},
+    ]}})
+    assert.equal(d.steps.length,1)
+    assert.deepEqual([d.steps[0].tool,d.steps[0].target,d.steps[0].status],['Bash','npm test','running'])
+    assert.equal(d.model,'claude-sonnet-5')
+
+    // Its own tool_result closes the step as done, with an elapsed time.
+    await delay(5)
+    manager.event(s,run,{type:'user',parent_tool_use_id:'dev-1',message:{content:[
+      {type:'tool_result',tool_use_id:'sub-1',content:'ok'},
+    ]}})
+    assert.equal(d.steps[0].status,'done')
+    assert.ok(d.steps[0].ms>=0 && d.steps[0].ms<5000)
+
+    // A failing sub-agent tool closes its step as an error, not a done.
+    manager.event(s,run,{type:'assistant',parent_tool_use_id:'dev-1',message:{content:[
+      {type:'tool_use',id:'sub-2',name:'Edit',input:{file_path:'/repo/src/x.ts'}},
+    ]}})
+    manager.event(s,run,{type:'user',parent_tool_use_id:'dev-1',message:{content:[
+      {type:'tool_result',tool_use_id:'sub-2',content:'File not found',is_error:true},
+    ]}})
+    assert.equal(d.steps[1].status,'error')
+
+    // None of this reaches the console: the manager's own message list is untouched.
+    assert.equal(s.messages.length,messagesBefore)
+    assert.equal(s.messages.some(m=>m.role==='tool' && (m.id==='sub-1' || m.id==='sub-2')),false)
+
+    // A long delegation cannot grow the session file without limit; the most recent steps survive.
+    for (let i=0;i<250;i++) manager.event(s,run,{type:'assistant',parent_tool_use_id:'dev-1',message:{content:[
+      {type:'tool_use',id:`flood-${i}`,name:'Read',input:{file_path:'/repo/a.ts'}},
+    ]}})
+    assert.equal(d.steps.length,200)
+    assert.equal(d.stepsTruncated,true)
+    assert.equal(d.steps.at(-1).id,'flood-249')
+
+    // The model, and the bounded step list, both survive a save and reload.
+    await manager.close()
+    const reopened=new ManagedSessions({directory})
+    const reloaded=reopened.detail(s.id).taskBoard.delegations.find(x=>x.id==='dev-1')
+    assert.equal(reloaded.model,'claude-sonnet-5')
+    assert.equal(reloaded.steps.length,200)
+    await reopened.close()
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('a still-running sub-agent step ends up interrupted when the run stops',async()=>{
+  const tasks=require('./tasks')
+  let calls=0
+  const {directory,manager}=setup(async args=>{
+    calls++
+    if (calls===1) return finished()
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'assistant',parent_tool_use_id:'dev-1',message:{content:[
+        {type:'tool_use',id:'sub-1',name:'Bash',input:{command:'sleep 600'}},
+      ]}}
+      await new Promise(resolve=>args.options.abortController.signal.addEventListener('abort',resolve,{once:true}))
+    }}
+  })
+  const repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:'delivery'})
+    await until(()=>s.status==='idle')
+    const task=tasks.act(s,{action:'create',title:'Fix login',owner:'developer',criteria:['Keep redirect query parameters.']})
+    const d=tasks.start(s,'dev-1',{subagent_type:'developer',prompt:`Fleet task: ${task.id}\nFix it.`})
+    manager.send(s.id,{message:'Continue',requestId:randomUUID()})
+    await until(()=>d.steps?.length===1)
+    assert.equal(d.steps[0].status,'running')
+    manager.stop(s.id)
+    await until(()=>s.status==='stopped')
+    assert.equal(d.steps[0].status,'interrupted')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
 test('team HTTP endpoints validate writes and require same-origin authorization',async()=>{
   const {getTeam}=require('./teams')
   const {directory,manager}=setup(async()=>finished())
