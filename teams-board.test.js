@@ -248,9 +248,11 @@ test('open/closed state of the Assignment and Report disclosures, and the scroll
   assert.equal(panel.querySelector('.handoff-report').open, false, 'an untouched Report must stay collapsed')
   assert.equal(panel.querySelector('.initiative-body').scrollTop, 77, 'scroll position must survive the re-render')
 
-  // Calling board() again with nothing changed must be a no-op (fleetSignature short-circuit):
-  // if it were not, a fresh innerHTML would reset scrollTop to 0 the way a naive re-render does.
-  panel.querySelector('.initiative-body').scrollTop = 5
+  // Calling board() again with nothing changed must be a no-op (fleetSignature short-circuit).
+  // scrollTop alone can't prove this: board() re-reads and restores it on every render, so it
+  // reads the same either way. Node identity can't be faked that way: an innerHTML write always
+  // builds fresh elements, so the pre-existing node only survives if the short-circuit fired.
+  const bodyBeforeNoop = panel.querySelector('.initiative-body')
   FleetTeams.board(s)
-  assert.equal(panel.querySelector('.initiative-body').scrollTop, 5, 'an unchanged signature must not touch the DOM at all')
+  assert.equal(panel.querySelector('.initiative-body'), bodyBeforeNoop, 'an unchanged signature must not touch the DOM at all')
 })
