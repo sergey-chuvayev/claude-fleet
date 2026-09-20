@@ -483,3 +483,21 @@ body[data-modal]{overflow:hidden}
 @media(max-width:720px){.team-editor-head{align-items:start}.team-meta,.team-rules,.team-role-fields{grid-template-columns:1fr}.team-role>summary{flex-wrap:wrap}.team-role>summary span{flex-basis:100%;order:3}.team-role>summary small{margin-left:auto}#initiative-board>summary{flex-wrap:wrap}.initiative-body{max-height:32vh}}
 #team-editor{padding:3px 32px 28px}.initiative-limits{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:12px}.initiative-limits label{display:flex;flex-direction:column;gap:6px;color:var(--muted)}.initiative-limits input{width:110px;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:5px}.initiative-limits .form-error{width:100%}.initiative-limits .note{width:100%}@media(max-width:720px){#team-editor{padding:0 20px 24px}.team-editor-head{flex-wrap:wrap}}
 .modal-launch.is-editing-team>.modal-head .modal-heading{display:none}.modal-launch.is-editing-team>.modal-head{justify-content:flex-end;padding-bottom:8px}.modal-launch.is-editing-team #team-editor{padding-top:0}
+
+/* A Task-tool sub-agent has no process of its own, so this nested row under the
+   session that ran it is the only place it ever shows up. */
+.session-child{padding-left:44px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg))}
+.session-child .session-name{color:var(--muted)}
+.session-child .session-title{font-size:11px;font-weight:400;color:var(--faint)}
+@media(max-width:1000px){.session-child{padding-left:34px}}
+/* Its read-only report: steps, in the order Fleet saw them, each with what it touched. */
+.child-steps{list-style:none;margin:0;padding:0;font-size:11px}
+.child-step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line)}
+.child-step:first-child{border-top:0}
+.child-step-tool{font-weight:600;flex:none}
+.child-step-target{color:var(--muted);overflow-wrap:anywhere;flex:1;min-width:0}
+.child-step-state{color:var(--faint);flex:none}
+.child-step[data-status="running"] .child-step-state{color:var(--busy)}
+.child-step[data-status="error"] .child-step-state{color:var(--dead)}
+.child-step[data-status="interrupted"] .child-step-state{color:var(--stale)}
+.child-step-time{color:var(--faint);font-variant-numeric:tabular-nums;flex:none}

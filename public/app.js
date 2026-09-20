@@ -13,6 +13,13 @@ const age = timestamp => {
   return secs < 60 ? `${secs}s` : secs < 3600 ? `${Math.floor(secs/60)}m` : secs < 86400 ? `${Math.floor(secs/3600)}h` : `${Math.floor(secs/86400)}d`
 }
 let snapshot = null, filter = 'all', selected = null, pending = false, toastTimer
+// A delegation row nested under a team session. Keyed on the delegation id, never on
+// its position or status, so a sub-agent finishing does not move the operator's focus.
+let selectedChild = null, childDetail = null, childDetailFor = null, childDetailError = null, childRequest = 0, lastChildId = null
+const DELEGATION_LABEL = { running: 'Working', completed: 'Done', failed: 'Failed', interrupted: 'Interrupted' }
+const DELEGATION_BADGE = { running: 'busy', completed: 'idle', failed: 'hot', interrupted: 'stale' }
+const STEP_LABEL = { running: 'Running', done: 'Done', error: 'Failed', interrupted: 'Interrupted' }
+const formatModel = m => m ? String(m).replace('claude-', '') : 'Model pending'
 function update(id, html) {
   const el = $(id)
   if (!el || el.innerHTML === html) return
@@ -77,6 +84,15 @@ function markSeen(k, at) {
 }
 const hasUnseen = s => !!s.lastActivity && key(s) !== selected && (seen[key(s)] || 0) < s.lastActivity
 
+// A Task-tool sub-agent never gets a process of its own, so this is the only row it
+// ever gets: nested under the session that ran it, for as long as that session lives.
+function childRowHtml(s, d) {
+  const cls = DELEGATION_BADGE[d.status] || ''
+  const label = DELEGATION_LABEL[d.status] || d.status
+  return `<button class="session session-child" data-session="${esc(key(s))}" data-delegation="${esc(d.id)}" aria-pressed="${selectedChild === d.id}" aria-controls="detail"><span><span class="session-top"><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span><span class="session-name">⑂ ${esc(d.role)}</span></span><span class="session-title">${esc(formatModel(d.model))}</span></span><span class="session-context"></span></button>`
+}
+const childRowsHtml = s => (s.delegations || []).map(d => childRowHtml(s, d)).join('')
+
 function render() {
   if (!snapshot) return
   const {sessions, total} = snapshot
@@ -103,12 +119,31 @@ function render() {
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
   update('session-list', shown.length ? shown.map(s => {
     const p = percent(s)
-    return `<button class="session" data-session="${esc(key(s))}" aria-pressed="${selected === key(s)}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>`
+    return `<button class="session" data-session="${esc(key(s))}" aria-pressed="${selected === key(s)}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>${childRowsHtml(s)}`
   }).join('') : `<div class="empty">${filter === 'background' ? 'No background sessions right now.' : total ? 'No sessions match your filters.<br>Try another search or select All sessions.' : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'}</div>`)
   const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
-  renderDetail(current)
-  if (typeof selectControl === 'function') selectControl(current)
+  // A delegation belongs to whichever session is actually current; switching sessions,
+  // or the owning session dropping out of the current filter, clears a stale child pick.
+  const childId = selectedChild && current?.delegations?.some(d => d.id === selectedChild) ? selectedChild : null
+  selectedChild = childId
+  // A fresh fetch on every genuine transition, including back to a child left moments
+  // ago: childDetailFor otherwise still names it "loaded" even after its cache was
+  // cleared by the visit in between, and the view would be stuck on "Loading…".
+  if (childId !== lastChildId) {
+    lastChildId = childId
+    if (childId) { childDetail = null; childDetailFor = null; childDetailError = null; loadChildDetail(current.managedId, childId) }
+  }
+  if (childId) {
+    renderChildDetail(current, childId)
+    // A sub-agent is not addressable: clearing the control panel drops its composer
+    // and conversation from the DOM entirely, not merely hiding them.
+    if (typeof selectControl === 'function') selectControl(null)
+  } else {
+    renderDetail(current)
+    if (typeof selectControl === 'function') selectControl(current)
+  }
+  syncDetails()
 }
 // ── The archive ──────────────────────────────────────────────────────────────
 // Putting a session away hides its row and nothing else: the transcript stays in
@@ -162,6 +197,37 @@ function renderDetail(s) {
   const links = (s.links || []).filter(l => /^https:\/\/(github\.com|linear\.app)\//.test(l.url))
   const facts = [['Project',s.cwdShort],['Branch',s.branch],['Model',s.model?.replace('claude-','')],['Permissions',s.permissionMode || 'Default'],['Control',s.managed ? 'Fleet-managed' : s.alive ? 'Terminal · monitor only' : 'Saved · ready to continue'],['Session',s.sessionId]]
   update('detail-content', `<div class="detail-top"><span class="eyebrow">SESSION INSPECTOR</span>${status(s)}</div><h2>${esc(s.title || s.name || 'Untitled session')}</h2><div class="detail-name">${esc(s.name || s.shortId)} · Active ${age(s.lastActivity)} ago</div><div class="context-label"><span>Context window</span><span class="${heat(p)}">${p === null ? 'Not available' : `${tokens(s.contextTokens)} / ${tokens(s.contextLimit)} · ${Math.round(p)}%`}</span></div><div class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></div>${p >= 75 ? `<p class="note ${heat(p)}">${p >= 90 ? 'Context nearly full. Compaction may happen soon.' : 'Context is getting full.'}</p>` : ''}${s.managed ? '' : `<section class="detail-section"><h3>Latest response <span>${s.latestResponseAt ? age(s.latestResponseAt)+' ago' : ''}</span></h3><div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div></section>`}${s.lastPrompt && !s.managed ? `<section class="detail-section"><h3>Latest request</h3><div class="response">${esc(s.lastPrompt)}</div></section>` : ''}<section class="detail-section"><h3>Linked work <span>From transcript</span></h3>${links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '⑂' : '◩'} ${esc(l.label)} ↗</a>`).join('')}</div><p class="note" style="margin-top:9px">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>'}</section><section class="detail-section"><h3>Environment</h3><dl class="facts">${facts.map(([label,value]) => `<dt>${label}</dt><dd>${esc(value ?? '—')}</dd>`).join('')}</dl></section>${s.transcriptTruncated ? '<p class="note">Showing the most recent 6 MB of this transcript. Earlier responses and links may be absent.</p>' : ''}${s.archived ? '<p class="note archived-note">Archived. Hidden from your fleet, still on disk, still resumable and still searchable.</p>' : ''}<div class="detail-actions"><span class="subtle">${s.messages} recorded messages</span><span class="detail-buttons">${s.managed || !s.sessionId ? '' : `<button class="button" id="toggle-archive">${s.archived ? 'Restore' : 'Archive'}</button>`}${s.resumeCmd && !s.managed ? '<button class="button resume" id="copy-resume">Copy resume command ↗</button>' : ''}</span></div>`)
+}
+// A sub-agent's row: its mandate, its returned report and the steps it actually took.
+// Read only — there is no composer here and nothing that could send it more input.
+function renderChildDetail(s, delegationId) {
+  const compact = s.delegations?.find(d => d.id === delegationId)
+  if (!compact) return
+  const full = childDetailFor === delegationId ? childDetail : null
+  const state = full?.status || compact.status
+  const cls = DELEGATION_BADGE[state] || ''
+  const label = DELEGATION_LABEL[state] || state
+  const steps = full?.steps || []
+  const stepsHtml = steps.length ? `<ol class="child-steps">${steps.map(step => `<li class="child-step" data-status="${esc(step.status)}"><span class="child-step-tool">${esc(step.tool)}</span>${step.target ? `<span class="child-step-target">${esc(step.target)}</span>` : ''}<span class="child-step-state">${esc(STEP_LABEL[step.status] || step.status)}</span><span class="child-step-time">${step.ms != null ? elapsed(step.ms) : step.status === 'running' ? 'running…' : ''}</span></li>`).join('')}</ol>` : `<p class="note">${full ? 'No tool steps recorded.' : 'Loading steps…'}</p>`
+  update('detail-content', `<div class="detail-top"><span class="eyebrow">SUB-AGENT · READ ONLY</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span></div><h2>⑂ ${esc(compact.role)}</h2><div class="detail-name">${esc(formatModel(full?.model || compact.model))}</div><section class="detail-section"><h3>Mandate</h3><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="detail-section"><h3>Steps${full?.stepsTruncated ? ' <span>Showing the most recent 200</span>' : ''}</h3>${stepsHtml}</section><section class="detail-section"><h3>Report to the manager</h3><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p>`)
+}
+// The list payload only ever carries id/role/model/status for a delegation; its steps,
+// mandate and report live on the session detail route, fetched independently of the
+// manager's own control panel so viewing one never depends on that panel being mounted.
+async function loadChildDetail(managedId, delegationId) {
+  if (typeof api !== 'function') return
+  const requestId = ++childRequest
+  try {
+    const data = await api(`/api/managed/${managedId}`)
+    if (requestId !== childRequest || selectedChild !== delegationId) return
+    childDetail = data.session?.taskBoard?.delegations?.find(d => d.id === delegationId) || null
+    childDetailFor = delegationId
+    childDetailError = null
+  } catch (error) {
+    if (requestId === childRequest && selectedChild === delegationId) childDetailError = error.message || 'Could not load this delegation.'
+  } finally {
+    if (requestId === childRequest && selectedChild === delegationId) render()
+  }
 }
 // ── Modals ───────────────────────────────────────────────────────────────────
 // Ask and New agent are overlays, not panels that push the workspace down. One at
@@ -219,8 +285,11 @@ document.addEventListener('click', async event => {
   const b = event.target.closest('button')
   if (!b) return
   if (b.dataset.filter) { filter = b.dataset.filter; render() }
-  if (b.dataset.session) {
-    selected = b.dataset.session; render()
+  if (b.dataset.delegation) {
+    selected = b.dataset.session; selectedChild = b.dataset.delegation; render()
+    if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({behavior:'instant',block:'start'})
+  } else if (b.dataset.session) {
+    selected = b.dataset.session; selectedChild = null; render()
     if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({behavior:'instant',block:'start'})
   }
   if (b.id === 'archive-sweep') return setArchived(sweepTargets().map(s => s.sessionId), true)
@@ -245,6 +314,12 @@ async function tick() {
     const data = await r.json()
     if (!Array.isArray(data.sessions) || !data.counts) throw new Error('Invalid response')
     snapshot = data; render()
+    // A selected delegation keeps polling its own steps and report at the same cadence
+    // as everything else, independent of whether the manager's own panel is mounted.
+    if (selectedChild) {
+      const owner = data.sessions.find(s => s.delegations?.some(d => d.id === selectedChild))
+      if (owner?.managedId) loadChildDetail(owner.managedId, selectedChild)
+    }
     // Other panels (the ask results) re-read the snapshot to refresh "open now" state.
     document.dispatchEvent(new CustomEvent('fleet-snapshot'))
     $('connection').textContent = 'Live connection'; $('connection-dot').className = 'dot busy'
