@@ -221,3 +221,98 @@ test('the cost label never rounds a real spend down to nothing', () => {
   assert.equal(money('money(0.426)'), '$0.43')
   assert.equal(money('money(12.3)'), '$12.30')
 })
+
+// A Task-tool sub-agent has no PID and never earns a row of its own in the process
+// registry; the list payload is the only place it can appear, nested under the
+// session that ran it.
+test('a team session renders one nested child row per delegation, with role, model and status', () => {
+  const vm = require('node:vm')
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations: [
+        { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+        { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+      ],
+    }],
+  }
+  context.fixture = fixture
+  vm.runInContext('snapshot = fixture; render()', context)
+  const list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="dev-1"/)
+  assert.match(list, /data-delegation="qa-1"/)
+  assert.match(list, /data-delegation="dev-1"[^]*?Working[^]*?developer[^]*?sonnet-5/)
+  assert.match(list, /data-delegation="qa-1"[^]*?Done[^]*?qa[^]*?haiku/)
+})
+
+// The list route is polled every couple of seconds, so it carries only enough to draw
+// the child row: never the mandate or report that made it into the delegation.
+test('the session list carries a compact delegation summary, with the role model as a fallback, and nothing else', async () => {
+  const { execFileSync } = require('node:child_process')
+  const { randomUUID } = require('node:crypto')
+  const { ManagedSessions } = require('./managed')
+  const { createApp } = require('./server')
+  const tasksMod = require('./tasks')
+  const delay = ms => new Promise(r => setTimeout(r, ms))
+  const until = async fn => { for (let i = 0; i < 100; i++) { if (fn()) return; await delay(5) } throw Error('Condition timed out') }
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-managed-'))
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-initiative-repo-'))
+  const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'ignore' })
+  git('init', '-q', '-b', 'main'); git('config', 'user.email', 't@example.invalid'); git('config', 'user.name', 'T')
+  fs.writeFileSync(path.join(repo, 'README.md'), 'hi'); git('add', 'README.md'); git('commit', '-qm', 'initial')
+  const manager = new ManagedSessions({ directory, queryFactory: async () => ({ close() {}, async *[Symbol.asyncIterator]() { yield { type: 'result', result: 'done', is_error: false } } }) })
+  const app = createApp({ manager, collectSessions: () => ({ sessions: [], counts: {}, total: 0, generatedAt: Date.now() }) })
+  try {
+    await new Promise((resolve, reject) => { app.server.once('error', reject); app.server.listen(0, '127.0.0.1', resolve) })
+    const base = `http://127.0.0.1:${app.server.address().port}`
+    const s = manager.create({ cwd: repo, prompt: 'Fix login', requestId: randomUUID(), teamId: 'delivery' })
+    await until(() => s.status === 'idle')
+    const task = tasksMod.act(s, { action: 'create', title: 'Fix login', owner: 'developer', criteria: ['Keep redirect query parameters.'] })
+    tasksMod.start(s, 'dev-1', { subagent_type: 'developer', prompt: `Fleet task: ${task.id}\nA secret mandate that must not reach the polled list.` })
+    const body = await (await fetch(base + '/api/sessions')).json()
+    const row = body.sessions.find(x => x.managedId === s.id)
+    // No model has been reported yet, so this falls back to the developer role's own.
+    assert.deepEqual(row.delegations, [{ id: 'dev-1', role: 'developer', model: 'sonnet', status: 'running' }])
+    assert.equal(JSON.stringify(body).includes('secret mandate'), false)
+  } finally {
+    await app.close?.(); await manager.close()
+    fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(repo, { recursive: true, force: true })
+  }
+})

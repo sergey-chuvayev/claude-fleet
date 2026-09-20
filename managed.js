@@ -337,9 +337,13 @@ class ManagedSessions extends EventEmitter {
       run.finished = true
       this.cancelApprovals(s.id,'The agent stopped before this request was answered.')
       try { run.query?.close() } catch {}
+      // Only a delegation that is itself still running was actually interrupted here; a
+      // delegation that already finished may carry a step whose tool_result simply never
+      // arrived, and flipping that step to "interrupted" next to a completed delegation
+      // would misreport a race as a stop.
+      if (s.taskBoard) for (const d of s.taskBoard.delegations) if (d.status === 'running') for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       tasks.interrupt(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
-      if (s.taskBoard) for (const d of s.taskBoard.delegations) for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
       s.currentTool=null

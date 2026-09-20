@@ -832,6 +832,38 @@ test('a still-running sub-agent step ends up interrupted when the run stops',asy
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
 
+test('a dangling step on an already-completed delegation is left alone, not mislabeled interrupted',async()=>{
+  const tasks=require('./tasks')
+  let taskId,calls=0
+  const {directory,manager}=setup(async()=>{
+    calls++
+    if (calls===1) return finished()
+    // A real race, not a stop: the Agent tool's own result reaches the manager thread and
+    // completes the delegation before the sub-agent's last Bash step got its own tool_result.
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'assistant',message:{content:[
+        {type:'tool_use',id:'dev-1',name:'Agent',input:{subagent_type:'developer',prompt:`Fleet task: ${taskId}\nFix it.`}},
+      ]}}
+      yield {type:'assistant',parent_tool_use_id:'dev-1',message:{content:[
+        {type:'tool_use',id:'sub-1',name:'Bash',input:{command:'npm test'}},
+      ]}}
+      yield {type:'user',message:{content:[{type:'tool_result',tool_use_id:'dev-1',content:'Implementation complete'}]}}
+      yield {type:'result',result:'done',is_error:false}
+    }}
+  })
+  const repo=gitRepo()
+  try{
+    const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:'delivery'})
+    await until(()=>s.status==='idle')
+    const task=tasks.act(s,{action:'create',title:'Fix login',owner:'developer',criteria:['Keep redirect query parameters.']})
+    taskId=task.id
+    const d=tasks.start(s,'dev-1',{subagent_type:'developer',prompt:`Fleet task: ${taskId}\nFix it.`})
+    manager.send(s.id,{message:'Continue',requestId:randomUUID()})
+    await until(()=>s.status==='idle' && d.status==='completed')
+    assert.equal(d.steps[0].status,'running')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
 test('team HTTP endpoints validate writes and require same-origin authorization',async()=>{
   const {getTeam}=require('./teams')
   const {directory,manager}=setup(async()=>finished())
