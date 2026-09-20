@@ -832,7 +832,7 @@ test('a still-running sub-agent step ends up interrupted when the run stops',asy
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
 
-test('a dangling step on an already-completed delegation is left alone, not mislabeled interrupted',async()=>{
+test('a dangling step on an already-completed delegation gets its own terminal label, not mislabeled interrupted',async()=>{
   const tasks=require('./tasks')
   let taskId,calls=0
   const {directory,manager}=setup(async()=>{
@@ -860,7 +860,10 @@ test('a dangling step on an already-completed delegation is left alone, not misl
     const d=tasks.start(s,'dev-1',{subagent_type:'developer',prompt:`Fleet task: ${taskId}\nFix it.`})
     manager.send(s.id,{message:'Continue',requestId:randomUUID()})
     await until(()=>s.status==='idle' && d.status==='completed')
-    assert.equal(d.steps[0].status,'running')
+    // The delegation finished before this step's own tool_result arrived; it can
+    // never resolve on its own now, so it must not be left reading "running" forever,
+    // and "interrupted" would misrepresent it as a stop that never happened.
+    assert.equal(d.steps[0].status,'unreported')
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
 

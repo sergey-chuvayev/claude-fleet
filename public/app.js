@@ -18,19 +18,23 @@ let snapshot = null, filter = 'all', selected = null, pending = false, toastTime
 let selectedChild = null, childDetail = null, childDetailFor = null, childDetailError = null, childRequest = 0, lastChildId = null
 const DELEGATION_LABEL = { running: 'Working', completed: 'Done', failed: 'Failed', interrupted: 'Interrupted' }
 const DELEGATION_BADGE = { running: 'busy', completed: 'idle', failed: 'hot', interrupted: 'stale' }
-const STEP_LABEL = { running: 'Running', done: 'Done', error: 'Failed', interrupted: 'Interrupted' }
+const STEP_LABEL = { running: 'Running', done: 'Done', error: 'Failed', interrupted: 'Interrupted', unreported: 'Unreported' }
 const formatModel = m => m ? String(m).replace('claude-', '') : 'Model pending'
+// A child row shares its data-session with the parent that owns it, so the session
+// id alone is not a unique row key: folding in data-delegation is what tells a
+// delegation row apart from its parent when the list redraws underneath focus.
+const rowFocusKey = b => b.dataset.delegation ? `${b.dataset.session}::${b.dataset.delegation}` : b.dataset.session || b.dataset.filter
 function update(id, html) {
   const el = $(id)
   if (!el || el.innerHTML === html) return
   const active = document.activeElement
-  const focusKey = el.contains(active) ? active.dataset.session || active.dataset.filter : null
+  const focusKey = el.contains(active) ? rowFocusKey(active) : null
   const top = el.scrollTop
   const responseTop = el.querySelector('.response')?.scrollTop || 0
   el.innerHTML = html
   el.scrollTop = top
   if (el.querySelector('.response')) el.querySelector('.response').scrollTop = responseTop
-  if (focusKey) [...el.querySelectorAll('button')].find(b => b.dataset.session === focusKey || b.dataset.filter === focusKey)?.focus({ preventScroll: true })
+  if (focusKey) [...el.querySelectorAll('button')].find(b => rowFocusKey(b) === focusKey)?.focus({ preventScroll: true })
 }
 function status(s) {
   // A Fleet conversation resumed in a terminal is driven there, whatever Fleet last recorded.
@@ -91,7 +95,15 @@ function childRowHtml(s, d) {
   const label = DELEGATION_LABEL[d.status] || d.status
   return `<button class="session session-child" data-session="${esc(key(s))}" data-delegation="${esc(d.id)}" aria-pressed="${selectedChild === d.id}" aria-controls="detail"><span><span class="session-top"><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span><span class="session-name">⑂ ${esc(d.role)}</span></span><span class="session-title">${esc(formatModel(d.model))}</span></span><span class="session-context"></span></button>`
 }
-const childRowsHtml = s => (s.delegations || []).map(d => childRowHtml(s, d)).join('')
+// An initiative that runs long enough accumulates delegations without bound; the
+// row list stays a list, not a scrollbar of its own, by showing only the tail.
+const CHILD_ROW_LIMIT = 20
+const childRowsHtml = s => {
+  const all = s.delegations || []
+  const shown = all.length > CHILD_ROW_LIMIT ? all.slice(-CHILD_ROW_LIMIT) : all
+  const earlier = all.length - shown.length
+  return shown.map(d => childRowHtml(s, d)).join('') + (earlier ? `<div class="session-child-more" aria-hidden="true">+${earlier} earlier</div>` : '')
+}
 
 function render() {
   if (!snapshot) return
@@ -119,7 +131,8 @@ function render() {
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
   update('session-list', shown.length ? shown.map(s => {
     const p = percent(s)
-    return `<button class="session" data-session="${esc(key(s))}" aria-pressed="${selected === key(s)}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>${childRowsHtml(s)}`
+    const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
+    return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>${childRowsHtml(s)}`
   }).join('') : `<div class="empty">${filter === 'background' ? 'No background sessions right now.' : total ? 'No sessions match your filters.<br>Try another search or select All sessions.' : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'}</div>`)
   const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
@@ -204,12 +217,19 @@ function renderChildDetail(s, delegationId) {
   const compact = s.delegations?.find(d => d.id === delegationId)
   if (!compact) return
   const full = childDetailFor === delegationId ? childDetail : null
-  const state = full?.status || compact.status
+  // The list poll and the session-detail fetch land independently; the list is the
+  // one running every couple of seconds, so its status is never staler than the
+  // detail fetch's, and the badge should never lag a row it sits right next to.
+  const state = compact.status
   const cls = DELEGATION_BADGE[state] || ''
   const label = DELEGATION_LABEL[state] || state
   const steps = full?.steps || []
+  // Selecting a child tears down the console, so an approval sitting on the owning
+  // session would otherwise wait in total silence. A notice only: nothing here can
+  // answer it, so it just points the operator back to the row that can.
+  const approvalNotice = s.managedStatus === 'approval' ? `<p class="note child-approval-notice">${esc(s.name || s.title || 'This session')} needs your approval to continue. Select its row above to respond — this read-only view can’t.</p>` : ''
   const stepsHtml = steps.length ? `<ol class="child-steps">${steps.map(step => `<li class="child-step" data-status="${esc(step.status)}"><span class="child-step-tool">${esc(step.tool)}</span>${step.target ? `<span class="child-step-target">${esc(step.target)}</span>` : ''}<span class="child-step-state">${esc(STEP_LABEL[step.status] || step.status)}</span><span class="child-step-time">${step.ms != null ? elapsed(step.ms) : step.status === 'running' ? 'running…' : ''}</span></li>`).join('')}</ol>` : `<p class="note">${full ? 'No tool steps recorded.' : 'Loading steps…'}</p>`
-  update('detail-content', `<div class="detail-top"><span class="eyebrow">SUB-AGENT · READ ONLY</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span></div><h2>⑂ ${esc(compact.role)}</h2><div class="detail-name">${esc(formatModel(full?.model || compact.model))}</div><section class="detail-section"><h3>Mandate</h3><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="detail-section"><h3>Steps${full?.stepsTruncated ? ' <span>Showing the most recent 200</span>' : ''}</h3>${stepsHtml}</section><section class="detail-section"><h3>Report to the manager</h3><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p>`)
+  update('detail-content', `<div class="detail-top"><span class="eyebrow">SUB-AGENT · READ ONLY</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span></div>${approvalNotice}<h2>⑂ ${esc(compact.role)}</h2><div class="detail-name">${esc(formatModel(full?.model || compact.model))}</div><section class="detail-section"><h3>Mandate</h3><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="detail-section"><h3>Steps${full?.stepsTruncated ? ' <span>Showing the most recent 200</span>' : ''}</h3>${stepsHtml}</section><section class="detail-section"><h3>Report to the manager</h3><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p>`)
 }
 // The list payload only ever carries id/role/model/status for a delegation; its steps,
 // mandate and report live on the session detail route, fetched independently of the

@@ -490,6 +490,14 @@ body[data-modal]{overflow:hidden}
 .session-child .session-name{color:var(--muted)}
 .session-child .session-title{font-size:11px;font-weight:400;color:var(--faint)}
 @media(max-width:1000px){.session-child{padding-left:34px}}
+/* Only one row reads as selected: a session holding a selected child is an ancestor,
+   not the selection itself, so it gets a quieter treatment and no accent bar. */
+.session-ancestor{background:#1a1f1e}
+.session-ancestor:hover{background:#1c2120}
+/* A long initiative is capped to its most recent delegations; this line names the
+   rest without pretending to be a row of its own. */
+.session-child-more{padding:9px 23px 9px 44px;color:var(--faint);font-size:10px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg))}
+@media(max-width:1000px){.session-child-more{padding-left:34px}}
 /* Its read-only report: steps, in the order Fleet saw them, each with what it touched. */
 .child-steps{list-style:none;margin:0;padding:0;font-size:11px}
 .child-step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line)}
@@ -501,3 +509,6 @@ body[data-modal]{overflow:hidden}
 .child-step[data-status="error"] .child-step-state{color:var(--dead)}
 .child-step[data-status="interrupted"] .child-step-state{color:var(--stale)}
 .child-step-time{color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+/* Selecting a child hides the console, so a pending approval on the owning session
+   would otherwise go unnoticed; this is the one visible sign it is still waiting. */
+.child-approval-notice{color:var(--text);background:color-mix(in srgb,var(--stale) 14%,transparent);border:1px solid var(--stale);border-radius:6px;padding:10px 12px;margin-bottom:17px}

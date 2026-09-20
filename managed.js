@@ -428,7 +428,15 @@ class ManagedSessions extends EventEmitter {
     entry.status = block.is_error ? 'error' : 'done'
     entry.ms = Date.now()-entry.at
     const result = resultText(block.content)
-    if (s.taskBoard) tasks.finish(s,block.tool_use_id,result,!!block.is_error)
+    if (s.taskBoard) {
+      tasks.finish(s,block.tool_use_id,result,!!block.is_error)
+      // The delegation just reached a terminal status. A step whose own tool_result
+      // never arrived from the sub-agent can no longer resolve on its own, by
+      // definition; left as "running" it would look like a live step under a
+      // finished delegation, so it gets its own terminal label instead.
+      const d=s.taskBoard.delegations.find(d=>d.id===block.tool_use_id)
+      if (d && d.status!=='running') for (const step of d.steps || []) if (step.status==='running') step.status='unreported'
+    }
     entry.truncated = result.length > MAX_TOOL_RESULT
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
   }
