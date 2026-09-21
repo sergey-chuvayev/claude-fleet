@@ -115,6 +115,68 @@ const childRowsHtml = s => {
   return (earlier ? `<div class="session-child-more">+${earlier} earlier</div>` : '') + shown.map(d => childRowHtml(s, d)).join('')
 }
 
+// ── Account usage ─────────────────────────────────────────────────────────────
+// The plan windows belong to the account, not to a session: every Claude process on
+// this machine draws on them, including the terminal sessions Fleet only watches. The
+// bar says so, and it uses the same thresholds and colours as context pressure so
+// "nearly full" reads the same way everywhere.
+const WINDOW_WORD = { five_hour:'five-hour', seven_day:'weekly', seven_day_opus:'weekly Opus', seven_day_sonnet:'weekly Sonnet', seven_day_oauth_apps:'weekly apps' }
+const BLOCK_REASON = {
+  org_spend_cap_reached:'organisation spend cap reached', out_of_credits:'out of credits',
+  overage_not_provisioned:'no overage configured', org_level_disabled:'overage off for this organisation',
+  member_level_disabled:'overage off for this member', no_limits_configured:'no overage limits set',
+  fetch_error:'usage lookup failed',
+}
+const clockAt = ms => new Date(ms).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+const untilReset = (ms, now) => {
+  const left = ms - now
+  if (left <= 0) return 'any moment'
+  return left < 3600000 ? `${Math.max(1, Math.round(left / 60000))}m` : `${Math.floor(left / 3600000)}h ${Math.round(left % 3600000 / 60000)}m`
+}
+const blockReason = r => BLOCK_REASON[r] || (r ? String(r).replace(/_/g, ' ') : null)
+const windowWord = name => WINDOW_WORD[name] || String(name || '').replace(/_/g, ' ')
+function usageHtml(usage, now) {
+  // Unknown is not zero. With nothing measured, and on an API key or a third-party
+  // provider where plan limits do not apply at all, the cluster is simply absent.
+  if (!usage || !usage.available || !usage.known) return ''
+  const blocked = usage.blocked
+  if (blocked) return `<span class="usage-blocked hot" title="A request was refused by this window. Every Claude session on this machine is affected until it resets.">⊘ Rate limited · ${esc(windowWord(blocked.rateLimitType))} window · resets ${clockAt(blocked.resetsAt)} (${untilReset(blocked.resetsAt, now)})${blockReason(blocked.reason) ? ` · ${esc(blockReason(blocked.reason))}` : ''}</span>`
+  const binding = usage.windows.find(w => w.name === usage.binding) || usage.windows[0]
+  if (!binding) return ''
+  const cls = heat(binding.utilization)
+  // Past 90% the countdown is the decision and the percentage is trivia, so they swap.
+  const critical = binding.utilization >= 90
+  const reset = binding.resetsAt ? (critical ? `${untilReset(binding.resetsAt, now)} left` : `resets ${clockAt(binding.resetsAt)}`) : ''
+  const detail = [
+    usage.subscription ? `Plan: ${usage.subscription}.` : '',
+    'Account-wide, including the terminal sessions Fleet only watches.',
+    usage.observedAt ? `Last read ${clockAt(usage.observedAt)}.` : '',
+  ].filter(Boolean).join(' ')
+  // One bar, on whichever window is closest to stopping the fleet. The rest are bare
+  // numbers: a second bar would just be a second thing to look at.
+  const others = usage.windows.filter(w => w !== binding)
+    .map(w => `<span class="usage-other ${heat(w.utilization)}"><b>${esc(w.label)}</b> ${w.utilization}%</span>`).join('')
+  return `<span class="usage-window ${cls}${usage.stale ? ' is-stale' : ''}" title="${esc(detail)}"><b>${esc(binding.label)}</b>${critical ? `<em>${reset}</em><span class="usage-pct">${binding.utilization}%</span>` : `<span class="mini-bar"><i class="${cls}" style="width:${binding.utilization}%"></i></span><span class="usage-pct">${binding.utilization}%</span>${reset ? `<small>${reset}</small>` : ''}`}</span>${others}${usage.stale && usage.observedAt ? `<small class="usage-stale" title="Utilisation only updates while a Fleet agent is running.">as of ${clockAt(usage.observedAt)}</small>` : ''}`
+}
+function renderStatusbar(usage, sessions) {
+  const now = Date.now()
+  update('status-usage', usageHtml(usage, now))
+  const managed = sessions.filter(s => s.managed && !s.archived)
+  const waiting = managed.filter(s => s.managedStatus === 'approval').length
+  const working = sessions.filter(s => !s.archived && isWorkingRow(s)).length
+  const spend = managed.reduce((sum, s) => sum + (s.costUsd || 0), 0)
+  update('status-fleet', [
+    `<span>${working} working</span>`,
+    waiting ? `<span class="warn">${waiting} needs you</span>` : '',
+    money(spend) ? `<span title="Reported for Fleet’s own conversations only. Terminal sessions are not included, and a Claude subscription is not billed for this.">${esc(money(spend))}</span>` : '',
+  ].filter(Boolean).join('<span class="status-sep" aria-hidden="true">·</span>'))
+  // The same wall, said where it changes a decision: in the dialog that starts agents.
+  const banner = $('launch-blocked')
+  if (banner) {
+    banner.hidden = !usage?.blocked
+    if (usage?.blocked) banner.textContent = `Rate limited until ${clockAt(usage.blocked.resetsAt)} (${untilReset(usage.blocked.resetsAt, now)}). A new agent will not get past its first message until this window resets.`
+  }
+}
 function render() {
   if (!snapshot) return
   const {sessions, total} = snapshot
@@ -137,6 +199,7 @@ function render() {
   const shown = pool.filter(s => filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter)
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
+  renderStatusbar(snapshot.usage, live)
   update('filters', [['all','All sessions',foreground.length],...STATES.map(s => [s,LABELS[s],(visibleCounts[s] || 0)]),...(background.length ? [['background','Background',background.length]] : []),...(archived.length ? [['archived','Archived',archived.length]] : [])].map(([s,label,n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join(''))
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
   update('session-list', shown.length ? shown.map(s => {

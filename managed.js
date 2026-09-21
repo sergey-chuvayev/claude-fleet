@@ -9,6 +9,7 @@ const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions
 const { stateDir } = require('./paths')
 const { getTeam, compile } = require('./teams')
 const { TeamStore } = require('./team-store')
+const { UsageTracker } = require('./usage')
 const tasks = require('./tasks')
 const worktrees = require('./worktree')
 
@@ -63,6 +64,10 @@ class ManagedSessions extends EventEmitter {
     this.closed = false
     this.models = null
     this.saveTimer = null
+    // Plan windows belong to the account, so one tracker serves every session and
+    // outlives all of them. It is deliberately not persisted: a utilisation figure from
+    // before a restart describes a window that has probably already turned over.
+    this.usage = new UsageTracker()
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.file = path.join(directory, 'sessions.json')
     this.attachmentsDir = path.join(directory, 'attachments')
@@ -353,6 +358,8 @@ class ManagedSessions extends EventEmitter {
   }
   event(s,run,event) {
     if (event.session_id && !event.parent_tool_use_id) s.sessionId=event.session_id
+    // Account-wide, so it is recorded whoever emitted it, sub-agent turns included.
+    if (event.type==='rate_limit_event') this.usage.recordEvent(event.rate_limit_info)
     if (s.taskBoard && event.parent_tool_use_id) {
       const d=s.taskBoard.delegations.find(d=>d.id===event.parent_tool_use_id)
       if (d && event.type==='assistant') {
@@ -418,8 +425,20 @@ class ManagedSessions extends EventEmitter {
       else if (event.result && !s.messages.some(m=>m.role==='assistant' && m.text===event.result.slice(-24000))) s.messages.push({id:randomUUID(),role:'assistant',text:event.result.slice(-24000),at:Date.now()})
       s.costUsd=(s.costUsd||0)+(event.total_cost_usd||0)
       s.messages=s.messages.slice(-MAX_MESSAGES)
+      this.captureUsage(run)
     }
     this.changed(s)
+  }
+  // The end of a turn is the one moment a query is both idle and still open, so it is
+  // where the every-window reading is taken. Fire and forget: the push event already
+  // carries the window that matters, this only fills in the rest. The method is marked
+  // experimental upstream and may simply not be there, which is not an error.
+  captureUsage(run) {
+    if (!run || run.usagePulled) return
+    const pull=run.query?.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET
+    if (typeof pull!=='function') return
+    run.usagePulled=true
+    Promise.resolve(pull.call(run.query)).then(response=>this.usage.recordUsage(response)).catch(()=>{})
   }
   // A tool call becomes its own conversation entry so the UI can render it as a command block.
   toolStarted(s,run,block) {

@@ -92,7 +92,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(s.archived) archived++
       else counts[s.state]++
     }
-    return {...snap,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,storageError}
+    // The transcript rejection is merged into the account view rather than shipped
+    // beside it: the dashboard should never have to reconcile two rate-limit stories.
+    const {rateLimit,...rest}=snap
+    const usage=manager.usage ? manager.usage.snapshot({rejection:rateLimit}) : null
+    return {...rest,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,storageError,usage}
   }
   const authorized=(req)=>{
     const supplied=req.headers['x-fleet-token']

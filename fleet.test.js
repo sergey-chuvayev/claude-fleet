@@ -491,3 +491,86 @@ test('the session list carries a compact delegation summary, with the role model
     fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(repo, { recursive: true, force: true })
   }
 })
+
+// Plan limits are account-wide, so the transcript that recorded the refusal is almost
+// never the session the operator is looking at. The block has to travel between them.
+test('a refused request in any transcript becomes the fleet-wide block, newest first', () => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-limit-')))
+  const previous = process.env.CLAUDE_FLEET_DIR
+  process.env.CLAUDE_FLEET_DIR = root
+  try {
+    const cwd = path.join(root, 'work')
+    const project = path.join(root, 'projects', 'work')
+    fs.mkdirSync(cwd)
+    fs.mkdirSync(project, {recursive:true})
+    fs.mkdirSync(path.join(root, 'sessions'))
+    const refusal = (minutesAgo, rateLimitType) => ({
+      type:'assistant', cwd, timestamp:new Date(Date.now() - minutesAgo * 60000).toISOString(),
+      message:{role:'assistant',content:[{type:'text',text:'Claude AI usage limit reached'}]},
+      error:'rate_limit', apiErrorStatus:429,
+      quotaLimits:{status:'rejected',resetsAt:Math.round(Date.now()/1000)+1800,rateLimitType,overageDisabledReason:'org_spend_cap_reached'},
+    })
+    for (const [id, minutesAgo, type] of [['older',120,'five_hour'],['newer',5,'seven_day']]) {
+      fs.writeFileSync(path.join(root, 'sessions', `${id}.json`), JSON.stringify({pid:process.pid,sessionId:id,cwd,status:'idle',updatedAt:Date.now()}))
+      fs.writeFileSync(path.join(project, `${id}.jsonl`), [
+        {type:'user',cwd,timestamp:new Date().toISOString(),message:{content:'go'}},
+        refusal(minutesAgo, type),
+      ].map(r=>JSON.stringify(r)).join('\n'))
+    }
+    delete require.cache[require.resolve('./fleet')]
+    const {collect} = require('./fleet')
+    const snap = collect()
+    assert.equal(snap.rateLimit.rateLimitType, 'seven_day', 'the freshest refusal on the machine is the one that describes it')
+    assert.equal(snap.rateLimit.reason, 'org_spend_cap_reached')
+    assert.ok(snap.rateLimit.at > 0)
+    // An allowed turn records no quota at all, so a transcript without one says nothing.
+    fs.writeFileSync(path.join(project, 'newer.jsonl'), JSON.stringify({type:'user',cwd,timestamp:new Date().toISOString(),message:{content:'go'}}))
+    fs.writeFileSync(path.join(project, 'older.jsonl'), JSON.stringify({type:'user',cwd,timestamp:new Date().toISOString(),message:{content:'go'}}))
+    delete require.cache[require.resolve('./fleet')]
+    assert.equal(require('./fleet').collect().rateLimit, null)
+  } finally {
+    if (previous === undefined) delete process.env.CLAUDE_FLEET_DIR
+    else process.env.CLAUDE_FLEET_DIR = previous
+    delete require.cache[require.resolve('./fleet')]
+    fs.rmSync(root, {recursive:true, force:true})
+  }
+})
+
+// The status bar is one line about the whole account, and the ways it can lie are all
+// about absence: an unknown reading shown as zero, a stale one shown as live, a block
+// shown without the time it clears.
+test('the status bar reports absence honestly and swaps to the countdown when a window is nearly gone', () => {
+  const vm = require('node:vm')
+  const context = vm.createContext({
+    window: {}, document: { getElementById: () => null, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], createElement: () => ({ style: {}, classList: { add() {} }, querySelectorAll: () => [] }), body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete' },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
+  catch (error) { if (error && error.name === 'SyntaxError') throw error }
+  const now = Date.now()
+  context.fixture = null
+  const html = usage => { context.fixture = usage; return vm.runInContext(`usageHtml(fixture, ${now})`, context) }
+  assert.equal(html(null), '', 'no reading draws nothing rather than a zero')
+  assert.equal(html({available:true, known:false, windows:[]}), '')
+  assert.equal(html({available:false, known:true, windows:[{name:'five_hour',label:'5h',utilization:0,resetsAt:now}]}), '', 'an API key has no plan window to report')
+  const calm = html({available:true, known:true, binding:'five_hour', windows:[{name:'five_hour',label:'5h',utilization:62,resetsAt:now+2*3600000},{name:'seven_day',label:'week',utilization:31,resetsAt:null}], stale:false, observedAt:now})
+  assert.match(calm, /62%/)
+  assert.match(calm, /mini-bar/, 'the binding window is the one that gets the bar')
+  assert.match(calm, /week<\/b> 31%/, 'the rest stay bare numbers')
+  assert.doesNotMatch(calm, /is-stale/)
+  const critical = html({available:true, known:true, binding:'five_hour', windows:[{name:'five_hour',label:'5h',utilization:94,resetsAt:now+38*60000}], stale:false, observedAt:now})
+  assert.match(critical, /38m left/, 'past 90% the countdown is the decision')
+  assert.doesNotMatch(critical, /mini-bar/)
+  const stale = html({available:true, known:true, binding:'five_hour', windows:[{name:'five_hour',label:'5h',utilization:62,resetsAt:now+3600000}], stale:true, observedAt:now-3600000})
+  assert.match(stale, /is-stale/)
+  assert.match(stale, /as of/, 'an idle hour must not look live')
+  const blocked = html({available:true, known:true, binding:'five_hour', windows:[], stale:true, observedAt:null, blocked:{rateLimitType:'five_hour',resetsAt:now+38*60000,reason:'org_spend_cap_reached',at:now}})
+  assert.match(blocked, /Rate limited/)
+  assert.match(blocked, /five-hour window/)
+  assert.match(blocked, /38m/)
+  assert.match(blocked, /organisation spend cap reached/)
+})

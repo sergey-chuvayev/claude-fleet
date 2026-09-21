@@ -39,7 +39,8 @@
     "update.js",
     "worktree.js",
     "team-store.js",
-    "tasks.js"
+    "tasks.js",
+    "usage.js"
   ],
   "scripts": {
     "start": "node bin/claude-fleet.js start",
