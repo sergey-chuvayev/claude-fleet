@@ -3,6 +3,43 @@ const {test}=require('node:test')
 const assert=require('node:assert/strict')
 const {TEAMS,getTeam,listTeams,compile}=require('./teams')
 
+test('all presets have bounded roles and a budgeted workflow',()=>{
+  for (const team of Object.values(TEAMS)) {
+    const {agents}=compile(team)
+    assert.ok(team.workflow.budgetUsd>0)
+    assert.ok(team.workflow.maxAttempts>0)
+    assert.equal(agents.manager.maxTurns,100)
+    assert.equal(agents.manager.effort,'high')
+    assert.equal(agents.developer.maxTurns,40)
+    assert.equal(agents.developer.effort,'medium')
+    assert.equal(agents.developer.model,'sonnet')
+    assert.equal(agents.qa.maxTurns,20)
+    assert.equal(agents.qa.effort,'low')
+    assert.equal(agents.qa.model,'haiku')
+    assert.match(agents.developer.prompt,/30 lines/)
+    assert.match(agents.manager.prompt,/SPLIT_REQUIRED/)
+    for (const role of Object.values(agents)) assert.ok(role.tools.length)
+  }
+  const {agents}=compile(getTeam('delivery'))
+  assert.equal(agents.reviewer.model,'sonnet')
+  assert.equal(agents.reviewer.maxTurns,20)
+  assert.equal(agents.product.maxTurns,15)
+})
+
+test('legacy snapshots get missing limits and models lose the extended-context suffix',()=>{
+  const team=getTeam('delivery')
+  delete team.roles.developer.maxTurns
+  delete team.roles.developer.effort
+  team.roles.manager.model='opus[1m]'
+  team.roles.developer.model='sonnet[1m]'
+  const {agents}=compile(team)
+  assert.equal(agents.manager.model,'opus')
+  assert.equal(agents.developer.model,'sonnet')
+  assert.equal(agents.developer.maxTurns,40)
+  assert.equal(agents.developer.effort,'medium')
+  assert.equal(team.roles.manager.model,'opus[1m]','compilation preserves the saved snapshot')
+})
+
 test('a team compiles into the two options the SDK needs',()=>{
   const team=getTeam('bugfix')
   const {agent,agents}=compile(team)

@@ -8,6 +8,15 @@ const create=(s,extra={})=>tasks.act(s,{action:'create',title:'Fix login',owner:
 const delegate=(s,t,id,role=t.owner)=>tasks.start(s,id,{subagent_type:role,prompt:`Fleet task: ${t.id}\nVerify the requested behavior.`})
 const pass='PASS\nRan the integration test and verified the requested redirect and error cases.'
 function verify(s,t){for(const role of s.teamSnapshot.workflow.reviewers){delegate(s,t,`${role}-${t.attempt}`,role);tasks.finish(s,`${role}-${t.attempt}`,pass)}}
+test('a split request blocks unfinished work instead of sending it to verification',()=>{
+  const s=session(),t=create(s)
+  delegate(s,t,'dev')
+  tasks.finish(s,'dev','SPLIT_REQUIRED\nCompleted the parser; split the remaining integration work.')
+  assert.equal(t.status,'blocked')
+  assert.match(t.blocker,/smaller mandate/)
+  assert.throws(()=>delegate(s,t,'qa','qa'),/owner must complete/)
+  assert.equal(t.attempt,1,'splitting must not reset the attempt budget')
+})
 test('a task is verified only after its owner and every independent verifier return',()=>{
   const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Implementation and tests complete.')
   assert.equal(t.status,'review');delegate(s,t,'review','reviewer');tasks.finish(s,'review',pass);assert.equal(t.status,'review')

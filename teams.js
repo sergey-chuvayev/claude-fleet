@@ -18,7 +18,12 @@ never ask them a question, and never promise to follow up.
 
 You cannot delegate. If the work is larger than your mandate, do the part that is clearly
 yours and say in your report exactly what you left and why. Returning a smaller honest
-result beats returning a larger invented one.`
+result beats returning a larger invented one.
+
+Keep the final report within 30 lines: outcome, changed files, checks and remaining work.
+Summarize command output; do not paste logs or diffs. Before exhausting your turn limit,
+return SPLIT_REQUIRED with completed work and smaller remaining mandates. Never claim
+PASS for unfinished verification.`
 
 const MANAGER = `You are the manager of an initiative: one goal, a small team, and a single
 conversation with the operator. You are the only member of the team they can hear.
@@ -172,6 +177,12 @@ const TEAMS = {
 }
 
 const READ_TOOLS = ['Read','Glob','Grep','WebSearch','WebFetch']
+function boundedModel(model, fallback='sonnet') {
+  return !model || model==='inherit' ? fallback : model.replace(/\[1m\]$/i,'')
+}
+function roleLimits(name, manager=false) {
+  return {maxTurns:manager ? 100 : ({developer:40,reviewer:20,qa:20,product:15}[name] || 30),effort:manager ? 'high' : name==='qa' ? 'low':'medium'}
+}
 TEAMS.delivery = {
   id:'delivery', name:'Software delivery',
   description:'Thorough workflow: scoped work, implementation, independent code review and QA.',
@@ -196,6 +207,18 @@ TEAMS.quick = {
     qa:{...TEAMS.delivery.roles.qa,prompt:QA+'\nKeep verification proportional to this small task. Focus on acceptance criteria and directly affected behavior; stop once sufficient evidence exists.'},
   },
 }
+// All presets use the same bounded configuration path as custom teams.
+TEAMS.delivery.roles.reviewer.model='sonnet'
+for (const team of [TEAMS.delivery,TEAMS.quick]) {
+  team.roles.qa.model='haiku'
+  for (const [name,role] of Object.entries(team.roles)) Object.assign(role,roleLimits(name,name===team.manager))
+}
+TEAMS.bugfix.workflow={reviewers:['qa'],maxAttempts:3,budgetUsd:10}
+TEAMS.bugfix.roles={
+  manager:{...TEAMS.delivery.roles.manager},
+  developer:{...TEAMS.delivery.roles.developer},
+  qa:{...TEAMS.delivery.roles.qa},
+}
 const TASK_RULES = `
 
 Fleet owns the durable task board. Use mcp__fleet__tasks to read it and create tasks before delegating.
@@ -213,6 +236,9 @@ The task board is restored on resume: read it before acting; never recreate comp
 You are the only role that speaks to the operator. Do not delegate to yourself. Do not edit code.
 Report blockers through the task tool and ask the operator yourself. Finish at a verified local
 branch; do not claim a PR was opened without a real PR URL. A budget limit requires operator action.
+Treat SPLIT_REQUIRED or a delegate turn-limit result as a decomposition failure. Inspect
+completed work and split the remaining mandate; never raise the role cap or blindly retry
+the same assignment. Keep the original task blocked until its acceptance criteria are verified.
 `
 
 function getTeam(id) {
@@ -237,11 +263,12 @@ function listTeams() {
 function compile(team) {
   if (!team) return null
   if (!team.roles[team.manager]) throw new Error(`Team ${team.id} names a manager role that does not exist.`)
-  if (!team.workflow) return { agent: team.manager, agents: { ...team.roles } }
   const agents={}
   for (const [name,role] of Object.entries(team.roles)) {
     const manager=name===team.manager
-    agents[name]={...role,
+    const bounded={...roleLimits(name,manager),...role,model:boundedModel(role.model,manager ? 'opus':'inherit')}
+    if (!team.workflow) {agents[name]={...bounded,prompt:role.prompt+(manager ? '\nSplit mandates when delegates reach their turn limit; do not raise the cap.':SUBAGENT_RULE)};continue}
+    agents[name]={...bounded,
       tools:[...(role.tools || []),...(manager ? ['Agent','AskUserQuestion','mcp__fleet__tasks'] : [])],
       disallowedTools:manager ? [...NO_EDITS,'Bash'] : [...NO_DELEGATION,'AskUserQuestion','mcp__fleet__tasks',...(team.workflow.reviewers.includes(name) ? NO_EDITS : [])],
       prompt:role.prompt+(manager ? TASK_RULES : SUBAGENT_RULE),
@@ -250,4 +277,4 @@ function compile(team) {
   return {agent:team.manager,agents}
 }
 
-module.exports = { TEAMS, getTeam, listTeams, compile, roleNames: team => Object.keys(team.roles) }
+module.exports = { TEAMS, getTeam, listTeams, compile, boundedModel, roleLimits, roleNames: team => Object.keys(team.roles) }

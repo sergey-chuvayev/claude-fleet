@@ -5,6 +5,27 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path')
 const {TeamStore,validateTeam}=require('./team-store')
 const {getTeam,compile}=require('./teams')
 const template=()=>({...getTeam('delivery'),id:'my-team'})
+test('custom limits survive validation and old configurations receive bounded defaults',()=>{
+  const team=template()
+  team.roles.developer.maxTurns=12
+  team.roles.developer.effort='low'
+  team.roles.developer.model='sonnet[1m]'
+  delete team.roles.qa.maxTurns
+  delete team.roles.qa.effort
+  const valid=validateTeam(team)
+  assert.equal(valid.roles.developer.maxTurns,12)
+  assert.equal(valid.roles.developer.effort,'low')
+  assert.equal(valid.roles.developer.model,'sonnet')
+  assert.equal(valid.roles.qa.maxTurns,20)
+  assert.equal(valid.roles.qa.effort,'low')
+  for (const maxTurns of [0,101,1.5,'40',NaN]) {
+    team.roles.developer.maxTurns=maxTurns
+    assert.throws(()=>validateTeam(team),/turn limit/)
+  }
+  team.roles.developer.maxTurns=40
+  team.roles.developer.effort='unknown'
+  assert.throws(()=>validateTeam(team),/effort/)
+})
 test('custom teams survive reload and callers cannot mutate stored instructions',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-teams-'))
   try{
