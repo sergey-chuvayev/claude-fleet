@@ -287,7 +287,8 @@ function sessionRowHtml(s, spawnCounts) {
   const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
   const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
   const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
-  const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
+  const title = `<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>`
+  const body = `${top}<span class="session-title-row">${initiativeTag(s)}${title}</span>${rowMeta(s)}${turnRow(s)}`
   return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
 // The trigger names whichever combination is active instead of repeating every

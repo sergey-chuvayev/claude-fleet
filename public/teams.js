@@ -4,7 +4,7 @@ window.FleetTeams=(()=>{
   const { esc, toast } = window.Fleet
   const control = () => window.FleetControl
   const api = (...args) => window.FleetControl.api(...args)
-  let draft=null,tools=[],originalId=null,returnTeam=null
+  let draft=null,tools=[],originalId=null,returnTeam=null,openToken=0
   const escape=value=>esc(String(value ?? ''))
   const field=(label,key,value,max=500)=>`<label>${label}<input data-team-field="${key}" value="${escape(value)}" maxlength="${max}" required></label>`
   function mount() {
@@ -34,9 +34,14 @@ window.FleetTeams=(()=>{
   }
   async function open() {
     mount()
+    // Closing (or resetting) the launch modal bumps this past whatever token a call
+    // to open() captured, so a fetch that resolves after the dialog moved on updates
+    // nothing instead of quietly hijacking whatever's open now into team-edit mode.
+    const token=++openToken
     try {
       const selected=document.getElementById('launch-team').value || 'delivery'
       const [data,catalog]=await Promise.all([api(`/api/teams/${encodeURIComponent(selected)}`),api('/api/teams')])
+      if(token!==openToken)return
       tools=catalog.tools;draft=data.team;returnTeam=selected
       const custom=catalog.teams.find(t=>t.id===selected)?.custom
       originalId=custom ? selected:null
@@ -44,7 +49,7 @@ window.FleetTeams=(()=>{
       draft.workflow ||= {reviewers:['qa'],maxAttempts:3,budgetUsd:10}
       for(const [name,role] of Object.entries(draft.roles))role.tools ||= tools.filter(t=>!(role.disallowedTools || []).includes(t) && (name!==draft.manager || ['Read','Glob','Grep','WebSearch','WebFetch'].includes(t)))
       render();toggle(true)
-    } catch(error){toast(error.message)}
+    } catch(error){if(token===openToken)toast(error.message)}
   }
   function render() {
     document.getElementById('team-editor-error').hidden=true
@@ -134,6 +139,6 @@ window.FleetTeams=(()=>{
       catch(error){const el=box.querySelector('p');el.textContent=error.message;el.hidden=false;event.target.disabled=false}
     })
   }
-  function reset(){if(document.getElementById('team-editor'))toggle(false)}
+  function reset(){openToken++;if(document.getElementById('team-editor'))toggle(false)}
   return {open,board,reset,save,isEditing:()=>!!document.getElementById('team-editor') && !document.getElementById('team-editor').hidden}
 })()

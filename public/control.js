@@ -60,8 +60,14 @@ async function loadLaunchTeams() {
 function openLaunch(source=null) {
   window.FleetTeams?.reset()
   resumeSource=source
+  // Leftover text, a picked team, a swapped model or approval mode from a task that
+  // was never launched should not greet the next one. The remembered project
+  // directory is the one thing worth carrying forward, so it survives the reset.
+  const form=$('launch-form'), cwd=form.elements.cwd.value
+  form.reset()
+  form.elements.cwd.value=cwd
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
-  if(source){$('launch-cwd').value=source.cwd || '';$('launch-form').elements.name.value=source.title || source.name || ''}
+  if(source){$('launch-cwd').value=source.cwd || '';form.elements.name.value=source.title || source.name || ''}
   loadLaunchTeams()
   $('launch-cwd').readOnly=!!source
   openModal('launch-backdrop', '[name=prompt]')
