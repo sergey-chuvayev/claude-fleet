@@ -304,7 +304,7 @@ SDK usage before it stops for you, adjustable while the initiative is idle. **Qu
 trims that to a Sonnet manager, one developer and one independent verifier, for small, clearly
 scoped changes, with two attempts and a $3 cap. **No team · single agent** skips orchestration
 for a one-line fix. **Customize team…** saves your own roster: rename, add or remove roles,
-write their instructions, pick a model and allowed tools per role, up to eight roles with at
+write their instructions, pick a model, turn limit, reasoning effort and allowed tools per role, up to eight roles with at
 least one manager and one verifier. Each initiative snapshots its team at launch, so editing a
 template only affects the initiatives you start after that.
 
@@ -317,8 +317,29 @@ like any other publishing command, so nothing leaves the machine without that cl
 Closing an initiative forgets Fleet's record of the conversation and leaves the worktree and
 its branch alone. Deleting code is never the same click as tidying a list.
 
-Teams cost roughly an order of magnitude more tokens than a single agent, and only earn it
-when the work genuinely splits. For a one-line fix, launch an agent.
+Each delegation adds context and reporting overhead. Use a team when independent work or
+verification warrants it. For a one-line fix, launch an agent.
+
+Fleet explicitly selects the manager's model (Sonnet for a single agent) and removes a
+trailing `[1m]` suffix instead of inheriting the global extended-context choice. This avoids
+opting into the extended window; it is not a hard token ceiling on an existing conversation.
+Built-in roles use these limits, configurable in copied teams:
+
+| Role | Maximum turns | Effort | Model |
+| --- | --- | --- | --- |
+| Manager | 100 | high | Opus; Sonnet in Quick task |
+| Developer | 40 | medium | Sonnet |
+| Reviewer | 20 | medium | Sonnet |
+| QA | 20 | low | Haiku |
+| Product | 15 | medium | Opus |
+
+Other custom roles default to 30 turns and medium effort. Delegates are instructed to
+report within 30 lines and return `SPLIT_REQUIRED` before exhausting their turn allowance;
+managers should split remaining work instead of raising the cap. Report length is a prompt
+instruction, not output truncation. Bug fix uses independent QA, three attempts and a $10
+API-equivalent budget; Quick task retains two attempts and $3. Delivery retains three and $10.
+Legacy snapshots get missing role limits when compiled; explicit saved settings remain in
+effect, except extended-context model suffixes are removed.
 
 <details>
 <summary><b>The task board, and what "verified" actually means</b></summary>
@@ -335,7 +356,7 @@ survives and unfinished delegations are marked interrupted, so messaging the man
 where it left off. "Verified" records the configured verifier's PASS/FAIL for that attempt,
 not a guarantee that the evaluation was correct or that later work cannot regress it. The SDK
 budget is an execution cutoff, not a billing guarantee: usage is reported at turn end, and a
-killed runtime may not report its final spend, and each turn also has a 100-turn SDK limit
+killed runtime may not report its final spend, and each manager run also has its configured SDK turn limit
 with bounded continuation reminders. Custom teams live in `teams.json` under Fleet's state
 directory; task history and team snapshots live with the initiative in `sessions.json`.
 

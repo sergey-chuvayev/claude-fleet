@@ -17,7 +17,7 @@ const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
-  { value:'', displayName:'Project default', description:'Whatever this project is configured to use' },
+  { value:'', displayName:'Fleet default', description:'Team manager model, or Sonnet for a single agent; without [1m]' },
   { value:'opus', displayName:'Opus', description:'Most capable' },
   { value:'sonnet', displayName:'Sonnet', description:'Balanced' },
   { value:'haiku', displayName:'Haiku', description:'Fastest' },

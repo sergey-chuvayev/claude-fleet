@@ -80,6 +80,9 @@ function finish(s,toolId,report,error=false) {
   d.report=String(error ? report : d.output || unwrapReport(report)).slice(0,24000);d.status=error ? 'failed':'completed';d.finishedAt=Date.now()
   const task=taskFor(s,d.taskId)
   if (error) {task.status='blocked';task.blocker='Delegation failed. Read the report before retrying.';return}
+  if (/^\s*(?:\*\*)?SPLIT_REQUIRED\b/.test(d.report)) {
+    task.status='blocked';task.blocker='Delegate needs a smaller mandate. Inspect completed work and split the remainder; do not raise the turn cap.';return
+  }
   if (d.role===task.owner) {task.status='review';return}
   const verdict=d.report.trim().replace(/^\*\*/, '').match(/^(PASS|FAIL)\b/)?.[1]
   const evidence=d.report.replace(/^\s*\*{0,2}(PASS|FAIL)\*{0,2}[\s:—-]*/, '').trim()

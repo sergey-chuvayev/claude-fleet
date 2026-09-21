@@ -354,12 +354,12 @@ test('a chosen model is passed to the SDK, changed per turn, and validated', asy
     await until(() => calls.length === 2)
     assert.equal(calls[1], 'opus')
 
-    // An empty choice hands the decision back to the project rather than forcing one.
+    // An empty choice uses Fleet's bounded default, not global model settings.
     manager.setModelChoice(s.id, { model:'' })
     await until(() => s.status === 'idle')
     manager.send(s.id, { message:'Third', requestId:randomUUID() })
     await until(() => calls.length === 3)
-    assert.equal(calls[2], undefined)
+    assert.equal(calls[2], 'sonnet')
 
     assert.throws(() => manager.setModelChoice(s.id, { model:'not a model!' }), /not valid/)
     assert.throws(() => manager.create({ cwd:directory, prompt:'x', requestId:randomUUID(), model:'a b c' }), /not valid/)
@@ -717,13 +717,20 @@ test('custom team snapshots, task hooks and independent reports survive template
   let replacement
   try{
     const template={...getTeam('delivery'),id:'custom-delivery'}
+    template.roles.manager.maxTurns=55
+    template.roles.manager.effort='medium'
     manager.teams.save(template)
     const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:template.id})
     await until(()=>s.status==='idle' || s.status==='error')
     assert.equal(s.error,null)
     const options=calls[0].options
     assert.equal(options.maxBudgetUsd,10)
-    assert.equal(options.maxTurns,100)
+    assert.equal(options.maxTurns,55)
+    assert.equal(options.model,'opus')
+    assert.equal(options.effort,'medium')
+    assert.equal(options.agents.developer.maxTurns,40)
+    assert.equal(options.agents.developer.effort,'medium')
+    assert.equal(options.agents.qa.model,'haiku')
     assert.ok(options.mcpServers.fleet)
     const task=tasks.act(s,{action:'create',title:'Fix login',owner:'developer',criteria:['Keep redirect query parameters.']})
     const pre=options.hooks.PreToolUse[0].hooks[0]

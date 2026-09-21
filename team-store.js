@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
-const { TEAMS } = require('./teams')
+const { TEAMS, boundedModel, roleLimits } = require('./teams')
 
 const TOOL_OPTIONS = ['Read','Glob','Grep','Bash','Write','Edit','MultiEdit','NotebookEdit','WebSearch','WebFetch']
 const bad = message => { throw Object.assign(new Error(message), {status:400}) }
@@ -25,7 +25,11 @@ function validateTeam(input) {
     const model=string(role.model || 'inherit',`${key} model`,80)
     if (!/^[\w.:[\]-]+$/.test(model)) bad(`Invalid model for ${key}.`)
     if (!Array.isArray(role.tools) || role.tools.some(t=>!TOOL_OPTIONS.includes(t))) bad(`Choose supported tools for ${key}.`)
-    roles[key]={description:string(role.description,`${key} purpose`,500),prompt:string(role.prompt,`${key} instructions`,12000),model,tools:[...new Set(role.tools)]}
+    const defaults=roleLimits(key,key===manager)
+    const maxTurns=role.maxTurns ?? defaults.maxTurns,effort=role.effort ?? defaults.effort
+    if (!Number.isInteger(maxTurns) || maxTurns<1 || maxTurns>100) bad(`${key} turn limit must be between 1 and 100.`)
+    if (!['low','medium','high','xhigh','max'].includes(effort)) bad(`Choose a supported effort for ${key}.`)
+    roles[key]={description:string(role.description,`${key} purpose`,500),prompt:string(role.prompt,`${key} instructions`,12000),model:boundedModel(model,'inherit'),maxTurns,effort,tools:[...new Set(role.tools)]}
   }
   if (!Object.hasOwn(roles,manager)) bad('Choose an existing role as manager.')
   if (!Array.isArray(input.workflow?.reviewers) || !input.workflow.reviewers.length) bad('Choose at least one independent verification role.')

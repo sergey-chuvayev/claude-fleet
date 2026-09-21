@@ -7,7 +7,7 @@ const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget, transcriptFor } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
 const { stateDir } = require('./paths')
-const { getTeam, compile } = require('./teams')
+const { getTeam, compile, boundedModel } = require('./teams')
 const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
 const tasks = require('./tasks')
@@ -18,7 +18,7 @@ const { resolveReferences, referencePrompt } = require('./references')
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
 // Used until a live run reports the runtime's own list, which replaces it.
 const FALLBACK_MODELS = [
-  { value: '', displayName: 'Project default', description: 'Whatever this project is configured to use' },
+  { value: '', displayName: 'Fleet default', description: 'Team manager model, or Sonnet for a single agent; without [1m]' },
   { value: 'opus', displayName: 'Opus', description: 'Most capable' },
   { value: 'sonnet', displayName: 'Sonnet', description: 'Balanced' },
   { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
@@ -290,20 +290,24 @@ class ManagedSessions extends EventEmitter {
         stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
         ...(s.sessionId ? {resume:s.sessionId} : {}),
       }
-      if (s.selectedModel) options.model = s.selectedModel
+      options.model = boundedModel(s.selectedModel)
+      options.effort = 'medium'
       // `agent` puts the manager on the main thread, so the operator's messages reach it and
       // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
       // Both compose with the claude_code preset above, which keeps the built-in tools.
       const team = s.teamSnapshot || getTeam(s.teamId)
       if (team) {
         Object.assign(options, compile(team))
-        if (s.selectedModel) options.agents[team.manager].model=s.selectedModel
+        const manager=options.agents[team.manager]
+        options.model=boundedModel(s.selectedModel || manager.model,'opus')
+        manager.model=options.model
+        options.effort=manager.effort
+        options.maxTurns=manager.maxTurns
       }
       if (team?.workflow) {
         const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
         if (remaining<=0) throw new Error('Usage cap reached. Increase the cap explicitly before continuing.')
         options.maxBudgetUsd=remaining
-        options.maxTurns=100
         options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
         options.hooks={
           PreToolUse:[{hooks:[async input=>{
