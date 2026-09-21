@@ -176,8 +176,8 @@ test('the update endpoints report status, need the token, and hand over the port
 
 // The pill is the only part of updating the operator ever sees, and its states are
 // easy to get subtly wrong (a checkout must not be offered an install it cannot do).
-// control.js is a classic script, so loading it in a VM makes its top-level
-// functions callable directly.
+// The browser scripts each publish one namespace, so loading them in a VM makes
+// that surface callable directly.
 function loadDashboard() {
   const vm = require('node:vm')
   const elements = new Map()
@@ -219,20 +219,20 @@ function loadDashboard() {
 
 test('the update pill stays hidden until there is something to install', () => {
   const { context, pill } = loadDashboard()
-  context.renderUpdate(null, false)
+  context.window.FleetControl.renderUpdate(null, false)
   assert.equal(pill.hidden, true)
-  context.renderUpdate({ available: false, latest: null, canInstall: false, channel: 'npm' }, false)
+  context.window.FleetControl.renderUpdate({ available: false, latest: null, canInstall: false, channel: 'npm' }, false)
   assert.equal(pill.hidden, true, 'being up to date is not news')
 })
 
 test('the update pill offers the new version on npm and only advice on a checkout', () => {
   const { context, pill } = loadDashboard()
-  context.renderUpdate({ available: true, latest: '1.2.0', canInstall: true, channel: 'npm' }, false)
+  context.window.FleetControl.renderUpdate({ available: true, latest: '1.2.0', canInstall: true, channel: 'npm' }, false)
   assert.equal(pill.hidden, false)
   assert.equal(pill.disabled, false)
   assert.match(pill.textContent, /1\.2\.0/)
 
-  context.renderUpdate({ available: true, latest: '1.2.0', canInstall: false, channel: 'source' }, false)
+  context.window.FleetControl.renderUpdate({ available: true, latest: '1.2.0', canInstall: false, channel: 'source' }, false)
   assert.equal(pill.hidden, false, 'a checkout should still learn a release exists')
   assert.equal(pill.disabled, true, 'but must not be offered a click that cannot work')
   assert.match(pill.title, /git pull/)
@@ -241,9 +241,9 @@ test('the update pill offers the new version on npm and only advice on a checkou
 test('the update pill reports progress and never invites a second click', () => {
   const { context, pill } = loadDashboard()
   const update = { available: true, latest: '1.2.0', canInstall: true, channel: 'npm' }
-  context.renderUpdate(update, true)
+  context.window.FleetControl.renderUpdate(update, true)
   assert.equal(pill.disabled, true)
   assert.match(pill.textContent, /Installing/)
-  context.renderUpdate({ ...update, state: 'installed' }, true)
+  context.window.FleetControl.renderUpdate({ ...update, state: 'installed' }, true)
   assert.match(pill.textContent, /Restarting/)
 })

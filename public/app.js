@@ -1,5 +1,17 @@
 'use strict'
+// An isolated scope, the way teams.js and blocks.js already do it. Everything in
+// here used to sit in the page's shared global scope alongside control.js, blocks.js
+// and ask.js, where a name chosen twice in two files is a SyntaxError that takes the
+// whole dashboard down before a line of it runs. What the other files legitimately
+// need is window.Fleet, published partway down; nothing else escapes.
+// The leading semicolon is load-bearing: without it the directive above and the
+// parenthesis below join into a call on the string "use strict".
+;(() => {
 const $ = id => document.getElementById(id)
+// The one thing the core borrows back from control.js, which owns the control
+// token every write is authenticated with. Resolved per call, not at load: app.js
+// runs first, and every caller here is an event handler that fires long after.
+const api = (...args) => window.FleetControl.api(...args)
 const STATES = ['busy', 'idle', 'stale', 'dead']
 const LABELS = { busy: 'Working', idle: 'Waiting', stale: 'Stale', dead: 'Offline' }
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
@@ -323,10 +335,10 @@ function render() {
     renderChildDetail(current, childId)
     // A sub-agent is not addressable: clearing the control panel drops its composer
     // and conversation from the DOM entirely, not merely hiding them.
-    if (typeof selectControl === 'function') selectControl(null)
+    window.FleetControl?.selectControl(null)
   } else {
     renderDetail(current)
-    if (typeof selectControl === 'function') selectControl(current)
+    window.FleetControl?.selectControl(current)
   }
   syncDetails()
 }
@@ -479,7 +491,17 @@ document.addEventListener('click', event => {
   if (event.target === $(openModalId) || event.target.closest('[data-close-modal]')) closeModal()
 })
 
-function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3000) }
+// Reached from every error path, including ones that fire before the page has
+// finished wiring itself up, so a missing toast element costs the message and
+// nothing more.
+function toast(message) {
+  const box = $('toast')
+  if (!box) return
+  box.textContent = message
+  box.hidden = false
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { box.hidden = true }, 3000)
+}
 document.addEventListener('click', async event => {
   const b = event.target.closest('button')
   if (!b) return
@@ -515,9 +537,23 @@ document.addEventListener('click', async event => {
     catch { toast('Clipboard unavailable. The command is shown below.'); const code = document.createElement('pre'); code.className = 'response'; code.textContent = s.resumeCmd; $('detail').append(code) }
   }
 })
+const setBusy = busy => { if ($('refresh')) $('refresh').disabled = busy }
+const setConnection = (text, state) => {
+  if ($('connection')) $('connection').textContent = text
+  if ($('connection-dot')) $('connection-dot').className = `dot ${state}`
+}
+const showError = message => {
+  const box = $('error')
+  if (!box) return
+  box.hidden = !message
+  if (message) box.textContent = message
+}
 async function tick() {
   if (pending) return
-  pending = true; $('refresh').disabled = true
+  // The poll runs on a timer and in the catch below, so it never assumes the
+  // chrome it writes into is mounted.
+  pending = true
+  setBusy(true)
   try {
     const r = await fetch('/api/sessions', {cache:'no-store',signal:AbortSignal.timeout(8000)})
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -532,18 +568,55 @@ async function tick() {
     }
     // Other panels (the ask results) re-read the snapshot to refresh "open now" state.
     document.dispatchEvent(new CustomEvent('fleet-snapshot'))
-    $('connection').textContent = 'Live connection'; $('connection-dot').className = 'dot busy'
-    $('updated').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
-    $('error').hidden = !data.storageError
-    if (data.storageError) $('error').textContent = data.storageError
+    setConnection('Live connection', 'busy')
+    if ($('updated')) $('updated').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
+    showError(data.storageError)
   } catch {
-    $('connection').textContent = 'Disconnected'; $('connection-dot').className = 'dot stale'
-    $('error').textContent = snapshot ? 'Connection lost. Showing the last successful snapshot; retrying automatically.' : 'Unable to connect to the local server. Retrying automatically.'
-    $('error').hidden = false
+    setConnection('Disconnected', 'stale')
+    showError(snapshot ? 'Connection lost. Showing the last successful snapshot; retrying automatically.' : 'Unable to connect to the local server. Retrying automatically.')
     if (!snapshot) { update('session-list','<div class="empty">Waiting for the local server…</div>'); renderDetail(null) }
-  } finally { pending = false; $('refresh').disabled = false }
+  } finally { pending = false; setBusy(false) }
 }
-$('refresh').addEventListener('click',tick)
+// ── What the rest of the page may use ───────────────────────────────────────
+// Published here, before the boot sequence below runs, and not as the value the
+// wrapper returns: control.js, teams.js and ask.js destructure this the moment they
+// load, so an element missing from the wiring that follows must not take the whole
+// page down with it. State is handed out through functions rather than as live
+// bindings, so a caller cannot take a copy of `snapshot` and read a stale one after
+// the next poll.
+window.Fleet = {
+  // DOM and formatting helpers the other files share.
+  $, esc, update, key, age, tokens, money, status, store,
+  // The account's plan windows, rendered from a usage reading.
+  usageHtml,
+  // Current state.
+  snapshot: () => snapshot,
+  // Actions. Each one renders, so a caller never has to remember to.
+  render,
+  setSnapshot(next) { snapshot = next; render() },
+  setFilter(next) { filter = next; render() },
+  select(sessionKey, delegationId = null) { selected = sessionKey; selectedChild = delegationId; render() },
+  setChildrenCollapsed(sessionKey, collapsed) { setChildrenCollapsed(sessionKey, collapsed); render() },
+  // What loadChildDetail's completion does: hand over the delegation the session
+  // route returned, then redraw. Select the delegation first; a detail handed over
+  // for one that is not selected has nowhere to be drawn.
+  setChildDetail(delegationId, detail, error = null) {
+    childDetail = detail
+    childDetailFor = delegationId
+    childDetailError = error
+    render()
+  },
+  toast,
+  // Modals.
+  modalIsOpen, openModal, closeModal,
+  // Layout, formerly window.FleetLayout.
+  watchConversation, syncDetails,
+  // Control-panel rendering, for tests and for the update poller.
+  renderUpdate: (...args) => window.FleetControl.renderUpdate(...args),
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+$('refresh')?.addEventListener('click',tick)
 tick()
 setInterval(() => { if (!document.hidden) tick() },2000)
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick() })
@@ -630,7 +703,6 @@ function watchConversation(element) {
   conversationObserver.disconnect()
   conversationObserver.observe(element)
 }
-window.FleetLayout = { watchConversation }
 initSplitter()
 
 // The session details sit behind a disclosure: with a console on screen the terminal
@@ -650,4 +722,4 @@ $('details-toggle')?.addEventListener('click', () => {
   store.set(DETAILS_KEY, open ? '1' : '0')
   syncDetails()
 })
-window.FleetLayout.syncDetails = syncDetails
+})()

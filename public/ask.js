@@ -1,24 +1,36 @@
 'use strict'
+// An isolated scope, matching teams.js and blocks.js.
+;(() => {
+const { $, esc, key, age, update, status, render, toast, modalIsOpen, openModal, closeModal } = window.Fleet
+const api = (...args) => window.FleetControl.api(...args)
 // Ask panel: one question, searched across every transcript on this machine.
 // Keyword matches render the moment the server has them; the written answer
 // arrives a few seconds later and reorders the cards by what Claude found relevant.
 let askJob = null, askPoll = null, askRequest = 0
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
-$('ask-shortcut').textContent = isMac ? '⌘K' : 'Ctrl K'
 
 const openAsk = () => { renderAsk(); openModal('ask-backdrop', '#ask-input') }
-$('ask-welcome').addEventListener('click', event => {
+
+// ── What the rest of the page may use ───────────────────────────────────────
+// Published before the boot wiring below, as app.js and control.js do. Nothing
+// consumes this yet; it exists so opening the panel is a call rather than a
+// synthesised click, and so this file leaks one name like every other.
+window.FleetAsk = { openAsk }
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+if ($('ask-shortcut')) $('ask-shortcut').textContent = isMac ? '⌘K' : 'Ctrl K'
+$('ask-welcome')?.addEventListener('click', event => {
   const suggestion = event.target.closest('[data-question]')
   if (!suggestion) return
   $('ask-input').value = suggestion.dataset.question
   $('ask-input').focus()
 })
-$('ask-sessions').addEventListener('click', () => modalIsOpen('ask-backdrop') ? closeModal() : openAsk())
+$('ask-sessions')?.addEventListener('click', () => modalIsOpen('ask-backdrop') ? closeModal() : openAsk())
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') { event.preventDefault(); openAsk() }
 })
 
-$('ask-form').addEventListener('submit', async event => {
+$('ask-form')?.addEventListener('submit', async event => {
   event.preventDefault()
   const question = $('ask-input').value.trim()
   if (!question) return
@@ -55,7 +67,9 @@ async function pollAsk() {
 
 const REL_WORD = { high: 'strong match', medium: 'related', low: 'loosely related' }
 const dateOf = ms => ms ? new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''
-const liveSession = id => snapshot?.sessions.find(s => s.sessionId === id) || null
+// Read through the accessor, never a captured binding: the poll replaces the
+// snapshot object every couple of seconds.
+const liveSession = id => window.Fleet.snapshot()?.sessions.find(s => s.sessionId === id) || null
 
 function hitCard(hit, match) {
   const live = liveSession(hit.sessionId)
@@ -97,7 +111,7 @@ function renderAsk() {
   update('ask-results', `<div class="ask-head"><span class="ask-question">“${esc(job.question)}”</span>${stats}</div>${status}${answer}${cards}`)
 }
 
-$('ask-results').addEventListener('click', async event => {
+$('ask-results')?.addEventListener('click', async event => {
   const button = event.target.closest('button')
   if (!button) return
   if (button.dataset.openSession) {
@@ -117,3 +131,5 @@ $('ask-results').addEventListener('click', async event => {
 // Live sessions may appear or vanish while the results are on screen; refresh the
 // "open now" state and the Open button from the latest snapshot.
 document.addEventListener('fleet-snapshot', () => { if (askJob && modalIsOpen('ask-backdrop')) renderAsk() })
+
+})()

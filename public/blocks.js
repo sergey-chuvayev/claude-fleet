@@ -1,4 +1,6 @@
 'use strict'
+// An isolated scope, matching teams.js. This file borrows nothing from the others.
+window.FleetBlocks = (() => {
 // Warp-style conversation blocks. Every message, tool call and result is its own
 // block with a sticky header, a copy action and collapse. Rendering is incremental:
 // a block is only rebuilt when its content signature changes, so a streaming turn
@@ -190,4 +192,5 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
   for (const element of [...container.children]) if (!seen.has(element.dataset?.block)) element.remove()
 }
 
-window.FleetBlocks = { renderBlocks, proseHtml, codeHtml, highlight }
+return { renderBlocks, proseHtml, codeHtml, highlight }
+})()
