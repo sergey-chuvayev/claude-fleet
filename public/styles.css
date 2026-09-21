@@ -511,7 +511,7 @@ body[data-modal]{overflow:hidden}
 /* Terminal, not in-progress: the delegation ended before this step ever reported
    back, so it gets a cool, muted hue of its own rather than the plain "done" grey
    or a transparency trick that would wash out against the panel. */
-.child-step[data-status="unreported"] .child-step-state{color:#7e8ba3}
+.child-step[data-status="unreported"] .child-step-state{color:color-mix(in oklab,var(--w-blue) 56%,var(--w-fg))}
 .child-step-time{color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
 /* Selecting a child hides the console, so a pending approval on the owning session
    would otherwise go unnoticed; this is the one visible sign it is still waiting. */
