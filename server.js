@@ -159,7 +159,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,defaultCwd:defaultCwd(),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
       if(url.pathname==='/api/update'){
         // Answer from the cache and refresh behind the request: a page load should
         // never wait on npm's registry, and the dashboard asks again shortly after.

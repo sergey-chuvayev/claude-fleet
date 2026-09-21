@@ -935,3 +935,34 @@ test('agent inspection records bounded evidence, deduplicates usage and isolates
     try {assert.deepEqual(reopened.get(s.id).taskBoard.delegations[0].usage,d.usage)}finally{await reopened.close()}
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
+
+test('referenced context is captured at send time, persisted and sent to the SDK without rewriting user text',async()=>{
+  const calls=[]
+  const {directory,manager}=setup(async args=>{
+    calls.push(args)
+    return {close(){},async *[Symbol.asyncIterator](){yield {type:'result',result:'Done',is_error:false}}}
+  })
+  try{
+    const source=create(manager,directory,{name:'Source'})
+    const target=create(manager,directory,{name:'Receiver'})
+    await until(()=>source.status==='idle' && target.status==='idle')
+    source.messages.push({role:'assistant',text:'Fresh finding at send time'})
+    const requestId=randomUUID()
+    manager.send(target.id,{message:'Use this finding',references:[source.id],requestId})
+    await until(()=>target.status==='idle')
+    const entry=target.messages.find(m=>m.text==='Use this finding')
+    assert.equal(entry.references[0].title,'Source')
+    assert.match(entry.references[0].context,/Fresh finding/)
+    assert.match(calls.at(-1).prompt,/Fresh finding/)
+    assert.equal(entry.text,'Use this finding')
+    const count=calls.length
+    manager.send(target.id,{message:'Use this finding',references:[source.id],requestId})
+    assert.equal(calls.length,count)
+    assert.throws(()=>manager.send(target.id,{message:'bad',references:['missing'],requestId:randomUUID()}),/no longer available/)
+    assert.ok(!target.messages.some(m=>m.text==='bad'))
+    await manager.close()
+    const reopened=new ManagedSessions({directory})
+    assert.match(reopened.detail(target.id).messages.find(m=>m.text==='Use this finding').references[0].context,/Fresh finding/)
+    await reopened.close()
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})

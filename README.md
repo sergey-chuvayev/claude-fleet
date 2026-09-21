@@ -205,6 +205,28 @@ from `marked`, `DOMPurify` and `highlight.js`, bundled into `public/vendor/libs.
 and served by Fleet itself. There is no CDN, and the page's content security policy
 still allows scripts only from Fleet.
 
+### Reference another agent
+
+In a Fleet-managed agent’s message composer, type **@** and search by session name,
+project, or task. Use the arrow keys and Enter/Tab to attach a match, or drag a
+session from the sidebar into the composer. `/` still opens commands and skills.
+
+References appear as removable chips. Click a chip to open its source session;
+your draft and its references stay with the receiving agent when you switch away.
+Attach up to four sessions, then write an instruction such as “What is happening in
+this session?” or “Use this agent’s findings to finish the fix.”
+
+When you send, Fleet captures each source’s recent conversation, status and recent
+activity. This works with Fleet agents, live terminal sessions and saved offline
+sessions. The snapshot includes up to 12 recent user/assistant messages and is
+limited to 8,000 characters per reference. Tool output and images are not copied.
+The receiving agent gets this context alongside your message; the source agent is
+not interrupted or sent a message. This is a snapshot, not a live agent-to-agent
+reply. Expand the reference in your sent message to inspect what was shared.
+
+References are resolved by the server at send time, and missing or self-references
+are rejected without sending. Failed sends keep your draft and attachments.
+
 ### Ask your sessions
 
 **Ask** in the top bar (`Cmd/Ctrl+K`) answers a question across every Claude Code

@@ -2592,3 +2592,40 @@ body[data-modal] { overflow:hidden }
   .status-fleet { margin-left:0 }
   .status-conn { border:0; padding-left:0 }
 }
+
+/* Session references share the command picker and stay with each draft. */
+.reference-tray{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 0 10px}
+.reference-chip{display:inline-flex;align-items:center;max-width:100%;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));border-radius:8px;background:color-mix(in oklab,var(--accent) 7%,var(--panel));overflow:hidden}
+.reference-chip button{border:0;background:transparent;color:var(--text);padding:7px 9px;font-size:11px;min-height:32px}
+.reference-chip button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.reference-chip button:last-child{color:var(--muted);border-left:1px solid var(--line)}
+.reference-chip button:hover{background:var(--raised)}
+.reference-note{font-size:10px;color:var(--muted)}
+.reference-empty{padding:14px;color:var(--muted);font-size:12px}
+.block-reference{padding:10px 13px;border-bottom:1px solid var(--line);font-size:11px}
+.block-reference summary{cursor:pointer;color:var(--accent);overflow-wrap:anywhere}
+.block-reference summary span,.block-reference p{color:var(--muted);font-size:10px}
+.block-reference pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--muted)}
+.session[draggable=true]{cursor:grab}
+.session[draggable=true]:active{cursor:grabbing}
+.reference-state{font-size:10px;color:var(--muted)}
+
+/* ── The archive ──────────────────────────────────────────────────────────────
+   A strip between the filters and the list, present only where putting sessions
+   away is the thing you came to do: under Offline, and inside Archived itself. */
+.archive-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--panel) 80%,var(--bg));font-size:11px;color:var(--muted)}
+.archive-text{min-width:0}
+.archive-days{max-width:96px;height:26px;padding:0 6px;font-size:11px}
+.archive-bar .button{padding:5px 10px;font-size:11px}
+.archive-none{color:var(--faint)}
+.archive-auto{display:flex;align-items:center;gap:6px;margin-left:auto;color:var(--faint);white-space:nowrap;cursor:pointer}
+.archive-auto:hover{color:var(--muted)}
+.archive-auto input{accent-color:var(--accent);margin:0}
+.filter[data-filter="archived"]{color:var(--faint)}
+/* An archived row is legible but visibly set aside, the way Background rows are. */
+.session:has(.archived-tag){opacity:.7}
+.session:has(.archived-tag):hover,.session:has(.archived-tag)[aria-pressed=true]{opacity:1}
+.archived-tag{font-size:9px;color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:1px 4px;white-space:nowrap}
+.archived-note{margin-top:14px}
+.detail-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:end}
+@media(max-width:720px){.archive-bar{padding-inline:12px}.archive-auto{margin-left:0}}

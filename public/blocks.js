@@ -131,14 +131,15 @@ function blockHtml(message, { streaming = false } = {}) {
   const attachments = Array.isArray(message.attachments) && message.attachments.length
     ? `<div class="block-attachments">${message.attachments.map(a => `<a href="/api/attachments/${escapeHtml(a.id)}" target="_blank" rel="noreferrer noopener" title="${escapeHtml(a.mediaType)} · ${Math.round((a.bytes || 0) / 1024)} KB"><img src="/api/attachments/${escapeHtml(a.id)}" alt="Attached image" loading="lazy"></a>`).join('')}</div>`
     : ''
+  const references = (message.references || []).map(r => `<details class="block-reference"><summary>✳ ${escapeHtml(r.title)} <span>· session snapshot</span></summary><p>${escapeHtml(r.project)} · ${escapeHtml(r.state)}</p><pre>${escapeHtml(r.context)}</pre></details>`).join('')
   const body = message.text ? proseHtml(message.text, { skipHighlight: streaming }) : ''
-  return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool">${who}</span><span class="block-meta">${clock(message.at)}</span>${live}${actionsHtml}</div><div class="block-body">${attachments}${body}</div>`
+  return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool">${who}</span><span class="block-meta">${clock(message.at)}</span>${live}${actionsHtml}</div><div class="block-body">${references}${attachments}${body}</div>`
 }
 
 // Signature drives the incremental update: an identical signature means an identical block.
 const signature = (message, streaming) => [
   message.role, message.tool || '', message.status || '', message.ms ?? '', message.approval || '', streaming ? 'S' : '',
-  (message.text || '').length, (message.result || '').length, (message.attachments || []).length,
+  (message.text || '').length, (message.result || '').length, (message.attachments || []).length, (message.references || []).length,
   message.role === 'tool' ? JSON.stringify(message.input || {}).length : 0,
   (message.text || '').slice(-80), (message.result || '').slice(-80),
 ].join('~|~')

@@ -7,7 +7,7 @@ const { $, esc, update, toast, modalIsOpen, openModal, closeModal } = window.Fle
 let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
 const drafts=new Map()
 const inFlight=new Set()
-let launchRequestId=null, resumeSource=null, fallbackWarned=false
+let launchRequestId=null, resumeSource=null, fallbackWarned=false, referencesAvailable=false
 const managedLabels={starting:'Starting Claude…',running:'Working on your task',approval:'Your input is needed',stopping:'Stopping the agent…',stopped:'Stopped · ready to continue',error:'Turn failed',idle:'Ready for your next message'}
 const isWorking=s=>['starting','running','approval','stopping'].includes(s.status)
 
@@ -26,6 +26,7 @@ async function initializeControls() {
   // The running server's version, not the version on disk: a restart is what picks up an
   // update, and without this the difference is invisible until something 404s.
   if(data.version) $('app-version').textContent=`v${data.version}`
+  referencesAvailable=data.supportsSessionReferences===true
   if(!$('launch-cwd').value) $('launch-cwd').value=data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
@@ -114,13 +115,14 @@ function selectControl(session) {
   controlId=next;controlSession=null;controlVersion++
   $('control-panel').innerHTML=''
   if(next){
-    $('control-panel').innerHTML=`<div class="conversation-header"><h3 id="conversation-title">Conversation</h3><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto">Auto approvals</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select></label><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="What should this agent do next?  ·  press / for commands  ·  paste an image" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
+    $('control-panel').innerHTML=`<div class="conversation-header"><h3 id="conversation-title">Conversation</h3><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto">Auto approvals</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select></label><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="reference-tray" class="reference-tray" aria-label="Referenced sessions" hidden></div><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="What should this agent do next?  ·  @ to reference an agent · / for commands · paste an image" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
     window.Fleet.watchConversation($('conversation'))
-    catalog=[];catalogFor=null;closePicker();renderTray()
+    catalog=[];catalogFor=null;closePicker();renderTray();renderReferences()
     window.Fleet.syncDetails()
     $('message-input').value=drafts.get(next)?.text || ''
     $('message-input').addEventListener('input',()=>drafts.set(next,{text:$('message-input').value,requestId:crypto.randomUUID()}))
     $('message-input').addEventListener('keydown',event=>{
+      if(event.isComposing) return
       composerKeydown(event)
       if(event.defaultPrevented) return
       if(event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();if(!$('send-message').disabled)$('composer').requestSubmit()}
@@ -131,11 +133,17 @@ function selectControl(session) {
       if(!files.length) return            // ordinary text paste proceeds untouched
       event.preventDefault(); attachImages(files)
     })
-    $('composer').addEventListener('dragover',event=>{ if([...(event.dataTransfer?.types || [])].includes('Files')){ event.preventDefault(); $('composer').classList.add('is-dropping') } })
+    $('composer').addEventListener('dragover',event=>{ if([...(event.dataTransfer?.types || [])].some(t=>t==='Files' || t==='application/x-fleet-session')){ event.preventDefault(); $('composer').classList.add('is-dropping') } })
     $('composer').addEventListener('dragleave',()=>$('composer').classList.remove('is-dropping'))
-    $('composer').addEventListener('drop',event=>{ event.preventDefault(); $('composer').classList.remove('is-dropping'); attachImages([...(event.dataTransfer?.files || [])].filter(f=>f.type.startsWith('image/'))) })
+    $('composer').addEventListener('drop',event=>{ event.preventDefault(); $('composer').classList.remove('is-dropping'); const reference=event.dataTransfer?.getData('application/x-fleet-session'); if(reference){addReference(reference);return} attachImages([...(event.dataTransfer?.files || [])].filter(f=>f.type.startsWith('image/'))) })
     $('attach-tray').addEventListener('click',event=>{ const b=event.target.closest('[data-remove]'); if(b){ removeImage(Number(b.dataset.remove)) } })
     renderTray()
+    $('reference-tray').addEventListener('click',event=>{
+      const remove=event.target.closest('[data-remove-reference]')
+      if(remove) return removeReference(remove.dataset.removeReference)
+      const open=event.target.closest('[data-open-reference]')
+      if(open) openReferencedSession(open.dataset.openReference)
+    })
     $('message-input').addEventListener('blur',()=>setTimeout(closePicker,120))
     $('slash-picker').addEventListener('mousedown',event=>{
       const item=event.target.closest('[data-index]')
@@ -271,13 +279,14 @@ async function sendMessage(event) {
   const id=controlId
   if(!id || inFlight.has(id) || !controlSession || isWorking(controlSession))return
   const message=$('message-input').value.trim()
+  const references=(pendingReferences.get(id) || []).map(r=>r.id)
   const images=attachedImages().map(img=>({ mediaType:img.mediaType, data:img.dataUrl.slice(img.dataUrl.indexOf(',')+1) }))
   if(!message && !images.length)return
   const draft=drafts.get(id) || {text:message,requestId:crypto.randomUUID()};drafts.set(id,draft)
   inFlight.add(id);renderControl();$('send-error').hidden=true
   try{
-    await api(`/api/managed/${id}/messages`,{message,...(images.length ? {images} : {}),requestId:draft.requestId})
-    if(drafts.get(id)?.requestId===draft.requestId){drafts.delete(id);if(controlId===id)$('message-input').value=''}
+    await api(`/api/managed/${id}/messages`,{message,...(images.length ? {images} : {}),...(references.length ? {references} : {}),requestId:draft.requestId})
+    if(drafts.get(id)?.requestId===draft.requestId){drafts.delete(id);pendingReferences.delete(id);if(controlId===id){$('message-input').value='';renderReferences()}}
     pendingImages.delete(id); if(controlId===id) renderTray()
     await refreshControl();await tick()
   }catch(error){if(controlId===id){$('send-error').hidden=false;$('send-error').textContent=error.message}}
@@ -363,10 +372,13 @@ function closePicker() {
   const list = $('slash-picker')
   if (list) { list.hidden = true; list.innerHTML = '' }
   $('message-input')?.removeAttribute('aria-activedescendant')
+  $('message-input')?.setAttribute('aria-expanded','false')
 }
 function renderPicker(query) {
   const list = $('slash-picker')
   if (!list) return
+  if (mentionQuery($('message-input')) !== null) return renderReferencePicker(query)
+  list.setAttribute('aria-label','Commands and skills')
   const needle = query.toLowerCase()
   matches = catalog
     .filter(entry => entry.name.toLowerCase().includes(needle))
@@ -376,6 +388,7 @@ function renderPicker(query) {
   if (!matches.length) return closePicker()
   picked = Math.min(picked, matches.length - 1)
   list.hidden = false
+  $('message-input').setAttribute('aria-expanded','true')
   list.innerHTML = matches.map((entry, index) => `<li id="slash-${index}" role="option" aria-selected="${index === picked}" class="${index === picked ? 'is-picked' : ''}" data-index="${index}"><span class="slash-name">/${esc(entry.name)}</span><span class="slash-kind">${entry.kind === 'skill' ? '◆' : '›'} ${esc(SCOPE_LABEL[entry.scope] || '')}</span>${entry.hint ? `<span class="slash-hint">${esc(entry.hint)}</span>` : ''}<span class="slash-desc">${esc(entry.description)}</span></li>`).join('')
   list.querySelector('.is-picked')?.scrollIntoView({ block: 'nearest' })
   $('message-input').setAttribute('aria-activedescendant', `slash-${picked}`)
@@ -384,6 +397,13 @@ function insertPick(index) {
   const entry = matches[index]
   const input = $('message-input')
   if (!entry || !input) return
+  if (entry.referenceId) {
+    if (!addReference(entry.referenceId)) return
+    const start=input.value.slice(0,input.selectionStart).lastIndexOf('@')
+    input.setRangeText('',start,input.selectionStart,'end')
+    drafts.set(controlId,{text:input.value,requestId:crypto.randomUUID()})
+    closePicker();input.focus();return
+  }
   const before = input.value.slice(0, input.selectionStart)
   const start = before.lastIndexOf('\n') + 1
   const after = input.value.slice(input.selectionStart)
@@ -395,18 +415,25 @@ function insertPick(index) {
   drafts.set(controlId, { text: input.value, requestId: crypto.randomUUID() })
 }
 function composerInput() {
+  const mention = mentionQuery($('message-input'))
+  if (mention !== null) {picked=0;return renderReferencePicker(mention)}
   const query = slashQuery($('message-input'))
   if (query === null) return closePicker()
   picked = 0
-  loadCatalog(controlId).then(() => { if (slashQuery($('message-input')) !== null) renderPicker(slashQuery($('message-input'))) })
+  const id=controlId
+  loadCatalog(id).then(() => { if (controlId===id && $('message-input') && mentionQuery($('message-input')) === null && slashQuery($('message-input')) !== null) renderPicker(slashQuery($('message-input'))) })
   if (catalog.length) renderPicker(query)
 }
 function composerKeydown(event) {
-  if (!matches.length) return
+  if (event.key === 'Escape' && !$('slash-picker').hidden) {event.preventDefault();return closePicker()}
+  if (!matches.length) {
+    if (!$('slash-picker').hidden && event.key === 'Enter') event.preventDefault()
+    return
+  }
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault()
     picked = (picked + (event.key === 'ArrowDown' ? 1 : matches.length - 1)) % matches.length
-    return renderPicker(slashQuery($('message-input')) ?? '')
+    return renderPicker(mentionQuery($('message-input')) ?? slashQuery($('message-input')) ?? '')
   }
   if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) { event.preventDefault(); return insertPick(picked) }
   if (event.key === 'Tab') { event.preventDefault(); return insertPick(picked) }
@@ -484,4 +511,73 @@ pollUpdate()
 // time to answer, then settle into a slow poll for long-lived windows.
 setTimeout(pollUpdate, 9000)
 setInterval(pollUpdate, 60 * 60 * 1000)
+
+// ---- References ----------------------------------------------------------
+// References are snapshots attached to a message, never messages sent to the source.
+const pendingReferences = new Map()
+const referenceIdFor = session => session.managedId || session.sessionId
+const referenceTitle = session => session.title || session.name || session.lastPrompt || session.shortId || 'Untitled session'
+function mentionQuery(input) {
+  if (!input || input.selectionStart !== input.selectionEnd) return null
+  const match=input.value.slice(0,input.selectionStart).match(/(?:^|\s)@([^@\n]*)$/)
+  return match ? match[1] : null
+}
+function referenceCandidates() {
+  return (snapshot?.sessions || []).filter(s=>referenceIdFor(s) && s.managedId!==controlId && (!controlSession?.sessionId || s.sessionId!==controlSession.sessionId) && !s.background)
+}
+function renderReferencePicker(query) {
+  const list=$('slash-picker');if(!list)return
+  if(!referencesAvailable){
+    matches=[];list.hidden=false;list.setAttribute('aria-label','Reference a session')
+    list.innerHTML='<li class="reference-empty" role="presentation">Restart Fleet after your current agents finish to enable session references.</li>'
+    $('message-input').setAttribute('aria-expanded','true');$('message-input').removeAttribute('aria-activedescendant');return
+  }
+  const attached=new Set((pendingReferences.get(controlId) || []).map(r=>r.id))
+  const needle=query.toLowerCase()
+  matches=referenceCandidates().filter(s=>!attached.has(referenceIdFor(s)) && `${referenceTitle(s)} ${s.cwd || ''} ${s.lastPrompt || ''}`.toLowerCase().includes(needle))
+    .slice(0,30).map(s=>({referenceId:referenceIdFor(s),session:s}))
+  picked=Math.max(0,Math.min(picked,matches.length-1))
+  list.hidden=false;list.setAttribute('aria-label','Reference a session')
+  $('message-input').setAttribute('aria-expanded','true')
+  list.innerHTML=matches.length ? matches.map((entry,index)=>`<li id="slash-${index}" role="option" aria-selected="${index===picked}" class="${index===picked?'is-picked':''}" data-index="${index}"><span class="slash-name">✳ ${esc(referenceTitle(entry.session))}</span><span class="slash-kind">${esc(entry.session.managedStatus || LABELS[entry.session.state] || '')}</span><span class="slash-desc">${esc(entry.session.cwd?.split('/').pop() || 'No project')} · ${esc(entry.session.lastPrompt || 'Include recent conversation and activity')}</span></li>`).join('') : '<li class="reference-empty" role="presentation">No matching sessions. Try another name or project.</li>'
+  if(matches.length){$('message-input').setAttribute('aria-activedescendant',`slash-${picked}`);list.querySelector('.is-picked')?.scrollIntoView({block:'nearest'})}
+  else $('message-input').removeAttribute('aria-activedescendant')
+}
+function addReference(id) {
+  if(!referencesAvailable){toast('Restart Fleet after your current agents finish to enable references.');return false}
+  if(inFlight.has(controlId))return false
+  const session=referenceCandidates().find(s=>referenceIdFor(s)===id)
+  if(!session){toast('Choose another available session.');return false}
+  const list=pendingReferences.get(controlId) || []
+  if(list.some(r=>r.id===id))return true
+  if(list.length>=4){toast('You can reference up to 4 sessions per message.');return false}
+  pendingReferences.set(controlId,[...list,{id,title:referenceTitle(session),state:session.managedStatus || LABELS[session.state] || ''}])
+  drafts.set(controlId,{text:$('message-input').value,requestId:crypto.randomUUID()})
+  renderReferences();$('message-input').focus();return true
+}
+function removeReference(id) {
+  if(inFlight.has(controlId))return
+  pendingReferences.set(controlId,(pendingReferences.get(controlId) || []).filter(r=>r.id!==id))
+  drafts.set(controlId,{text:$('message-input').value,requestId:crypto.randomUUID()})
+  renderReferences();$('message-input').focus()
+}
+function renderReferences() {
+  const tray=$('reference-tray');if(!tray)return
+  const list=pendingReferences.get(controlId) || []
+  tray.hidden=!list.length
+  tray.innerHTML=list.map(r=>`<span class="reference-chip"><button type="button" data-open-reference="${esc(r.id)}" title="Open ${esc(r.title)}">✳ ${esc(r.title)} <span class="reference-state">· ${esc(r.state)}</span></button><button type="button" data-remove-reference="${esc(r.id)}" aria-label="Remove reference to ${esc(r.title)}">×</button></span>`).join('') + '<span class="reference-note">Recent context included when you send</span>'
+}
+function openReferencedSession(id) {
+  const source=(snapshot?.sessions || []).find(s=>referenceIdFor(s)===id)
+  if(!source){toast('This session is no longer available.');return}
+  selected=key(source);filter=source.background?'background':'all';render()
+}
+document.addEventListener('dragstart',event=>{
+  const row=event.target.closest('.session[data-session]')
+  if(!row || !event.dataTransfer)return
+  const session=(snapshot?.sessions || []).find(s=>key(s)===row.dataset.session)
+  if(!session || !referenceIdFor(session))return
+  event.dataTransfer.setData('application/x-fleet-session',referenceIdFor(session))
+  event.dataTransfer.effectAllowed='copy'
+})
 })()

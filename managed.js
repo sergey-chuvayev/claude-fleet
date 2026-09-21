@@ -4,7 +4,7 @@ const path = require('node:path')
 const os = require('node:os')
 const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
-const { gitBranch, turnSummary, toolTarget } = require('./fleet')
+const { gitBranch, turnSummary, toolTarget, transcriptFor } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
 const { stateDir } = require('./paths')
 const { getTeam, compile } = require('./teams')
@@ -12,6 +12,8 @@ const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
 const tasks = require('./tasks')
 const worktrees = require('./worktree')
+
+const { resolveReferences, referencePrompt } = require('./references')
 
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
 // Used until a live run reports the runtime's own list, which replaces it.
@@ -219,9 +221,10 @@ class ManagedSessions extends EventEmitter {
       fail(`This conversation is open in ${where}${holder.name ? ` (${holder.name}${since})` : since ? ` (${since.trim()})` : ''}. Fleet will not send while another process is driving the same session; close it there, or keep working there.`,409)
     }
     this.checkCapacity()
+    const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
-    const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {})}
+    const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {}),...(references.length ? {references} : {})}
     s.messages.push(entry)
     this.pruneMessages(s)
     s.lastPrompt = message || `${attachments.length} image${attachments.length === 1 ? '' : 's'}`; s.error = null; s.status = 'starting'; s.currentTool = null
@@ -262,7 +265,8 @@ class ManagedSessions extends EventEmitter {
   // A message with images has to travel as content blocks, which the SDK accepts
   // only in streaming-input form: an iterable that yields the one message and ends.
   promptFor(entry) {
-    if (!entry.attachments?.length) return entry.text
+    const promptText = referencePrompt(entry.text, entry.references)
+    if (!entry.attachments?.length) return promptText
     const dir = this.attachmentsDir
     return (async function* () {
       const content = []
@@ -271,7 +275,7 @@ class ManagedSessions extends EventEmitter {
         try { data = fs.readFileSync(path.join(dir, a.id)).toString('base64') } catch { continue }
         content.push({ type: 'image', source: { type: 'base64', media_type: a.mediaType, data } })
       }
-      content.push({ type: 'text', text: entry.text || 'See the attached image.' })
+      content.push({ type: 'text', text: promptText || 'See the attached image.' })
       yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null }
     })()
   }

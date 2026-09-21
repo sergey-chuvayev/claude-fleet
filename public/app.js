@@ -277,7 +277,7 @@ function sessionRowHtml(s, spawnCounts) {
   const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
   const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
   const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
-  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
 const filterBarHtml = (counts, foreground, background, archived) => [
   ['all', 'All sessions', foreground],
@@ -523,6 +523,12 @@ document.addEventListener('click', async event => {
   } else if (b.dataset.session) {
     selected = b.dataset.session; selectedChild = null; render()
     if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({behavior:'instant',block:'start'})
+  }
+  if (b.id === 'archive-sweep') return setArchived(sweepTargets().map(s => s.sessionId), true)
+  if (b.id === 'archive-restore-all') return setArchived(snapshot.sessions.filter(s => s.archived && s.sessionId).map(s => s.sessionId), false)
+  if (b.id === 'toggle-archive') {
+    const s = snapshot?.sessions.find(s => key(s) === selected)
+    if (s?.sessionId) return setArchived([s.sessionId], !s.archived)
   }
   if (b.id === 'archive-sweep') return setArchived(sweepTargets().map(s => s.sessionId), true)
   if (b.id === 'archive-restore-all') return setArchived(snapshot.sessions.filter(s => s.archived && s.sessionId).map(s => s.sessionId), false)
