@@ -293,11 +293,15 @@ function sessionRowHtml(s, spawnCounts) {
 }
 // The trigger names whichever combination is active instead of repeating every
 // count Sessions' own header badge already shows.
+// The one chevron every dropdown-shaped control uses, native <select> arrows included
+// (see the `select` rule in styles.css) — inline so it inherits color via currentColor
+// instead of guessing a font's ⌄ baseline.
+const DROPDOWN_CHEVRON = '<svg class="filter-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 const filterTriggerLabel = () => {
   const base = filter === 'all' ? 'All sessions' : filter === 'background' ? 'Background' : filter === 'archived' ? 'Archived' : LABELS[filter]
   return dateFilter === 'all' ? base : `${base} · ${DATE_LABELS[dateFilter]}`
 }
-const filterMenuHtml = (counts, foreground, background, archived, dateCounts) => `<button type="button" class="filter-trigger" id="filter-trigger" aria-haspopup="menu" aria-expanded="${filterMenuOpen}" aria-controls="filter-panel">${esc(filterTriggerLabel())}<span class="filter-chevron" aria-hidden="true">⌄</span></button><div class="filter-panel" id="filter-panel" role="menu" aria-label="Filter sessions"${filterMenuOpen ? '' : ' hidden'}><div class="filter-group" role="group" aria-label="Status">${[
+const filterMenuHtml = (counts, foreground, background, archived, dateCounts) => `<button type="button" class="filter-trigger" id="filter-trigger" aria-haspopup="menu" aria-expanded="${filterMenuOpen}" aria-controls="filter-panel">${esc(filterTriggerLabel())}${DROPDOWN_CHEVRON}</button><div class="filter-panel" id="filter-panel" role="menu" aria-label="Filter sessions"${filterMenuOpen ? '' : ' hidden'}><div class="filter-group" role="group" aria-label="Status">${[
   ['all', 'All sessions', foreground],
   ...STATES.map(s => [s, LABELS[s], counts[s] || 0]),
   ...(background ? [['background', 'Background', background]] : []),

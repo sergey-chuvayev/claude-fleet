@@ -38,7 +38,12 @@ test('streams a turn, approves exactly once, resumes follow-ups and persists acr
     await until(()=>s.approvals.length===1)
     assert.equal(s.status,'approval')
     assert.equal(s.messages[1].text,'Hello')
-    assert.throws(()=>manager.send(s.id,{message:'Overlap',requestId:randomUUID()}),/still working/)
+    // A message sent mid-turn queues instead of being refused; cleared here since this
+    // test's approval/resume flow below assumes a clean single-turn idle, not a drain.
+    const queued=manager.send(s.id,{message:'Overlap',requestId:randomUUID()})
+    assert.equal(queued.queue.length,1)
+    assert.equal(queued.queue[0].message,'Overlap')
+    s.queue=[]
     const approval=s.approvals[0].id
     manager.decide(s.id,approval,{decision:'allow'})
     assert.throws(()=>manager.decide(s.id,approval,{decision:'allow'}),/no longer pending/)
@@ -60,6 +65,45 @@ test('streams a turn, approves exactly once, resumes follow-ups and persists acr
     assert.equal(reopened.detail(s.id).messages.length,4)
     assert.equal(reopened.detail(s.id).sessionId,sessionId)
     await reopened.close()
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('a message sent mid-turn queues, then starts on its own once the turn goes idle',async()=>{
+  let calls=0
+  const {directory,manager}=setup(async()=>{
+    calls++
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'system',subtype:'init',session_id:randomUUID(),model:'claude-sonnet'}
+      yield {type:'assistant',message:{content:[{type:'text',text:'Done'}],usage:{input_tokens:10}}}
+      yield {type:'result',result:'Done',is_error:false,total_cost_usd:0.01}
+    }}
+  })
+  try{
+    const s=manager.create({cwd:directory,prompt:'First',requestId:randomUUID()})
+    const afterSend=manager.send(s.id,{message:'Second',requestId:randomUUID()})
+    assert.equal(afterSend.queue.length,1,'a mid-turn send holds instead of being refused')
+    assert.equal(afterSend.queue[0].message,'Second')
+    assert.equal(calls,1,'the queued message does not start its own SDK call yet')
+    await until(()=>s.status==='idle' && s.queue.length===0)
+    assert.equal(calls,2,'the queue drained into a second turn once the first went idle')
+    assert.deepEqual(s.messages.filter(m=>m.role==='user').map(m=>m.text),['First','Second'])
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('stopping a turn drops whatever was queued behind it',async()=>{
+  const {directory,manager}=setup(async args=>({close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:randomUUID(),model:'claude-sonnet'}
+    await new Promise(r=>args.options.abortController.signal.addEventListener('abort',r))
+  }}))
+  try{
+    const s=manager.create({cwd:directory,prompt:'First',requestId:randomUUID()})
+    await until(()=>s.status==='running')
+    manager.send(s.id,{message:'Second',requestId:randomUUID()})
+    assert.equal(s.queue.length,1)
+    manager.stop(s.id)
+    assert.equal(s.queue.length,0,'a deliberate stop clears anything waiting behind it')
+    await until(()=>s.status==='stopped')
+    assert.equal(s.queue.length,0)
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
 
