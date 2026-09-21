@@ -34,7 +34,7 @@ function validateTeam(input) {
   if (!entries.some(([r])=>r!==manager && !reviewers.includes(r))) bad('Include a worker role separate from the verification roles.')
   const maxAttempts=input.workflow.maxAttempts ?? 3, budgetUsd=input.workflow.budgetUsd ?? 10
   if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) bad('Attempts must be between 1 and 10.')
-  if (typeof budgetUsd!=='number' || !Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000) bad('Budget must be between $0.10 and $1,000.')
+  if (typeof budgetUsd!=='number' || !Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000) bad('Usage cap must be between $0.10 and $1,000.')
   // Manager is a coordinator. Verification can run commands but cannot use edit tools.
   roles[manager].tools=roles[manager].tools.filter(t=>['Read','Glob','Grep','WebSearch','WebFetch'].includes(t))
   for (const key of reviewers) roles[key].tools=roles[key].tools.filter(t=>!['Write','Edit','MultiEdit','NotebookEdit'].includes(t))

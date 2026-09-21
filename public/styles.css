@@ -479,7 +479,40 @@ body[data-modal]{overflow:hidden}
 #initiative-board>summary{display:flex;gap:12px;padding:12px;cursor:pointer;background:var(--panel)}#initiative-board>summary strong{margin-right:auto}#initiative-board>summary span{color:var(--muted);font-variant-numeric:tabular-nums}
 .initiative-body{max-height:38vh;overflow:auto;padding:12px}.initiative-roster{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px}.initiative-role{padding:5px 0}.initiative-role strong,.initiative-role small{display:block}.initiative-role small{margin-top:5px;color:var(--muted);font-size:10px}.initiative-role.is-active strong{color:var(--accent)}.team-connector{color:var(--faint)}
 .initiative-tasks{list-style:none;padding:0;margin:0}.initiative-tasks>li{padding:12px 0;border-bottom:1px solid var(--line)}.initiative-tasks summary{cursor:pointer;line-height:1.7}.initiative-tasks summary small{display:block;color:var(--muted)}.task-state{display:inline-block;color:var(--muted);margin-right:8px}.task-state[data-state=verified]{color:var(--busy)}.task-state[data-state=blocked],.task-state[data-state=changes_requested]{color:var(--stale)}.task-state[data-state=working]{color:var(--accent)}
-.initiative-tasks ul{padding-left:20px;line-height:1.8}.initiative-handoff{margin-top:10px;padding:8px 10px;background:var(--panel);border-radius:5px}.initiative-handoff summary span{color:var(--muted);margin-left:8px}.initiative-handoff h4{margin-bottom:6px;color:var(--muted)}.initiative-handoff pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.7 var(--mono);max-height:300px;overflow:auto}.initiative-body>.note{margin:12px 0 0;font-size:10px}
+.initiative-tasks ul{padding-left:20px;line-height:1.8}.initiative-handoff{margin-top:10px;padding:8px 10px;background:var(--panel);border-radius:5px}.initiative-handoff summary span{color:var(--muted);margin-left:8px}.initiative-handoff summary small{display:inline;color:var(--muted);margin-left:8px;font-size:10px}.handoff-mandate,.handoff-report{margin-top:8px}.handoff-report{border-top:1px solid var(--line);padding-top:8px}.handoff-mandate>summary,.handoff-report>summary{cursor:pointer;color:var(--muted);font-size:10px;font-weight:600}.handoff-mandate>summary:focus-visible,.handoff-report>summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}.initiative-handoff pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.7 var(--mono);max-height:300px;overflow:auto;margin-top:6px}.initiative-body>.note{margin:12px 0 0;font-size:10px}
 @media(max-width:720px){.team-editor-head{align-items:start}.team-meta,.team-rules,.team-role-fields{grid-template-columns:1fr}.team-role>summary{flex-wrap:wrap}.team-role>summary span{flex-basis:100%;order:3}.team-role>summary small{margin-left:auto}#initiative-board>summary{flex-wrap:wrap}.initiative-body{max-height:32vh}}
-#team-editor{padding:3px 32px 28px}.initiative-limits{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:12px}.initiative-limits label{display:flex;flex-direction:column;gap:6px;color:var(--muted)}.initiative-limits input{width:110px;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:5px}.initiative-limits .form-error{width:100%}@media(max-width:720px){#team-editor{padding:0 20px 24px}.team-editor-head{flex-wrap:wrap}}
+#team-editor{padding:3px 32px 28px}.initiative-limits{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:12px}.initiative-limits label{display:flex;flex-direction:column;gap:6px;color:var(--muted)}.initiative-limits input{width:110px;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:5px}.initiative-limits .form-error{width:100%}.initiative-limits .note{width:100%;margin:12px 0 0}@media(max-width:720px){#team-editor{padding:0 20px 24px}.team-editor-head{flex-wrap:wrap}}
 .modal-launch.is-editing-team>.modal-head .modal-heading{display:none}.modal-launch.is-editing-team>.modal-head{justify-content:flex-end;padding-bottom:8px}.modal-launch.is-editing-team #team-editor{padding-top:0}
+
+/* A Task-tool sub-agent has no process of its own, so this nested row under the
+   session that ran it is the only place it ever shows up. */
+.session-child{padding-left:44px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg))}
+.session-child .session-name{color:var(--muted)}
+.session-child .session-title{font-size:11px;font-weight:400;color:var(--faint)}
+@media(max-width:1000px){.session-child{padding-left:34px}}
+/* Only one row reads as selected: a session holding a selected child is an ancestor,
+   not the selection itself, so it gets a quieter treatment and no accent bar. */
+.session-ancestor{background:#1a1f1e}
+.session-ancestor:hover{background:#1c2120}
+/* A long initiative is capped to its most recent delegations; this line names the
+   rest without pretending to be a row of its own. */
+.session-child-more{padding:9px 23px 9px 44px;color:var(--faint);font-size:10px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg))}
+@media(max-width:1000px){.session-child-more{padding-left:34px}}
+/* Its read-only report: steps, in the order Fleet saw them, each with what it touched. */
+.child-steps{list-style:none;margin:0;padding:0;font-size:11px}
+.child-step{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line)}
+.child-step:first-child{border-top:0}
+.child-step-tool{font-weight:600;flex:none}
+.child-step-target{color:var(--muted);overflow-wrap:anywhere;flex:1;min-width:0}
+.child-step-state{color:var(--faint);flex:none}
+.child-step[data-status="running"] .child-step-state{color:var(--busy)}
+.child-step[data-status="error"] .child-step-state{color:var(--dead)}
+.child-step[data-status="interrupted"] .child-step-state{color:var(--stale)}
+/* Terminal, not in-progress: the delegation ended before this step ever reported
+   back, so it gets a cool, muted hue of its own rather than the plain "done" grey
+   or a transparency trick that would wash out against the panel. */
+.child-step[data-status="unreported"] .child-step-state{color:color-mix(in oklab,var(--w-blue) 56%,var(--w-fg))}
+.child-step-time{color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+/* Selecting a child hides the console, so a pending approval on the owning session
+   would otherwise go unnoticed; this is the one visible sign it is still waiting. */
+.child-approval-notice{color:var(--text);background:color-mix(in srgb,var(--stale) 14%,transparent);border:1px solid var(--stale);border-radius:6px;padding:10px 12px;margin-bottom:17px}
