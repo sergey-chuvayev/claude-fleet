@@ -25,6 +25,14 @@
   --text:color-mix(in oklab,var(--term-fg) 92%,white);
   --muted:color-mix(in oklab,var(--term-fg) 68%,var(--term-bg));
   --faint:color-mix(in oklab,var(--term-fg) 48%,var(--term-bg));
+  /* One step above the page, for the list pane and the bar above it. */
+  --pane:color-mix(in oklab,var(--term-bg) 96%,var(--term-fg));
+  /* The row states. A pointer lifts a row off the pane; the current row is washed
+     with the working colour, which is also what its accent bar is made of. */
+  --hover:color-mix(in oklab,var(--term-bg) 91%,var(--term-fg));
+  --hover-strong:color-mix(in oklab,var(--term-bg) 84%,var(--term-fg));
+  --selected:color-mix(in oklab,var(--term-bg) 88%,var(--term-green));
+  --divider:color-mix(in oklab,var(--term-bg) 84%,var(--term-fg));
 
   /* ── Status ─────────────────────────────────────────────────────────────────
      One colour per agent state, used by badges, dots and context bars alike. */
@@ -33,6 +41,11 @@
   --idle:color-mix(in oklab,var(--term-cyan) 70%,var(--term-fg));
   --stale:var(--term-yellow);
   --dead:color-mix(in oklab,var(--term-red) 72%,var(--term-fg));
+  /* Context pressure, one step hotter than an offline agent. */
+  --hot:color-mix(in oklab,var(--term-red) 62%,var(--term-fg));
+  /* A surface tinted by a status, for the cards that carry one. */
+  --warn-surface:color-mix(in oklab,var(--term-bg) 88%,var(--term-yellow));
+  --warn-line:color-mix(in oklab,var(--term-yellow) 42%,var(--term-bg));
 
   /* ── Type ───────────────────────────────────────────────────────────────────
      The UI face carries the chrome; the mono face carries anything the agent
@@ -47,11 +60,15 @@
   --text-lg:13px;
 
   /* ── Radius ─────────────────────────────────────────────────────────────────
-     A tag, a control, a card. Anything still carrying a raw px radius below is
-     an outlier that has not been reconciled with these three yet. */
-  --radius-sm:3px;
+     Six steps, from the tick marks inside a row up to a modal. The file used to
+     carry thirteen ad-hoc radii, several of them a pixel apart and none of them
+     meaning anything different from its neighbour. */
+  --radius-xs:2px;
+  --radius-sm:4px;
   --radius-md:6px;
   --radius-lg:8px;
+  --radius-xl:12px;
+  --radius-2xl:20px;
 
   color-scheme:dark;
   font:var(--ui);
@@ -112,7 +129,7 @@ p {
   border-radius:var(--radius-md);
   font-size:var(--text-md);
 }
-.button:hover { background:#303634 }
+.button:hover { background:var(--hover-strong) }
 .dot {
   display:inline-block;
   width:6px;
@@ -141,7 +158,7 @@ h2 {
   background:var(--raised);
   border:1px solid var(--line);
   padding:2px 6px;
-  border-radius:4px;
+  border-radius:var(--radius-sm);
   margin-left:7px;
   color:var(--muted);
 }
@@ -168,7 +185,7 @@ select {
   border:1px solid transparent;
   background:transparent;
   color:var(--muted);
-  border-radius:5px;
+  border-radius:var(--radius-md);
   padding:6px 9px;
   font-size:var(--text-sm);
 }
@@ -186,13 +203,13 @@ select {
   width:100%;
   text-align:left;
   border:0;
-  border-bottom:1px solid #272c2b;
+  border-bottom:1px solid var(--divider);
   background:transparent;
   padding:19px 23px;
   position:relative;
 }
-.session:hover { background:#1c2120 }
-.session[aria-pressed=true] { background:#232b27; box-shadow:inset 2px 0 var(--busy) }
+.session:hover { background:var(--hover) }
+.session[aria-pressed=true] { background:var(--selected); box-shadow:inset 2px 0 var(--busy) }
 .session-name {
   font-size:var(--text-xs);
   color:var(--muted);
@@ -205,7 +222,7 @@ select {
   white-space:nowrap;
   background:color-mix(in srgb,currentColor 8%,transparent);
   padding:3px 6px;
-  border-radius:4px;
+  border-radius:var(--radius-sm);
 }
 .session-title {
   font-size:var(--text-lg);
@@ -239,7 +256,7 @@ select {
   height:3px;
   background:var(--line);
   margin:8px 0 7px;
-  border-radius:2px;
+  border-radius:var(--radius-xs);
   overflow:hidden;
 }
 .mini-bar i {
@@ -292,7 +309,7 @@ select {
   font-size:var(--text-md);
   max-height:300px;
   overflow:auto;
-  color:#cbd3cd;
+  color:color-mix(in oklab,var(--text) 88%,var(--term-bg));
 }
 .response.missing { color:var(--faint); font-style:italic }
 .links {
@@ -303,7 +320,7 @@ select {
 .work-link {
   padding:7px 10px;
   border:1px solid var(--line);
-  border-radius:5px;
+  border-radius:var(--radius-md);
   font-size:var(--text-sm);
   color:var(--accent);
 }
@@ -344,11 +361,11 @@ select {
 }
 .resume {
   background:var(--accent);
-  color:#201b16;
+  color:var(--term-bg);
   border:0;
   font-weight:600;
 }
-.resume:hover { background:#e9c49e }
+.resume:hover { background:color-mix(in oklab,var(--term-accent) 82%,white) }
 .empty {
   padding:65px 25px;
   text-align:center;
@@ -357,8 +374,8 @@ select {
   line-height:1.8;
 }
 .error {
-  border:1px solid #6b5032;
-  background:#292217;
+  border:1px solid var(--warn-line);
+  background:var(--warn-surface);
   padding:12px 16px;
   margin-bottom:20px;
   border-radius:var(--radius-md);
@@ -386,9 +403,9 @@ select {
   clip:rect(0,0,0,0);
 }
 .warn { color:var(--stale) }
-.hot { color:#e69a8e }
+.hot { color:var(--hot) }
 .mini-bar i.warn { background:var(--stale) }
-.mini-bar i.hot { background:#e69a8e }
+.mini-bar i.hot { background:var(--hot) }
 @media(max-width:1000px) {
   .brand-sub, .local { display:none }
   .refresh-info { flex-direction:column; align-items:end }
@@ -409,9 +426,9 @@ select {
 }
 /* Managed conversations */
 .launch-panel {
-  border:1px solid #485045;
+  border:1px solid var(--line);
   background:var(--panel);
-  border-radius:9px;
+  border-radius:var(--radius-lg);
   margin-bottom:28px;
 }
 .launch-panel .section-heading { padding:23px 26px }
@@ -457,7 +474,7 @@ select {
 .form-error {
   font-size:var(--text-md);
   line-height:1.6;
-  color:#e6aa9c;
+  color:color-mix(in oklab,var(--term-red) 52%,var(--term-fg));
   overflow-wrap:anywhere;
   margin:12px 0 0;
 }
@@ -494,9 +511,9 @@ select {
 .external-note strong { font-size:var(--text-md); color:var(--muted) }
 .external-note p { font-size:var(--text-md); margin:8px 0 14px }
 .approval {
-  background:#29271e;
-  border:1px solid #61563c;
-  border-radius:7px;
+  background:var(--warn-surface);
+  border:1px solid var(--warn-line);
+  border-radius:var(--radius-md);
   padding:17px;
   margin-top:20px;
 }
@@ -513,9 +530,9 @@ select {
   max-height:280px;
   overflow:auto;
   font:11px/1.7 ui-monospace,monospace;
-  background:#181a17;
+  background:var(--term-bg);
   padding:12px;
-  border-radius:5px;
+  border-radius:var(--radius-md);
 }
 .approval-actions {
   display:flex;
@@ -673,7 +690,7 @@ select {
   background:none;
   border:0;
   padding:2px 5px;
-  border-radius:4px;
+  border-radius:var(--radius-sm);
   color:var(--faint);
   font-size:var(--text-md);
   line-height:1;
@@ -769,7 +786,7 @@ select {
   margin:.7em 0;
   background:var(--term-bg);
   border:1px solid var(--line);
-  border-radius:5px;
+  border-radius:var(--radius-md);
 }
 .block-prose pre code {
   background:none;
@@ -876,7 +893,7 @@ select {
   translate:-50% -50%;
   width:2px;
   height:26px;
-  border-radius:2px;
+  border-radius:var(--radius-xs);
   background:var(--faint);
   opacity:0;
   transition:opacity .12s ease;
@@ -944,7 +961,7 @@ body[data-resizing] { cursor:col-resize; user-select:none }
   overflow:auto;
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:7px;
+  border-radius:var(--radius-md);
   box-shadow:0 12px 34px #0009;
   z-index:4;
   font-family:var(--mono);
@@ -956,7 +973,7 @@ body[data-resizing] { cursor:col-resize; user-select:none }
   gap:4px 10px;
   align-items:baseline;
   padding:6px 9px;
-  border-radius:5px;
+  border-radius:var(--radius-md);
   cursor:pointer;
 }
 .slash-picker li.is-picked { background:var(--raised) }
@@ -1019,7 +1036,7 @@ body {
 }
 .sessions-pane {
   min-width:0;
-  background:#151818;
+  background:var(--pane);
   display:flex;
   flex-direction:column;
   min-height:0;
@@ -1329,7 +1346,7 @@ main {
   flex:0 0 auto;
   width:5px;
   height:100%;
-  border-radius:1.5px;
+  border-radius:var(--radius-xs);
   background:var(--faint);
   opacity:.85;
 }
@@ -1586,7 +1603,7 @@ main {
   width:112px;
   height:80px;
   object-fit:cover;
-  border-radius:5px;
+  border-radius:var(--radius-md);
   border:1px solid var(--line);
   background:var(--term-bg);
 }
@@ -1627,7 +1644,7 @@ main {
 }
 .block-attachments a {
   display:block;
-  border-radius:5px;
+  border-radius:var(--radius-md);
   overflow:hidden;
   border:1px solid var(--line);
   background:var(--term-bg);
@@ -1665,7 +1682,7 @@ body[data-modal] { overflow:hidden }
   overflow:hidden;
   background:var(--panel);
   border:1px solid color-mix(in oklab,var(--line) 70%,var(--accent));
-  border-radius:20px;
+  border-radius:var(--radius-2xl);
   box-shadow:0 32px 100px #0007,0 2px 8px #0003;
   color:var(--text);
 }
@@ -1778,7 +1795,7 @@ body[data-modal] { overflow:hidden }
   margin:0 32px 20px;
   padding:9px 10px 9px 16px;
   border:1px solid var(--line);
-  border-radius:12px;
+  border-radius:var(--radius-xl);
   background:var(--bg);
 }
 .ask-bar:focus-within {
@@ -1871,7 +1888,7 @@ body[data-modal] { overflow:hidden }
 .modal-ask .ask-stats { white-space:normal }
 .modal-ask .ask-answer {
   border:0;
-  border-radius:10px;
+  border-radius:var(--radius-lg);
   padding:20px 22px;
   margin:8px 0 16px;
   background:color-mix(in oklab,var(--accent) 8%,var(--panel));
@@ -1900,7 +1917,7 @@ body[data-modal] { overflow:hidden }
   margin:0;
   overflow:hidden;
   border:1px solid color-mix(in oklab,var(--line) 70%,var(--accent));
-  border-radius:20px;
+  border-radius:var(--radius-2xl);
 }
 .modal-launch form { padding:0 }
 .launch-layout {
@@ -1925,7 +1942,7 @@ body[data-modal] { overflow:hidden }
   flex:1;
   min-height:240px;
   resize:vertical;
-  border-radius:12px;
+  border-radius:var(--radius-xl);
   padding:18px;
   font-family:inherit;
   font-size:14px;
@@ -1983,7 +2000,7 @@ body[data-modal] { overflow:hidden }
 }
 @media(max-width:720px) {
   .modal-backdrop { padding:12px }
-  .modal, .modal-launch { max-height:calc(100dvh - 24px); border-radius:16px }
+  .modal, .modal-launch { max-height:calc(100dvh - 24px); border-radius:var(--radius-xl) }
   .modal-head { padding:24px 20px 20px; gap:8px }
   .modal-heading { gap:12px }
   .modal-spark { font-size:30px; margin-top:18px }
@@ -2290,7 +2307,7 @@ body[data-modal] { overflow:hidden }
   margin-top:10px;
   padding:8px 10px;
   background:var(--panel);
-  border-radius:5px;
+  border-radius:var(--radius-md);
 }
 .initiative-handoff summary span { color:var(--muted); margin-left:8px }
 .initiative-handoff summary small {
@@ -2352,7 +2369,7 @@ body[data-modal] { overflow:hidden }
   background:var(--bg);
   color:var(--text);
   border:1px solid var(--line);
-  border-radius:5px;
+  border-radius:var(--radius-md);
 }
 .initiative-limits .form-error { width:100% }
 .initiative-limits .note { width:100%; margin:12px 0 0 }
@@ -2374,7 +2391,7 @@ body[data-modal] { overflow:hidden }
   width:100%;
   text-align:left;
   border:0;
-  border-bottom:1px solid #272c2b;
+  border-bottom:1px solid var(--divider);
   padding:7px 18px 7px 26px;
   background:color-mix(in oklab,var(--panel) 88%,var(--term-fg));
   color:var(--faint);
@@ -2430,8 +2447,8 @@ body[data-modal] { overflow:hidden }
 }
 /* Only one row reads as selected: a session holding a selected child is an ancestor,
    not the selection itself, so it gets a quieter treatment and no accent bar. */
-.session-ancestor { background:#1a1f1e }
-.session-ancestor:hover { background:#1c2120 }
+.session-ancestor { background:color-mix(in oklab,var(--term-bg) 92%,var(--term-fg)) }
+.session-ancestor:hover { background:var(--hover) }
 /* A long initiative is capped to its most recent delegations; this line names the
    rest without pretending to be a row of its own. */
 .session-child-more {
