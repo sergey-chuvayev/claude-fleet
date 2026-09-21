@@ -32,6 +32,7 @@
     "open.js",
     "paths.js",
     "permissions.js",
+    "references.js",
     "search.js",
     "server.js",
     "teams.js",
