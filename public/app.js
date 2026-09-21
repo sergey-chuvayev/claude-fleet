@@ -100,9 +100,14 @@ function childRowHtml(s, d) {
 const CHILD_ROW_LIMIT = 20
 const childRowsHtml = s => {
   const all = s.delegations || []
-  const shown = all.length > CHILD_ROW_LIMIT ? all.slice(-CHILD_ROW_LIMIT) : all
+  const recent = all.length > CHILD_ROW_LIMIT ? all.slice(-CHILD_ROW_LIMIT) : all
+  // The parent row has already handed its aria-pressed to session-ancestor, so a
+  // selected delegation that aged out of the tail must still be drawn here, however
+  // old it is, or nothing in the list reads as selected at all.
+  const selectedOutside = selectedChild && !recent.some(d => d.id === selectedChild) ? all.find(d => d.id === selectedChild) : null
+  const shown = selectedOutside ? [selectedOutside, ...recent] : recent
   const earlier = all.length - shown.length
-  return shown.map(d => childRowHtml(s, d)).join('') + (earlier ? `<div class="session-child-more" aria-hidden="true">+${earlier} earlier</div>` : '')
+  return shown.map(d => childRowHtml(s, d)).join('') + (earlier ? `<div class="session-child-more" role="status">+${earlier} earlier</div>` : '')
 }
 
 function render() {
