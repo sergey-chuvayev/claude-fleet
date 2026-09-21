@@ -516,3 +516,9 @@ body[data-modal]{overflow:hidden}
 /* Selecting a child hides the console, so a pending approval on the owning session
    would otherwise go unnoticed; this is the one visible sign it is still waiting. */
 .child-approval-notice{color:var(--text);background:color-mix(in srgb,var(--stale) 14%,transparent);border:1px solid var(--stale);border-radius:6px;padding:10px 12px;margin-bottom:17px}
+
+/* Drill into a tool without expanding every payload in the agent inspector. */
+.child-step-detail{grid-column:1/-1;min-width:0}
+.child-step-detail summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.child-step-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:12px}
+.child-step-detail h4{margin:10px 0 4px;font-size:12px}

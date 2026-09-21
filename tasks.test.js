@@ -64,3 +64,31 @@ test('the raw recorded subagent response takes precedence over its transport env
   tasks.finish(s,'review','Runtime completion metadata')
   assert.equal(t.reviews.reviewer.verdict,'PASS');assert.equal(d.report,pass)
 })
+
+test('task board reads omit transcript payloads while explicit inspection retains evidence',()=>{
+  const s=session(),t=create(s),d=delegate(s,t,'dev')
+  d.prompt+='x'.repeat(20000);d.output='y'.repeat(20000)
+  d.steps=[{input:'z'.repeat(6000),result:'z'.repeat(6000)}]
+  tasks.finish(s,d.id,'Done')
+  const listed=tasks.act(s,{action:'list'})
+  assert.equal(listed.tasks[0].status,'review')
+  assert.equal(listed.delegations[0].id,d.id)
+  assert.ok(JSON.stringify(listed).length<JSON.stringify(s.taskBoard).length/10)
+  for(const field of ['prompt','output','report','steps']) assert.equal(listed.delegations[0][field],undefined)
+  const detail=tasks.act(s,{action:'inspect',delegationId:d.id})
+  assert.equal(detail.report,d.report)
+  assert.equal(detail.prompt,d.prompt)
+  assert.equal(detail.steps,undefined)
+  assert.throws(()=>tasks.act(s,{action:'inspect',delegationId:'missing'}),/Delegation not found/)
+})
+
+test('Quick tasks still require independent QA and stop at their repair limit',()=>{
+  const s={teamSnapshot:getTeam('quick')},t=create(s)
+  delegate(s,t,'dev');tasks.finish(s,'dev','Implemented and tested.')
+  assert.equal(t.status,'review')
+  delegate(s,t,'qa','qa');tasks.finish(s,'qa','FAIL\nThe redirect drops the query string.')
+  delegate(s,t,'dev2');tasks.finish(s,'dev2','Preserved query strings.')
+  delegate(s,t,'qa2','qa');tasks.finish(s,'qa2',pass)
+  assert.equal(t.status,'verified')
+  assert.throws(()=>delegate(s,t,'dev3'),/limit/)
+})

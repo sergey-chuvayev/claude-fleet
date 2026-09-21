@@ -899,3 +899,39 @@ test('initiative limits can be changed explicitly while idle without editing its
     s.costUsd=21;assert.throws(()=>manager.setLimits(s.id,{budgetUsd:20,maxAttempts:5}))
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
+
+test('agent inspection records bounded evidence, deduplicates usage and isolates child lifecycle events',async()=>{
+  const {directory,manager}=setup(async()=>finished())
+  try {
+    const s=create(manager,directory)
+    await until(()=>s.status==='idle')
+    const d={id:'child',role:'developer',status:'running'}
+    s.taskBoard={tasks:[],delegations:[d]}
+    const run={},parentModel=s.model,parentCost=s.costUsd
+    const message={id:'msg1',model:'sonnet',usage:{input_tokens:100,output_tokens:10,cache_read_input_tokens:500},content:[]}
+    const send=message=>manager.event(s,run,{type:'assistant',parent_tool_use_id:'child',message})
+    send(message);send(message);send({...message,usage:{...message.usage,output_tokens:30}})
+    send({...message,id:'msg2'})
+    assert.deepEqual(d.usage,{input_tokens:200,output_tokens:40,cache_read_input_tokens:1000})
+    send({...message,id:'bad',usage:{input_tokens:-5,output_tokens:NaN}})
+    assert.equal(d.usage.input_tokens,200)
+    manager.event(s,run,{type:'system',subtype:'task_progress',tool_use_id:'child',usage:{total_tokens:1300,tool_uses:2,duration_ms:5000}})
+    manager.event(s,run,{type:'system',subtype:'task_progress',tool_use_id:'child',usage:{total_tokens:1200,tool_uses:1,duration_ms:4000}})
+    assert.equal(d.runtimeUsage.total_tokens,1300)
+    send({content:[{type:'tool_use',id:'tool',name:'Bash',input:{command:'x'.repeat(10000)}}]})
+    manager.event(s,run,{type:'user',parent_tool_use_id:'child',message:{content:[{type:'tool_result',tool_use_id:'tool',content:'y'.repeat(10000)}]}})
+    assert.ok(d.steps[0].input.command.length<2100)
+    assert.equal(d.steps[0].result.length,6000)
+    assert.equal(d.steps[0].truncated,true)
+    manager.event(s,run,{type:'system',subtype:'init',parent_tool_use_id:'child',model:'other-model'})
+    manager.event(s,run,{type:'result',parent_tool_use_id:'child',total_cost_usd:0.03,result:'Child done'})
+    assert.equal(d.costUsd,0.03)
+    assert.equal(s.costUsd,parentCost)
+    assert.equal(s.model,parentModel)
+    assert.equal(run.result,undefined)
+    d.status='completed'
+    await manager.close()
+    const reopened=new ManagedSessions({directory})
+    try {assert.deepEqual(reopened.get(s.id).taskBoard.delegations[0].usage,d.usage)}finally{await reopened.close()}
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})

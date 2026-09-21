@@ -65,3 +65,15 @@ test('an unknown or absent team is null rather than a throw',()=>{
 test('a team whose manager is missing fails loudly',()=>{
   assert.throws(()=>compile({id:'broken',manager:'ghost',roles:{developer:{prompt:'x',description:'y'}}}),/manager role that does not exist/)
 })
+
+test('Quick is an explicit lighter preset and snapshots remain independent',()=>{
+  const quick=getTeam('quick'),full=getTeam('delivery')
+  assert.deepEqual(quick.workflow.reviewers,['qa'])
+  assert.deepEqual(full.workflow.reviewers,['reviewer','qa'])
+  const {agents}=compile(quick)
+  assert.equal(agents.developer.model,'sonnet')
+  assert.ok(agents.qa.disallowedTools.includes('Edit'))
+  assert.ok(agents.developer.disallowedTools.includes('Agent'))
+  quick.roles.developer.model='custom'
+  assert.equal(getTeam('quick').roles.developer.model,'sonnet')
+})
