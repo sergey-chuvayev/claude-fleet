@@ -1,4 +1,9 @@
 'use strict'
+// An isolated scope, matching teams.js and blocks.js. What this file borrows from
+// app.js is destructured once, here, instead of being picked out of a global scope
+// the two files happened to share.
+;(() => {
+const { $, esc, update, toast, modalIsOpen, openModal, closeModal } = window.Fleet
 let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
 const drafts=new Map()
 const inFlight=new Set()
@@ -60,7 +65,23 @@ function openLaunch(source=null) {
   $('launch-cwd').readOnly=!!source
   openModal('launch-backdrop', '[name=prompt]')
 }
-$('new-session').addEventListener('click',()=>modalIsOpen('launch-backdrop') ? closeModal() : openLaunch())
+// ── What the rest of the page may use ───────────────────────────────────────
+// Published before the boot wiring below, for the same reason app.js does it there:
+// teams.js destructures this at load, and an element missing from the wiring must
+// not cost it the whole namespace. The two values teams.js has to change are handed
+// out as setters rather than as variables it reaches in and assigns.
+window.FleetControl = {
+  selectControl, isWorking, updateLaunchTeam, renderUpdate,
+  // teams.js posts to the same endpoints through the same helper, and app.js and
+  // ask.js borrow it back: this file owns the token every write is signed with.
+  api,
+  launchTeams: () => launchTeams,
+  setLaunchTeams(teams) { launchTeams = teams },
+  setLaunchRequestId(id) { launchRequestId = id },
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+$('new-session')?.addEventListener('click',()=>modalIsOpen('launch-backdrop') ? closeModal() : openLaunch())
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'n') {
     event.preventDefault()
@@ -68,8 +89,8 @@ document.addEventListener('keydown', event => {
     else openLaunch()
   }
 })
-$('launch-form').addEventListener('input',()=>{launchRequestId=null})
-$('launch-form').addEventListener('submit',async event=>{
+$('launch-form')?.addEventListener('input',()=>{launchRequestId=null})
+$('launch-form')?.addEventListener('submit',async event=>{
   event.preventDefault()
   if(window.FleetTeams?.isEditing()){window.FleetTeams.save();return}
   const button=$('launch-submit'); if(button.disabled)return
@@ -94,9 +115,9 @@ function selectControl(session) {
   $('control-panel').innerHTML=''
   if(next){
     $('control-panel').innerHTML=`<div class="conversation-header"><h3 id="conversation-title">Conversation</h3><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto">Auto approvals</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select></label><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="What should this agent do next?  ·  press / for commands  ·  paste an image" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
-    window.FleetLayout?.watchConversation($('conversation'))
+    window.Fleet.watchConversation($('conversation'))
     catalog=[];catalogFor=null;closePicker();renderTray()
-    window.FleetLayout?.syncDetails?.()
+    window.Fleet.syncDetails()
     $('message-input').value=drafts.get(next)?.text || ''
     $('message-input').addEventListener('input',()=>drafts.set(next,{text:$('message-input').value,requestId:crypto.randomUUID()}))
     $('message-input').addEventListener('keydown',event=>{
@@ -129,7 +150,7 @@ function selectControl(session) {
   }else if(session){
     $('control-panel').innerHTML=`<div class="external-note"><strong>Opened outside Fleet</strong><p>${session.alive ? 'This session is running in a terminal. Use its terminal to send messages, or launch a new Fleet-managed agent.' : 'This process has stopped. Continue its saved conversation here with a new message.'}</p>${!session.alive && session.sessionId && session.cwd ? '<button id="resume-in-fleet" class="button">Continue in Fleet ↗</button>' : ''}</div>`
     $('resume-in-fleet')?.addEventListener('click',()=>openLaunch(session))
-    window.FleetLayout?.syncDetails?.()
+    window.Fleet.syncDetails()
   }
 }
 async function refreshControl() {
@@ -439,7 +460,7 @@ async function waitForRestart(deadline = Date.now() + 60000) {
   renderUpdate()
   toast('Fleet installed the update but did not come back. Start it again.')
 }
-$('update-pill').addEventListener('click', async () => {
+$('update-pill')?.addEventListener('click', async () => {
   if (fleetUpdateBusy || !fleetUpdate || !fleetUpdate.canInstall) return
   fleetUpdateBusy = true
   renderUpdate()
@@ -463,3 +484,4 @@ pollUpdate()
 // time to answer, then settle into a slow poll for long-lived windows.
 setTimeout(pollUpdate, 9000)
 setInterval(pollUpdate, 60 * 60 * 1000)
+})()

@@ -1,6 +1,9 @@
 'use strict'
 // An isolated scope: Fleet's browser files are classic scripts.
 window.FleetTeams=(()=>{
+  const { esc, toast } = window.Fleet
+  const control = () => window.FleetControl
+  const api = (...args) => window.FleetControl.api(...args)
   let draft=null,tools=[],originalId=null,returnTeam=null
   const escape=value=>esc(String(value ?? ''))
   const field=(label,key,value,max=500)=>`<label>${label}<input data-team-field="${key}" value="${escape(value)}" maxlength="${max}" required></label>`
@@ -27,7 +30,7 @@ window.FleetTeams=(()=>{
     // Hidden editor fields must not participate in the launch form's validation.
     document.querySelectorAll('#team-editor input,#team-editor textarea,#team-editor select').forEach(el=>el.disabled=!editing)
     if(editing){syncTools();document.querySelector('#team-editor input')?.focus()}
-    else {document.getElementById('launch-team').value=returnTeam || '';updateLaunchTeam();document.getElementById('launch-prompt').focus()}
+    else {document.getElementById('launch-team').value=returnTeam || '';control().updateLaunchTeam();document.getElementById('launch-prompt').focus()}
   }
   async function open() {
     mount()
@@ -83,10 +86,10 @@ window.FleetTeams=(()=>{
     const button=document.getElementById('team-save');button.disabled=true
     try {
       read();const {team}=await api('/api/teams',draft)
-      const catalog=await api('/api/teams');launchTeams=catalog.teams
+      const catalog=await api('/api/teams');control().setLaunchTeams(catalog.teams)
       const select=document.getElementById('launch-team');select.replaceChildren(new Option('No team · single agent',''))
-      for(const t of launchTeams)select.add(new Option(t.name,t.id))
-      returnTeam=team.id;launchRequestId=null;toggle(false);toast('Team saved. Ready for your task.')
+      for(const t of catalog.teams)select.add(new Option(t.name,t.id))
+      returnTeam=team.id;control().setLaunchRequestId(null);toggle(false);toast('Team saved. Ready for your task.')
     } catch(error){showError(error)}finally{button.disabled=false}
   }
   // The model actually reported by a delegation wins; a role's configured model is
@@ -112,7 +115,7 @@ window.FleetTeams=(()=>{
     const focused=document.activeElement?.closest('[data-evidence]')?.dataset.evidence
     panel.fleetSignature=signature
     const active=b.delegations.find(d=>d.status==='running')
-    panel.innerHTML=`<summary><strong>${escape(s.teamName)}</strong><span>${done}/${b.tasks.length} verified</span><span title="API-rate equivalent the SDK reports. Not billed on a Claude subscription; the run still stops here.">$${(s.costUsd || 0).toFixed(2)} / $${s.limits?.budgetUsd ?? s.teamSnapshot.workflow.budgetUsd} cap</span></summary><div class="initiative-body"><div class="initiative-roster" aria-label="Team and active agent">${Object.entries(s.teamSnapshot.roles).map(([name,r])=>`<div class="initiative-role ${(active?.role || (isWorking(s) ? s.teamSnapshot.manager:null))===name ? 'is-active':''}"><strong>${escape(name)}</strong><small>${escape(name===s.teamSnapshot.manager && s.selectedModel ? s.selectedModel : r.model)}${name===s.teamSnapshot.manager ? ' · your contact':active?.role===name ? ' · working':''}</small></div>`).join('<span class="team-connector" aria-hidden="true">·</span>')}</div>${b.tasks.length ? `<ol class="initiative-tasks">${b.tasks.map(t=>`<li><details data-evidence="${t.id}" ${opened.has(t.id) ? 'open':''}><summary><span class="task-state" data-state="${escape(t.status)}">${escape(t.status.replaceAll('_',' '))}</span><strong>${escape(t.title)}</strong><small>${escape(t.owner)} · attempt ${t.attempt}</small></summary><ul>${t.criteria.map(c=>`<li>${escape(c)}</li>`).join('')}</ul>${t.blocker ? `<p class="form-error">${escape(t.blocker)}</p>`:''}${t.dependencies.length ? `<p class="note">After: ${t.dependencies.map(id=>escape(b.tasks.find(t=>t.id===id)?.title || id)).join(', ')}</p>`:''}${b.delegations.filter(d=>d.taskId===t.id).map(d=>handoffHtml(s,d,opened)).join('')}</details></li>`).join('')}</ol>`:'<p class="note">The manager is shaping your brief. Tasks and handoffs will appear here as work begins.</p>'}<button type="button" class="button" data-adjust-limits ${isWorking(s) ? 'disabled':''}>Adjust limits</button><p class="note">Verified means all configured verifiers returned passing reports for that task’s attempt. Expand a task to inspect the evidence.</p></div>`
+    panel.innerHTML=`<summary><strong>${escape(s.teamName)}</strong><span>${done}/${b.tasks.length} verified</span><span title="API-rate equivalent the SDK reports. Not billed on a Claude subscription; the run still stops here.">$${(s.costUsd || 0).toFixed(2)} / $${s.limits?.budgetUsd ?? s.teamSnapshot.workflow.budgetUsd} cap</span></summary><div class="initiative-body"><div class="initiative-roster" aria-label="Team and active agent">${Object.entries(s.teamSnapshot.roles).map(([name,r])=>`<div class="initiative-role ${(active?.role || (control().isWorking(s) ? s.teamSnapshot.manager:null))===name ? 'is-active':''}"><strong>${escape(name)}</strong><small>${escape(name===s.teamSnapshot.manager && s.selectedModel ? s.selectedModel : r.model)}${name===s.teamSnapshot.manager ? ' · your contact':active?.role===name ? ' · working':''}</small></div>`).join('<span class="team-connector" aria-hidden="true">·</span>')}</div>${b.tasks.length ? `<ol class="initiative-tasks">${b.tasks.map(t=>`<li><details data-evidence="${t.id}" ${opened.has(t.id) ? 'open':''}><summary><span class="task-state" data-state="${escape(t.status)}">${escape(t.status.replaceAll('_',' '))}</span><strong>${escape(t.title)}</strong><small>${escape(t.owner)} · attempt ${t.attempt}</small></summary><ul>${t.criteria.map(c=>`<li>${escape(c)}</li>`).join('')}</ul>${t.blocker ? `<p class="form-error">${escape(t.blocker)}</p>`:''}${t.dependencies.length ? `<p class="note">After: ${t.dependencies.map(id=>escape(b.tasks.find(t=>t.id===id)?.title || id)).join(', ')}</p>`:''}${b.delegations.filter(d=>d.taskId===t.id).map(d=>handoffHtml(s,d,opened)).join('')}</details></li>`).join('')}</ol>`:'<p class="note">The manager is shaping your brief. Tasks and handoffs will appear here as work begins.</p>'}<button type="button" class="button" data-adjust-limits ${control().isWorking(s) ? 'disabled':''}>Adjust limits</button><p class="note">Verified means all configured verifiers returned passing reports for that task’s attempt. Expand a task to inspect the evidence.</p></div>`
     panel.querySelector('.initiative-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-evidence="${CSS.escape(focused)}"]>summary`)?.focus({preventScroll:true})
     const composer=document.getElementById('message-input');composer.placeholder=`Message ${s.teamSnapshot.manager}…`

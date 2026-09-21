@@ -112,10 +112,13 @@ test('turnSummary tells the story of the latest turn with exact failure attribut
   assert.deepEqual(turnSummary([]).steps, [])
 })
 
-// app.js, blocks.js and control.js are classic scripts sharing one global scope, so
-// a duplicate top-level `const`/`let` in any of them is a SyntaxError that takes the
-// whole dashboard down. `node --check` cannot see across files; this does.
-test('the browser scripts load together without redeclaring a shared-scope identifier', () => {
+// The five browser files are classic scripts on one page, so anything they declare at
+// the top level lands on the same object. Each one now keeps its own scope and
+// publishes a single namespace, which is what makes a name chosen twice in two files
+// harmless instead of a SyntaxError that takes the dashboard down before it runs.
+// This is the test that keeps it that way: load them in page order and check that the
+// page's globals gained nothing but those namespaces.
+test('each browser script keeps its own scope and leaks only its namespace', () => {
   const vm = require('node:vm')
   const context = vm.createContext({
     window: {}, document: { getElementById: () => null, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], createElement: () => ({ style: {}, classList: { add() {} }, querySelectorAll: () => [] }), body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete' },
@@ -124,14 +127,32 @@ test('the browser scripts load together without redeclaring a shared-scope ident
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']) {
+  const before = new Set(Object.keys(context))
+  const FILES = ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']
+  for (const file of FILES) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
-    // A redeclaration is a SyntaxError raised when the script is instantiated in the
-    // shared scope, before any statement runs. Runtime errors from the stub DOM are
-    // expected noise here and are not what this test guards.
+    // A redeclaration is a SyntaxError raised when the script is instantiated, before
+    // any statement runs. Runtime errors from the stub DOM are expected noise here.
     try { new vm.Script(source, { filename: file }).runInContext(context) }
-    catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load in the shared scope: ${error.message}`) }
+    catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
   }
+  const added = Object.keys(context).filter(k => !before.has(k)).sort()
+  assert.deepEqual(added, ['Fleet', 'FleetAsk', 'FleetBlocks', 'FleetControl', 'FleetTeams'],
+    'the only new globals may be the one namespace each file publishes')
+  // Every namespace has to survive its own file's boot wiring. app.js and control.js
+  // publish partway down rather than as the value their wrapper returns, precisely so
+  // that an element missing from the wiring below cannot deny the next file its
+  // dependency and take the whole page with it.
+  for (const name of added) assert.equal(typeof context[name], 'object', `${name} must be published even when the boot wiring finds no DOM`)
+  // The cross-file contract, stated once so a rename cannot quietly break a caller.
+  for (const [name, keys] of [
+    ['Fleet', ['$', 'esc', 'update', 'key', 'age', 'money', 'status', 'usageHtml', 'snapshot', 'render', 'setSnapshot', 'setFilter', 'select', 'setChildrenCollapsed', 'setChildDetail', 'toast', 'modalIsOpen', 'openModal', 'closeModal', 'watchConversation', 'syncDetails']],
+    ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
+    ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight']],
+    ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
+  ]) for (const k of keys) assert.equal(typeof context[name][k], 'function', `${name}.${k} must stay part of the published surface`)
+  // The one member that is a bag of functions rather than a function.
+  for (const k of ['get', 'set', 'clear']) assert.equal(typeof context.Fleet.store[k], 'function', `Fleet.store.${k} must stay part of the published surface`)
 })
 
 test('a terminal session survives registry removal and restart, and resumes its saved conversation', async () => {
@@ -208,7 +229,7 @@ test('the cost label never rounds a real spend down to nothing', () => {
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
   catch (error) { if (error && error.name === 'SyntaxError') throw error }
-  const money = expression => vm.runInContext(expression, context)
+  const money = expression => vm.runInContext(`window.Fleet.${expression}`, context)
   // Nothing to show rather than a zero: a monitored terminal session reports no cost,
   // and "$0.00" would claim it was free rather than unknown.
   assert.equal(money('money(0)'), null)
@@ -274,7 +295,7 @@ test('a team session renders one nested child row per delegation, with role, mod
     }],
   }
   context.fixture = fixture
-  vm.runInContext('snapshot = fixture; render()', context)
+  vm.runInContext('window.Fleet.setSnapshot(fixture)', context)
   const list = elements.get('session-list').innerHTML
   assert.match(list, /data-delegation="dev-1"/)
   assert.match(list, /data-delegation="qa-1"/)
@@ -283,7 +304,9 @@ test('a team session renders one nested child row per delegation, with role, mod
   context.inspectorFixture={id:'dev-1',startedAt:now-45000,finishedAt:now,attempt:2,
     usage:{input_tokens:950,output_tokens:320,cache_read_input_tokens:12000},
     steps:[{id:'tool1',tool:'Bash',status:'done',ms:1000,input:{command:'<script>unsafe</script>'},result:'6 tests passed'}],report:'PASS with test evidence'}
-  vm.runInContext("childDetail=inspectorFixture;childDetailFor='dev-1';renderChildDetail(fixture.sessions[0],'dev-1')",context)
+  // The real path: select the delegation, then hand over what the session route
+  // returned for it, exactly as loadChildDetail's completion does.
+  vm.runInContext("window.Fleet.select('m1','dev-1');window.Fleet.setChildDetail('dev-1',inspectorFixture)",context)
   const detail=elements.get('detail-content').innerHTML
   assert.match(detail,/45s · attempt 2/)
   assert.match(detail,/950 input · 320 output · 12k cache read/)
@@ -293,7 +316,7 @@ test('a team session renders one nested child row per delegation, with role, mod
   assert.doesNotMatch(detail,/<script>unsafe/)
   context.inspectorFixture.usage=null
   context.inspectorFixture.runtimeUsage={total_tokens:1300}
-  vm.runInContext("renderChildDetail(fixture.sessions[0],'dev-1')",context)
+  vm.runInContext("window.Fleet.setChildDetail('dev-1',inspectorFixture)",context)
   assert.match(elements.get('detail-content').innerHTML,/1k tokens reported/)
 
 })
@@ -351,7 +374,7 @@ test('a delegation selected outside the visible tail still renders, and only it 
     }],
   }
   context.fixture = fixture
-  vm.runInContext('snapshot = fixture; selectedChild = "d0"; render()', context)
+  vm.runInContext('window.Fleet.setSnapshot(fixture); window.Fleet.select("m1", "d0")', context)
   const list = elements.get('session-list').innerHTML
   assert.match(list, /data-delegation="d0"/, 'the selected delegation must render even though it aged out of the visible tail')
   const pressedCount = (list.match(/aria-pressed="true"/g) || []).length
@@ -372,6 +395,97 @@ test('a delegation selected outside the visible tail still renders, and only it 
   // reading order is what makes it announced once, everywhere, without looping.
   const marker = list.slice(moreIndex, list.indexOf('>', moreIndex) + 1)
   assert.ok(!/role=|aria-hidden=/.test(marker), 'the "+N earlier" marker must carry neither a role nor aria-hidden')
+})
+
+// A long-running initiative wedges its delegation rows between one session and the
+// next, so the group folds. The fold must never cost the list its single selected
+// row, and it must survive the poll that redraws the list two seconds later.
+test('a sub-agent group folds behind a labelled header without ever hiding the selected row', () => {
+  const vm = require('node:vm')
+  const stored = new Map()
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: k => (stored.has(k) ? stored.get(k) : null), setItem: (k, v) => stored.set(k, v), removeItem: k => stored.delete(k) },
+    matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations: [
+        { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+        { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+        { id: 'rev-1', role: 'reviewer', model: 'claude-haiku', status: 'failed' },
+      ],
+    }],
+  }
+  context.fixture = fixture
+
+  // Open by default: folding is something the operator asks for, never something
+  // that quietly removes rows that were on screen a moment ago.
+  vm.runInContext('window.Fleet.setSnapshot(fixture)', context)
+  let list = elements.get('session-list').innerHTML
+  assert.match(list, /data-fold-session="m1"[^>]*aria-expanded="true"/, 'the group header must render, open, for a session with delegations')
+  // The header is the only summary of a folded group, so it has to carry what is in
+  // there: how many, and how many of those still want attention.
+  assert.match(list, /3 sub-agents · 1 working · 1 failed/)
+  assert.match(list, /data-delegation="dev-1"/)
+
+  // Folded: the header stays and names the group, the rows go.
+  vm.runInContext('window.Fleet.setChildrenCollapsed("m1", true)', context)
+  list = elements.get('session-list').innerHTML
+  assert.match(list, /data-fold-session="m1"[^>]*aria-expanded="false"/)
+  assert.match(list, /3 sub-agents · 1 working · 1 failed/, 'a folded group must still say what it is holding')
+  assert.doesNotMatch(list, /data-delegation=/, 'a folded group draws none of its delegation rows')
+  assert.equal((list.match(/aria-pressed="true"/g) || []).length, 1, 'exactly one row must still read as selected')
+
+  // The fold outlives a reload: it is written through to storage, not held in memory.
+  assert.deepEqual(JSON.parse(stored.get('fleet:children-collapsed')), ['m1'])
+
+  // A selected delegation inside a folded group would leave the whole list with
+  // nothing reading as chosen, so the group draws open for as long as it holds one.
+  vm.runInContext('window.Fleet.select("m1", "qa-1")', context)
+  list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="qa-1"[^]*?aria-pressed="true"/, 'a folded group still holding the selection must draw open')
+  assert.equal((list.match(/aria-pressed="true"/g) || []).length, 1)
+
+  // A session with no sub-agents gets no header at all: an empty disclosure is a
+  // control that promises something and then opens onto nothing.
+  fixture.sessions[0].delegations = []
+  vm.runInContext('window.Fleet.select("m1", null); window.Fleet.setSnapshot(fixture)', context)
+  assert.doesNotMatch(elements.get('session-list').innerHTML, /data-fold-session=/)
 })
 
 // Every child row shares its data-session with the parent that owns it, so a poll
@@ -441,7 +555,7 @@ test('focus on a selected child row survives a re-render that changes the list H
   }
   const fixture = () => ({ generatedAt: Date.now(), counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1, archiveRule: { enabled: false, days: 14 }, sessions: [session] })
   context.fixture = fixture()
-  vm.runInContext('snapshot = fixture; selectedChild = "dev-1"; render()', context)
+  vm.runInContext('window.Fleet.setSnapshot(fixture); window.Fleet.select("m1", "dev-1")', context)
 
   const devButton = buttons.find(b => b.dataset.delegation === 'dev-1')
   assert.ok(devButton, 'the delegation row must render')
@@ -451,7 +565,7 @@ test('focus on a selected child row survives a re-render that changes the list H
   // delegation itself changed, so the list HTML differs and update() redraws it.
   session.lastActivity = now - 2000
   context.fixture = fixture()
-  vm.runInContext('snapshot = fixture; render()', context)
+  vm.runInContext('window.Fleet.setSnapshot(fixture)', context)
 
   assert.ok(focused, 'focus must be restored to some row after the re-render')
   assert.equal(focused.dataset.delegation, 'dev-1', 'focus must stay on the child row, not jump to the parent session row that shares its data-session')
@@ -553,7 +667,7 @@ test('the status bar reports absence honestly and swaps to the countdown when a 
   catch (error) { if (error && error.name === 'SyntaxError') throw error }
   const now = Date.now()
   context.fixture = null
-  const html = usage => { context.fixture = usage; return vm.runInContext(`usageHtml(fixture, ${now})`, context) }
+  const html = usage => { context.fixture = usage; return vm.runInContext(`window.Fleet.usageHtml(fixture, ${now})`, context) }
   assert.equal(html(null), '', 'no reading draws nothing rather than a zero')
   assert.equal(html({available:true, known:false, windows:[]}), '')
   assert.equal(html({available:false, known:true, windows:[{name:'five_hour',label:'5h',utilization:0,resetsAt:now}]}), '', 'an API key has no plan window to report')

@@ -1,5 +1,17 @@
 'use strict'
+// An isolated scope, the way teams.js and blocks.js already do it. Everything in
+// here used to sit in the page's shared global scope alongside control.js, blocks.js
+// and ask.js, where a name chosen twice in two files is a SyntaxError that takes the
+// whole dashboard down before a line of it runs. What the other files legitimately
+// need is window.Fleet, published partway down; nothing else escapes.
+// The leading semicolon is load-bearing: without it the directive above and the
+// parenthesis below join into a call on the string "use strict".
+;(() => {
 const $ = id => document.getElementById(id)
+// The one thing the core borrows back from control.js, which owns the control
+// token every write is authenticated with. Resolved per call, not at load: app.js
+// runs first, and every caller here is an event handler that fires long after.
+const api = (...args) => window.FleetControl.api(...args)
 const STATES = ['busy', 'idle', 'stale', 'dead']
 const LABELS = { busy: 'Working', idle: 'Waiting', stale: 'Stale', dead: 'Offline' }
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
@@ -12,6 +24,15 @@ const age = timestamp => {
   const secs = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000))
   return secs < 60 ? `${secs}s` : secs < 3600 ? `${Math.floor(secs/60)}m` : secs < 86400 ? `${Math.floor(secs/3600)}h` : `${Math.floor(secs/86400)}d`
 }
+// Everything Fleet remembers between visits goes through here. It is declared before
+// its first reader on purpose: a `const` used above its declaration throws a
+// ReferenceError that the callers' own try/catch would quietly absorb, leaving every
+// remembered preference silently reset on each load.
+const store = {
+  get(key) { try { return localStorage.getItem(key) } catch { return null } },
+  set(key, value) { try { localStorage.setItem(key, value) } catch {} },
+  clear(key) { try { localStorage.removeItem(key) } catch {} },
+}
 let snapshot = null, filter = 'all', selected = null, pending = false, toastTimer
 // A delegation row nested under a team session. Keyed on the delegation id, never on
 // its position or status, so a sub-agent finishing does not move the operator's focus.
@@ -23,7 +44,10 @@ const formatModel = m => m ? String(m).replace('claude-', '') : 'Model pending'
 // A child row shares its data-session with the parent that owns it, so the session
 // id alone is not a unique row key: folding in data-delegation is what tells a
 // delegation row apart from its parent when the list redraws underneath focus.
-const rowFocusKey = b => b.dataset.delegation ? `${b.dataset.session}::${b.dataset.delegation}` : b.dataset.session || b.dataset.filter
+// The fold header shares no data-session with anything, so it needs a key of its own:
+// without one it reads as unkeyed and the poll two seconds after a click would drop
+// the focus ring off the control the operator just used.
+const rowFocusKey = b => b.dataset.foldSession ? `fold::${b.dataset.foldSession}` : b.dataset.delegation ? `${b.dataset.session}::${b.dataset.delegation}` : b.dataset.session || b.dataset.filter
 function update(id, html) {
   const el = $(id)
   if (!el || el.innerHTML === html) return
@@ -95,10 +119,44 @@ function childRowHtml(s, d) {
   const label = DELEGATION_LABEL[d.status] || d.status
   return `<button class="session session-child" data-session="${esc(key(s))}" data-delegation="${esc(d.id)}" aria-pressed="${selectedChild === d.id}" aria-controls="detail"><span><span class="session-top"><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span><span class="session-name">⑂ ${esc(d.role)}</span></span><span class="session-title">${esc(formatModel(d.model))}</span></span><span class="session-context"></span></button>`
 }
+// A session's sub-agents fold away behind a header of their own. An initiative can sit
+// between two sessions with twenty delegation rows wedged in the gap, which buries the
+// list those rows belong to. Folding is per session and remembered, so putting one
+// team's sub-agents away leaves every other team's on screen.
+const COLLAPSED_KEY = 'fleet:children-collapsed'
+let collapsedChildren = new Set()
+try { collapsedChildren = new Set(JSON.parse(store.get(COLLAPSED_KEY) || '[]')) } catch { collapsedChildren = new Set() }
+const childGroupId = k => `children-${String(k).replace(/[^\w-]/g, '_')}`
+function setChildrenCollapsed(k, collapsed) {
+  if (collapsed) collapsedChildren.add(k)
+  else collapsedChildren.delete(k)
+  // Sessions come and go; only the folds still worth honouring are worth storing.
+  store.set(COLLAPSED_KEY, JSON.stringify([...collapsedChildren].slice(-200)))
+}
+// The header names the group and carries the fold. It is a sibling of the session
+// row rather than part of it because that row is itself a button, and a button
+// cannot hold another one.
+function childToggleHtml(s, collapsed) {
+  const all = s.delegations || []
+  const running = all.filter(d => d.status === 'running').length
+  const failed = all.filter(d => d.status === 'failed').length
+  const counts = [`${all.length} sub-agent${all.length === 1 ? '' : 's'}`, running ? `${running} working` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(' · ')
+  return `<button class="session-children-toggle${collapsed ? ' is-collapsed' : ''}" data-fold-session="${esc(key(s))}" aria-expanded="${!collapsed}" aria-controls="${esc(childGroupId(key(s)))}"><span class="children-chevron" aria-hidden="true">›</span><span class="children-count">⑂ ${esc(counts)}</span></button>`
+}
 // An initiative that runs long enough accumulates delegations without bound; the
 // row list stays a list, not a scrollbar of its own, by showing only the tail.
 const CHILD_ROW_LIMIT = 20
 const childRowsHtml = s => {
+  const all = s.delegations || []
+  if (!all.length) return ''
+  // A fold never hides the one row the list reads as selected: clicking the header
+  // hands the selection back to the session first, and a group still holding the
+  // selected delegation by any other route draws open however it was left.
+  const collapsed = collapsedChildren.has(key(s)) && !all.some(d => d.id === selectedChild)
+  const group = `<div class="session-children" id="${esc(childGroupId(key(s)))}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : childTailHtml(s)}</div>`
+  return childToggleHtml(s, collapsed) + group
+}
+const childTailHtml = s => {
   const all = s.delegations || []
   const recent = all.length > CHILD_ROW_LIMIT ? all.slice(-CHILD_ROW_LIMIT) : all
   // The parent row has already handed its aria-pressed to session-ancestor, so a
@@ -177,6 +235,61 @@ function renderStatusbar(usage, sessions) {
     if (usage?.blocked) banner.textContent = `Rate limited until ${clockAt(usage.blocked.resetsAt)} (${untilReset(usage.blocked.resetsAt, now)}). A new agent will not get past its first message until this window resets.`
   }
 }
+
+// ── The session row ─────────────────────────────────────────────────────────
+// One row is four lines: what the agent is and how it is doing, what it was asked,
+// where it is working, and the story of its latest turn. Each line is built by its
+// own function, so changing the look of one does not mean reading the other three.
+
+// Line one, after the status badge: the qualifiers that say this row is not an
+// ordinary foreground session you started yourself.
+function rowTags(s, spawnCounts) {
+  const spawned = spawnCounts.get(s.pid)
+  return [
+    spawned ? `<span class="spawn-badge" title="Running ${spawned} background session(s)">⑂ ${spawned}</span>` : '',
+    s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : '',
+    s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : '',
+  ].join('')
+}
+// A team session says which team is running it and how far through its tasks it is.
+function initiativeTag(s) {
+  if (s.kind !== 'initiative') return ''
+  const p = s.taskProgress
+  const progress = p ? ` · ${p.verified}/${p.total} verified${p.blocked ? ` · ${p.blocked} need attention` : ''}` : ''
+  return `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${progress}</span>`
+}
+// Where the work is happening, and what it has cost.
+function rowMeta(s) {
+  const project = s.cwd?.split('/').filter(Boolean).pop() || 'No project'
+  const spend = money(s.costUsd)
+  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${spend ? `<span class="session-cost" title="What this conversation has cost so far">${esc(spend)}</span>` : ''}</span>`
+}
+// The right-hand column: how full the context window is, and how long ago the
+// agent last did anything.
+function contextCell(s) {
+  const p = percent(s)
+  return `<span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p) + '%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span>`
+}
+function sessionRowHtml(s, spawnCounts) {
+  // A row holding the selected sub-agent is an ancestor of the selection, not the
+  // selection itself, so it gives up aria-pressed to the child row below it.
+  const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
+  const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
+  const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
+  const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+}
+const filterBarHtml = (counts, foreground, background, archived) => [
+  ['all', 'All sessions', foreground],
+  ...STATES.map(s => [s, LABELS[s], counts[s] || 0]),
+  ...(background ? [['background', 'Background', background]] : []),
+  ...(archived ? [['archived', 'Archived', archived]] : []),
+].map(([s, label, n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join('')
+const emptyListHtml = total =>
+  filter === 'background' ? 'No background sessions right now.'
+  : total ? 'No sessions match your filters.<br>Try another search or select All sessions.'
+  : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'
+
 function render() {
   if (!snapshot) return
   const {sessions, total} = snapshot
@@ -200,13 +313,11 @@ function render() {
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
-  update('filters', [['all','All sessions',foreground.length],...STATES.map(s => [s,LABELS[s],(visibleCounts[s] || 0)]),...(background.length ? [['background','Background',background.length]] : []),...(archived.length ? [['archived','Archived',archived.length]] : [])].map(([s,label,n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join(''))
+  update('filters', filterBarHtml(visibleCounts, foreground.length, background.length, archived.length))
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
-  update('session-list', shown.length ? shown.map(s => {
-    const p = percent(s)
-    const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
-    return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>${childRowsHtml(s)}`
-  }).join('') : `<div class="empty">${filter === 'background' ? 'No background sessions right now.' : total ? 'No sessions match your filters.<br>Try another search or select All sessions.' : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'}</div>`)
+  update('session-list', shown.length
+    ? shown.map(s => sessionRowHtml(s, spawnCounts)).join('')
+    : `<div class="empty">${emptyListHtml(total)}</div>`)
   const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
   // A delegation belongs to whichever session is actually current; switching sessions,
@@ -224,10 +335,10 @@ function render() {
     renderChildDetail(current, childId)
     // A sub-agent is not addressable: clearing the control panel drops its composer
     // and conversation from the DOM entirely, not merely hiding them.
-    if (typeof selectControl === 'function') selectControl(null)
+    window.FleetControl?.selectControl(null)
   } else {
     renderDetail(current)
-    if (typeof selectControl === 'function') selectControl(current)
+    window.FleetControl?.selectControl(current)
   }
   syncDetails()
 }
@@ -380,11 +491,32 @@ document.addEventListener('click', event => {
   if (event.target === $(openModalId) || event.target.closest('[data-close-modal]')) closeModal()
 })
 
-function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3000) }
+// Reached from every error path, including ones that fire before the page has
+// finished wiring itself up, so a missing toast element costs the message and
+// nothing more.
+function toast(message) {
+  const box = $('toast')
+  if (!box) return
+  box.textContent = message
+  box.hidden = false
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { box.hidden = true }, 3000)
+}
 document.addEventListener('click', async event => {
   const b = event.target.closest('button')
   if (!b) return
   if (b.dataset.filter) { filter = b.dataset.filter; render() }
+  if (b.dataset.foldSession) {
+    const k = b.dataset.foldSession, collapsed = !collapsedChildren.has(k)
+    setChildrenCollapsed(k, collapsed)
+    // Folding the group away takes the selection back up to the session that owns it,
+    // so the list never hides the one row reading as selected.
+    if (collapsed && selectedChild && snapshot?.sessions.find(s => key(s) === k)?.delegations?.some(d => d.id === selectedChild)) {
+      selected = k
+      selectedChild = null
+    }
+    return render()
+  }
   if (b.dataset.delegation) {
     selected = b.dataset.session; selectedChild = b.dataset.delegation; render()
     if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({behavior:'instant',block:'start'})
@@ -405,9 +537,23 @@ document.addEventListener('click', async event => {
     catch { toast('Clipboard unavailable. The command is shown below.'); const code = document.createElement('pre'); code.className = 'response'; code.textContent = s.resumeCmd; $('detail').append(code) }
   }
 })
+const setBusy = busy => { if ($('refresh')) $('refresh').disabled = busy }
+const setConnection = (text, state) => {
+  if ($('connection')) $('connection').textContent = text
+  if ($('connection-dot')) $('connection-dot').className = `dot ${state}`
+}
+const showError = message => {
+  const box = $('error')
+  if (!box) return
+  box.hidden = !message
+  if (message) box.textContent = message
+}
 async function tick() {
   if (pending) return
-  pending = true; $('refresh').disabled = true
+  // The poll runs on a timer and in the catch below, so it never assumes the
+  // chrome it writes into is mounted.
+  pending = true
+  setBusy(true)
   try {
     const r = await fetch('/api/sessions', {cache:'no-store',signal:AbortSignal.timeout(8000)})
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -422,18 +568,55 @@ async function tick() {
     }
     // Other panels (the ask results) re-read the snapshot to refresh "open now" state.
     document.dispatchEvent(new CustomEvent('fleet-snapshot'))
-    $('connection').textContent = 'Live connection'; $('connection-dot').className = 'dot busy'
-    $('updated').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
-    $('error').hidden = !data.storageError
-    if (data.storageError) $('error').textContent = data.storageError
+    setConnection('Live connection', 'busy')
+    if ($('updated')) $('updated').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
+    showError(data.storageError)
   } catch {
-    $('connection').textContent = 'Disconnected'; $('connection-dot').className = 'dot stale'
-    $('error').textContent = snapshot ? 'Connection lost. Showing the last successful snapshot; retrying automatically.' : 'Unable to connect to the local server. Retrying automatically.'
-    $('error').hidden = false
+    setConnection('Disconnected', 'stale')
+    showError(snapshot ? 'Connection lost. Showing the last successful snapshot; retrying automatically.' : 'Unable to connect to the local server. Retrying automatically.')
     if (!snapshot) { update('session-list','<div class="empty">Waiting for the local server…</div>'); renderDetail(null) }
-  } finally { pending = false; $('refresh').disabled = false }
+  } finally { pending = false; setBusy(false) }
 }
-$('refresh').addEventListener('click',tick)
+// ── What the rest of the page may use ───────────────────────────────────────
+// Published here, before the boot sequence below runs, and not as the value the
+// wrapper returns: control.js, teams.js and ask.js destructure this the moment they
+// load, so an element missing from the wiring that follows must not take the whole
+// page down with it. State is handed out through functions rather than as live
+// bindings, so a caller cannot take a copy of `snapshot` and read a stale one after
+// the next poll.
+window.Fleet = {
+  // DOM and formatting helpers the other files share.
+  $, esc, update, key, age, tokens, money, status, store,
+  // The account's plan windows, rendered from a usage reading.
+  usageHtml,
+  // Current state.
+  snapshot: () => snapshot,
+  // Actions. Each one renders, so a caller never has to remember to.
+  render,
+  setSnapshot(next) { snapshot = next; render() },
+  setFilter(next) { filter = next; render() },
+  select(sessionKey, delegationId = null) { selected = sessionKey; selectedChild = delegationId; render() },
+  setChildrenCollapsed(sessionKey, collapsed) { setChildrenCollapsed(sessionKey, collapsed); render() },
+  // What loadChildDetail's completion does: hand over the delegation the session
+  // route returned, then redraw. Select the delegation first; a detail handed over
+  // for one that is not selected has nowhere to be drawn.
+  setChildDetail(delegationId, detail, error = null) {
+    childDetail = detail
+    childDetailFor = delegationId
+    childDetailError = error
+    render()
+  },
+  toast,
+  // Modals.
+  modalIsOpen, openModal, closeModal,
+  // Layout, formerly window.FleetLayout.
+  watchConversation, syncDetails,
+  // Control-panel rendering, for tests and for the update poller.
+  renderUpdate: (...args) => window.FleetControl.renderUpdate(...args),
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+$('refresh')?.addEventListener('click',tick)
 tick()
 setInterval(() => { if (!document.hidden) tick() },2000)
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick() })
@@ -442,11 +625,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) tick
 // inspector, and a resizable console. Both are remembered per browser; a storage
 // failure (private window, blocked site data) only costs the remembered size.
 const LAYOUT = { split: 'fleet:split', height: 'fleet:conv-height' }
-const store = {
-  get(key) { try { return localStorage.getItem(key) } catch { return null } },
-  set(key, value) { try { localStorage.setItem(key, value) } catch {} },
-  clear(key) { try { localStorage.removeItem(key) } catch {} },
-}
 const SPLIT_DEFAULT = 58, LIST_MIN = 300, DETAIL_MIN = 380
 
 function applySplit(percent, { save = true } = {}) {
@@ -525,7 +703,6 @@ function watchConversation(element) {
   conversationObserver.disconnect()
   conversationObserver.observe(element)
 }
-window.FleetLayout = { watchConversation }
 initSplitter()
 
 // The session details sit behind a disclosure: with a console on screen the terminal
@@ -545,4 +722,4 @@ $('details-toggle')?.addEventListener('click', () => {
   store.set(DETAILS_KEY, open ? '1' : '0')
   syncDetails()
 })
-window.FleetLayout.syncDetails = syncDetails
+})()
