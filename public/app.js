@@ -622,9 +622,9 @@ setInterval(() => { if (!document.hidden) tick() },2000)
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick() })
 
 // Layout the operator controls: a draggable split between the session list and the
-// inspector, and a resizable console. Both are remembered per browser; a storage
+// inspector, and resizable session sections. Sizes are remembered per browser; a storage
 // failure (private window, blocked site data) only costs the remembered size.
-const LAYOUT = { split: 'fleet:split', height: 'fleet:conv-height' }
+const LAYOUT = { split: 'fleet:split' }
 const SPLIT_DEFAULT = 58, LIST_MIN = 300, DETAIL_MIN = 380
 
 function applySplit(percent, { save = true } = {}) {
@@ -690,18 +690,106 @@ function initSplitter() {
   })
 }
 
-// The console is rebuilt whenever a different agent is selected, so its height is
-// restored on each build and written back when the native resize grip is released.
-let conversationObserver = null
+// Vertical sections share the same interaction as the session-list divider.
+// Observe the container so saved sizes yield when the viewport or controls change.
+let panelLayoutCleanup = () => {}
 function watchConversation(element) {
+  panelLayoutCleanup()
   if (!element) return
-  const saved = store.get(LAYOUT.height)
-  if (saved) element.style.height = saved
-  conversationObserver ||= new ResizeObserver(entries => {
-    for (const entry of entries) if (entry.target.style.height) store.set(LAYOUT.height, entry.target.style.height)
-  })
-  conversationObserver.disconnect()
-  conversationObserver.observe(element)
+  const container = element.parentElement
+  const disposers = []
+  const addPanel = (panel, { key, label, min, initial, before = false }) => {
+    const divider = document.createElement('div')
+    divider.className = 'panel-splitter'
+    divider.tabIndex = 0
+    divider.setAttribute('role', 'separator')
+    divider.setAttribute('aria-orientation', 'horizontal')
+    divider.setAttribute('aria-label', label)
+    divider.setAttribute('aria-controls', panel.id)
+    divider.title = 'Drag to resize · arrow keys to adjust · double-click to reset'
+    before ? panel.before(divider) : panel.after(divider)
+    const saved = Number(store.get(key))
+    let preferred = Number.isFinite(saved) && saved >= min ? saved : initial
+    let drag = null
+    const height = () => panel.getBoundingClientRect().height
+    const maximum = () => Math.max(min, Math.min(container.clientHeight * .45,
+      height() + element.clientHeight - 120))
+    const apply = () => {
+      const mobile = matchMedia('(max-width:720px)').matches
+      const collapsed = panel.tagName === 'DETAILS' && !panel.open
+      divider.hidden = mobile || collapsed
+      if (mobile || collapsed) { panel.style.removeProperty('height'); return }
+      const max = Math.floor(maximum())
+      const value = Math.round(Math.max(min, Math.min(preferred, max)))
+      panel.style.height = `${value}px`
+      divider.setAttribute('aria-valuemin', String(min))
+      divider.setAttribute('aria-valuemax', String(max))
+      divider.setAttribute('aria-valuenow', String(value))
+      divider.setAttribute('aria-valuetext', `${value} pixels`)
+    }
+    const set = value => {
+      preferred = Math.max(min, Math.min(value, maximum()))
+      store.set(key, String(Math.round(preferred)))
+      apply()
+    }
+    const reset = () => { preferred = initial; store.clear(key); apply() }
+    const stop = () => {
+      if (!drag) return
+      const id = drag.id
+      drag = null
+      divider.removeAttribute('data-dragging')
+      document.body.removeAttribute('data-panel-resizing')
+      if (divider.hasPointerCapture?.(id)) divider.releasePointerCapture(id)
+    }
+    divider.addEventListener('pointerdown', event => {
+      if (event.button) return
+      event.preventDefault()
+      divider.focus({ preventScroll: true })
+      drag = { y: event.clientY, height: height(), id: event.pointerId }
+      divider.setPointerCapture(event.pointerId)
+      divider.setAttribute('data-dragging', '')
+      document.body.setAttribute('data-panel-resizing', '')
+    })
+    divider.addEventListener('pointermove', event => {
+      if (drag && event.pointerId === drag.id) set(drag.height + (event.clientY - drag.y) * (before ? -1 : 1))
+    })
+    for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) divider.addEventListener(event, stop)
+    divider.addEventListener('dblclick', reset)
+    divider.addEventListener('keydown', event => {
+      const delta = { ArrowUp: -10, ArrowDown: 10 }[event.key]
+      if (delta !== undefined) { event.preventDefault(); set(height() + delta * (before ? -1 : 1)) }
+      else if (['Home', 'End', 'Enter', ' '].includes(event.key)) {
+        event.preventDefault()
+        if (event.key === 'Home') set(min)
+        else if (event.key === 'End') set(maximum())
+        else reset()
+      }
+    })
+    panel.addEventListener('toggle', apply)
+    const observer = new ResizeObserver(apply)
+    observer.observe(container)
+    addEventListener('resize', apply)
+    const dispose = () => { stop(); observer.disconnect(); removeEventListener('resize', apply); panel.removeEventListener('toggle', apply); divider.remove() }
+    disposers.push(dispose)
+    apply()
+    return dispose
+  }
+  const composer = $('composer')
+  if (composer) addPanel(composer, { key: 'fleet:composer-height', label: 'Resize message composer', min: 130, initial: 170, before: true })
+  let board = null, disposeBoard = null
+  const syncBoard = () => {
+    const next = $('initiative-board')
+    if (next === board) return
+    disposeBoard?.()
+    board = next
+    if (board) {
+      disposeBoard = addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
+    }
+  }
+  const mutation = new MutationObserver(syncBoard)
+  mutation.observe(container, { childList: true })
+  syncBoard()
+  panelLayoutCleanup = () => { mutation.disconnect(); disposers.forEach(dispose => dispose()) }
 }
 initSplitter()
 
