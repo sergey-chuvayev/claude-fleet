@@ -6,12 +6,13 @@
 
 **A local control room for Claude Code.**
 
-See every session running on your machine, launch agents you can talk to,
-and ask one question across everything you have ever worked on.
+See every session running on your machine, launch agents you can talk to, hand a
+bigger job to a manager-led team whose work an independent verifier checks before
+it ships, and ask one question across everything you have ever worked on.
 
 <img src="https://img.shields.io/badge/node-%E2%89%A522-2aa889?style=flat-square&labelColor=0c1014" alt="Node 22+">
 <img src="https://img.shields.io/badge/binds-127.0.0.1-2aa889?style=flat-square&labelColor=0c1014" alt="Binds to localhost">
-<img src="https://img.shields.io/badge/deps-4%20runtime-2aa889?style=flat-square&labelColor=0c1014" alt="Four runtime dependencies">
+<img src="https://img.shields.io/badge/deps-5%20runtime-2aa889?style=flat-square&labelColor=0c1014" alt="Five runtime dependencies">
 <img src="https://img.shields.io/badge/license-MIT-2aa889?style=flat-square&labelColor=0c1014" alt="MIT license">
 
 <br>
@@ -205,6 +206,19 @@ from `marked`, `DOMPurify` and `highlight.js`, bundled into `public/vendor/libs.
 and served by Fleet itself. There is no CDN, and the page's content security policy
 still allows scripts only from Fleet.
 
+### Panels resize to fit the work
+
+The session list and inspector share a horizontal split; drag it, or focus it and use the
+arrow keys. Inside the inspector, the team overview and the composer are flat sections set
+off by a rule rather than the rounded cards earlier versions used, and each carries its own
+divider so the conversation between them can give up height to whichever one needs it.
+
+Drag a divider, resize it from the keyboard with the arrow keys, jump to an extreme with
+Home/End, or double-click to reset it. Sizes persist per browser and are clamped so neither
+the conversation nor the panel being resized can be squeezed out of use. Under 720px width,
+or while a panel is collapsed, its divider disappears and the layout falls back to normal
+document flow.
+
 ### Reference another agent
 
 In a Fleet-managed agent’s message composer, type **@** and search by session name,
@@ -266,30 +280,79 @@ conversation on every question.
 ### An initiative is a team behind one conversation
 
 Some work is too big for one agent and too small to project-manage by hand. Launch it with a
-**team** instead of alone and you get an *initiative*: a manager that plans and delegates, a
-developer that implements, and a QA that independently verifies, all behind a single
-conversation.
+**team** instead of alone and you get an *initiative*: a manager that plans and delegates,
+one or more roles that implement, and a required verifier that checks the work
+independently, all behind a single conversation.
 
 You talk to the manager and only to the manager. That is not a rule in a prompt: the manager
 holds the main thread, and the rest of the team is reachable only through the Agent tool, so
 they have no channel to you at all. Their work arrives as delegation blocks in the
 conversation, each showing the role, the mandate it was given, and the report it sent back.
 
-The manager has no edit tools. Its only way to ship is to delegate, which is the entire point
-of having a team rather than an agent with a long prompt. QA has no edit tools either: it
-reproduces the problem, runs the project's own gates, and returns PASS or FAIL with evidence,
-so a developer's account of its own work is never the last word.
+The manager has no shell or edit tools. Its only way to ship is to delegate and to track the
+work through Fleet's task tool, which is the entire point of having a team rather than an
+agent with a long prompt. A verifier has no direct edit tools either: it reproduces the
+problem, runs the project's own gates, and returns PASS or FAIL with evidence, so a
+developer's account of its own work is never the last word, and the manager cannot mark a
+task verified itself. Bash, where a verifier's role enables it for running tests, stays a
+general-purpose shell governed by the initiative's approval mode, not a read-only sandbox. A
+failed review sends work back for repair and invalidates the previous attempt's reviews.
+
+In **New agent**, **Software delivery** gives a brief to a Manager backed by Product,
+Developer, Reviewer and QA roles: three implementation attempts per task and $10 in reported
+SDK usage before it stops for you, adjustable while the initiative is idle. **Quick task**
+trims that to a Sonnet manager, one developer and one independent verifier, for small, clearly
+scoped changes, with two attempts and a $3 cap. **No team · single agent** skips orchestration
+for a one-line fix. **Customize team…** saves your own roster: rename, add or remove roles,
+write their instructions, pick a model and allowed tools per role, up to eight roles with at
+least one manager and one verifier. Each initiative snapshots its team at launch, so editing a
+template only affects the initiatives you start after that.
 
 An initiative works in a git worktree of its own, branched from wherever the project is
 checked out, so a team editing files cannot collide with your own editing or with another
-initiative. It finishes by opening a pull request. Pushing stops for your approval like any
-other publishing command, so nothing leaves the machine without you.
+initiative. It finishes at a local branch, with the manager expected to open a pull request
+as its last delegated action. Doing that requires a push, and a push stops for your approval
+like any other publishing command, so nothing leaves the machine without that click.
 
 Closing an initiative forgets Fleet's record of the conversation and leaves the worktree and
 its branch alone. Deleting code is never the same click as tidying a list.
 
 Teams cost roughly an order of magnitude more tokens than a single agent, and only earn it
 when the work genuinely splits. For a one-line fix, launch an agent.
+
+<details>
+<summary><b>The task board, and what "verified" actually means</b></summary>
+
+The manager creates tasks with owners, acceptance criteria and dependencies through Fleet's
+task tool, up to 100 per initiative. The initiative inspector shows the roster, task states,
+assignments and returned reports. Reads from the board return compact metadata, so checking
+task state repeatedly does not re-inject every assignment, tool output and report into the
+manager's context; the manager can pull one delegation's full record with the task tool's
+`inspect` action.
+
+Delegations run sequentially in the shared worktree. After an interruption, the saved board
+survives and unfinished delegations are marked interrupted, so messaging the manager resumes
+where it left off. "Verified" records the configured verifier's PASS/FAIL for that attempt,
+not a guarantee that the evaluation was correct or that later work cannot regress it. The SDK
+budget is an execution cutoff, not a billing guarantee: usage is reported at turn end, and a
+killed runtime may not report its final spend, and each turn also has a 100-turn SDK limit
+with bounded continuation reminders. Custom teams live in `teams.json` under Fleet's state
+directory; task history and team snapshots live with the initiative in `sessions.json`.
+
+</details>
+
+### Inspect individual agents
+
+Select a subagent row beneath a managed initiative to see its assignment, actual model,
+status, elapsed time, attempt, tool steps, and report. Expand **Input and output** for a
+tool's recorded payload. The inspector is read-only; direction and approvals still go through
+the manager. Tool history keeps the most recent 200 steps with bounded inputs and outputs, and
+older runs may have no recorded steps or usage.
+
+Reported input/output and cache tokens are shown when available, falling back to SDK progress
+totals otherwise; repeated assistant events do not count usage twice, and per-agent cost
+appears only when the SDK explicitly reports it rather than being shown as zero. Token totals
+describe recorded usage across messages, not current context size.
 
 ### Approvals that stay out of the way
 
@@ -399,7 +462,7 @@ no API credentials are involved.
 ## How it is built
 
 Vanilla HTML, CSS and JavaScript over a Node HTTP server, with the official Claude
-Agent SDK for managed runs. Four runtime dependencies, no framework, no build step
+Agent SDK for managed runs. Five runtime dependencies, no framework, no build step
 for the app itself.
 
 | File | Responsibility |
@@ -408,18 +471,23 @@ for the app itself.
 | [`fleet.js`](fleet.js) | Cached, read-only collection of external Claude sessions |
 | [`archive.js`](archive.js) | Which sessions are put away, the age rule, and its store |
 | [`managed.js`](managed.js) | SDK runs, approvals, tool blocks, persistence, cancellation |
+| [`references.js`](references.js) | Resolves `@`-mentioned sessions and snapshots what a reference shares |
 | [`teams.js`](teams.js) | The roles an initiative runs, and how they compile into SDK options |
+| [`team-store.js`](team-store.js) | Custom team definitions, saved and edited outside the built-in presets |
+| [`tasks.js`](tasks.js) | The task board: tasks, delegations, and the initiative's verification ledger |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
+| [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
 | [`theme.js`](theme.js) | Reads the local Warp palette and renders it as CSS variables |
 | [`catalog.js`](catalog.js) | Read-only listing of a project's slash commands and skills |
-| `public/app.js` | Dashboard layout, session list, filters, monitoring |
+| `public/app.js` | Dashboard layout, session list, filters, monitoring, resizable panels |
 | `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
 | `public/control.js` | Launch form, composer, approvals, streamed updates |
 | `public/ask.js` | The Ask panel, its polling, and the result cards |
 | [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
 | [`update.js`](update.js) | The npm version check, its cache, and the self-install |
+| [`open.js`](open.js) | Opens the dashboard as a Chromium app window, falling back across browsers |
 | [`bin/claude-fleet.js`](bin/claude-fleet.js) | The installed command: start, install-app, update |
 | `build/` | Vendored browser bundle, icon drawing, macOS launcher |
 
@@ -476,62 +544,3 @@ MIT. See [LICENSE](LICENSE).
 <div align="center">
 <sub>Screenshots use synthetic sessions generated for the purpose. Fleet is not affiliated with Anthropic.</sub>
 </div>
-
-### Configurable teams and durable tasks
-
-In **New agent**, choose **Software delivery** to give a brief to a Manager backed by
-Product, Developer, Reviewer and QA roles. Choose **Customize team…** to save your own
-team: rename/add/remove roles, write their instructions, select a Claude model per role,
-and choose allowed tools. Built-in teams are copied; existing custom teams can be edited.
-Choose **Quick task** for small, clearly scoped changes: a Sonnet manager, one developer,
-and one independent QA verifier, with two implementation attempts and a $3 usage cap.
-**Software delivery** keeps the thorough review-and-QA workflow. **No team · single agent**
-avoids orchestration entirely when you just need one agent. Existing initiatives keep
-their original team snapshot. The original Bug fix preset remains available.
-
-One role is the manager and at least one separate role is a required verifier. A third
-role owns the work. Fleet adds delegation and operator-question tools to the manager;
-workers report back to it. Manager roles cannot use the shell or edit tools. Verifiers
-cannot use direct edit tools; Bash, when enabled for tests, remains a general-purpose
-shell governed by the initiative's approval mode, not a read-only sandbox.
-
-Each initiative snapshots its team and works in its own Git worktree. Template edits
-apply to new initiatives. The Manager creates tasks with owners, acceptance criteria and
-dependencies through Fleet's task tool. The initiative inspector shows the roster,
-task states, assignments and returned reports. Verification comes from actual subagent
-reports, including each required verifier's PASS/FAIL; the Manager cannot mark a task
-verified itself. A failed review returns work for repair and invalidates the previous
-attempt's reviews. “Verified” records the configured agents' verdicts for that attempt,
-not a guarantee that their evaluation is correct or that later work cannot regress it.
-
-Delegations run sequentially in the shared initiative worktree. After an interruption,
-the saved task board survives and unfinished delegations are marked interrupted. Message
-the Manager to resume. Software delivery starts with three implementation attempts per task and
-$10 in reported SDK usage; **Adjust limits** changes them explicitly while idle. The SDK
-budget is an execution cutoff, not a billing guarantee: usage is reported at turn end,
-and a killed runtime may not report its final spend. Each turn also has a 100-turn SDK
-limit and bounded continuation reminders.
-
-Custom teams live in `teams.json` under Fleet's state directory; task history and team
-snapshots live with the initiative in `sessions.json`. This version supports models
-available through the Claude Agent SDK, up to eight roles per team, and 100 tasks per
-initiative. It finishes at a local branch ready for review; it does not automatically
-publish or merge changes.
-
-### Inspect individual agents
-
-Select a subagent row beneath a managed initiative to inspect its assignment, actual
-model, status, elapsed time, attempt, tool steps, and report. Expand **Input and output**
-to see a tool's recorded payload. The inspector is read-only; send direction and answer
-approvals through the manager. Tool history keeps the most recent 200 steps with bounded
-inputs and outputs. Older runs may have no recorded steps or usage.
-
-The inspector shows reported input/output and cache tokens, or SDK progress totals when
-only those are available. Repeated assistant events do not count usage twice. Per-agent
-cost appears only when the SDK explicitly reports it; missing data is not shown as zero.
-Token totals describe recorded usage across messages, not current context size.
-
-Task-board reads return compact metadata, so repeatedly checking task state does not
-re-inject all assignments, tool output and reports into the manager's context. The manager
-can request a specific delegation's full assignment/report using the task tool's
-`inspect` action with `delegationId`. Verification gates and saved evidence are unchanged.
