@@ -64,3 +64,25 @@ test('the raw recorded subagent response takes precedence over its transport env
   tasks.finish(s,'review','Runtime completion metadata')
   assert.equal(t.reviews.reviewer.verdict,'PASS');assert.equal(d.report,pass)
 })
+test('a plain verdict several lines down, after other report content, still passes verification',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  tasks.finish(s,'review','Checked the redirect and the error states manually first.\n\nPASS\nBoth flows matched the requested behavior end to end.')
+  assert.equal(t.reviews.reviewer.verdict,'PASS');assert.equal(t.status,'review')
+})
+test('a bolded verdict several lines down, after quoted test output, still passes verification',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  // Real failing-report shape from production: the QA agent led with its test summary, and
+  // the pinned-to-offset-zero parser recorded a genuine PASS as a FAIL.
+  tasks.finish(s,'review','Full summary: ℹ tests 118 / ℹ pass 118 / ℹ fail 0\n\n**PASS**')
+  assert.equal(t.reviews.reviewer.verdict,'PASS');assert.equal(t.status,'review')
+})
+test('a report with no verdict-shaped line anywhere still fails closed',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  tasks.finish(s,'review','Ran the tests.\nEverything looked fine, no issues spotted.\nNo further comments.')
+  assert.equal(t.reviews.reviewer.verdict,'FAIL');assert.equal(t.status,'changes_requested')
+})
+test('lowercase "fail" quoted from test output is never mistaken for the verdict',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  tasks.finish(s,'review','ℹ tests 42 / ℹ pass 42 / ℹ fail 0\n\nPASS\nAll assertions covered the requested behavior end to end.')
+  assert.equal(t.reviews.reviewer.verdict,'PASS')
+})
