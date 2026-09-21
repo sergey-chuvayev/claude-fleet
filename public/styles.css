@@ -415,7 +415,7 @@ select {
 @media(max-width:720px) {
   .refresh-info #updated { display:none }
   .section-heading { padding-inline:16px }
-  .filters { padding-inline:13px }
+  .filter-menu { padding-inline:13px }
   .brand { font-size:24px }
   .session-title { font-size:var(--text-md) }
   .connection { font-size:var(--text-xs) }
@@ -488,6 +488,19 @@ select {
   border-top:1px solid var(--line);
 }
 .conversation-header h3 { font-size:var(--text-lg); margin:0 }
+.header-title {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+.header-controls {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none;
+}
 .composer { margin-top:20px }
 .composer textarea:focus { outline:1px solid var(--accent); outline-offset:0 }
 .composer-footer {
@@ -917,7 +930,7 @@ body[data-resizing] { cursor:col-resize; user-select:none }
   .splitter::after { transition:none }
 }
 /* Approval mode */
-.mode-picker { margin-left:auto; margin-right:10px }
+.mode-picker { margin:0 }
 .mode-picker select {
   font-family:var(--mono);
   font-size:var(--text-xs);
@@ -1043,12 +1056,65 @@ body {
 }
 .section-heading { padding:13px 18px 10px }
 .section-heading { flex:none }
-.filters {
-  display:flex;
-  gap:5px;
+.filter-menu {
+  position:relative;
   padding:10px 18px 9px;
-  flex-wrap:wrap;
   flex:none;
+}
+.filter-trigger {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line);
+  background:var(--raised);
+  color:var(--text);
+  border-radius:var(--radius-md);
+  padding:6px 10px;
+  font-size:var(--text-sm);
+}
+.filter-trigger:hover { background:color-mix(in oklab,var(--raised) 85%,var(--text)) }
+.filter-chevron {
+  color:var(--faint);
+  font-size:var(--text-xs);
+  transition:transform .12s ease;
+}
+.filter-trigger[aria-expanded="true"] .filter-chevron { transform:rotate(180deg) }
+@media(prefers-reduced-motion:reduce) {
+  .filter-chevron { transition:none }
+}
+.filter-panel {
+  position:absolute;
+  top:calc(100% + 6px);
+  left:18px;
+  z-index:5;
+  min-width:210px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  box-shadow:0 12px 34px #0009;
+}
+.filter-group + .filter-group {
+  margin-top:6px;
+  padding-top:6px;
+  border-top:1px solid var(--line);
+}
+.filter-group-heading {
+  display:block;
+  font-size:var(--text-2xs);
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--faint);
+  padding:4px 9px 2px;
+}
+.filter-panel .filter {
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  text-align:left;
 }
 .list-head {
   display:flex;
@@ -1127,18 +1193,30 @@ body {
   }
 }
 .close-agent {
+  position:relative;
   padding:3px 8px;
   font-size:var(--text-xs);
   font-family:var(--mono);
-  margin-left:auto;
+  margin-left:14px;
   color:var(--muted);
+}
+/* A divider in the gap, not on the button's own border box, keeps Close visually
+   apart from the model/approval pickers without a doubled-up border look. */
+.close-agent::before {
+  content:"";
+  position:absolute;
+  left:-8px;
+  top:50%;
+  transform:translateY(-50%);
+  width:1px;
+  height:16px;
+  background:var(--line);
 }
 .close-agent:hover { color:var(--text) }
 .close-agent[data-armed="1"] {
   color:color-mix(in oklab,var(--term-red) 70%,var(--term-fg));
   border-color:color-mix(in oklab,var(--term-red) 50%,var(--line));
 }
-.close-agent+.mode-picker { margin-left:8px }
 /* Controls live in the header now; the row they used to occupy is gone. */
 .topbar {
   height:46px;

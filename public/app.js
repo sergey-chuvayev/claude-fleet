@@ -14,6 +14,8 @@ const $ = id => document.getElementById(id)
 const api = (...args) => window.FleetControl.api(...args)
 const STATES = ['busy', 'idle', 'stale', 'dead']
 const LABELS = { busy: 'Working', idle: 'Waiting', stale: 'Stale', dead: 'Offline' }
+const DATE_FILTERS = ['today', 'week']
+const DATE_LABELS = { all: 'All time', today: 'Today', week: 'This week' }
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const key = s => s.managedId || s.sessionId || `session:${s.pid}`
 const percent = s => s.contextTokens == null ? null : Math.min(100, Math.max(0, s.contextTokens / s.contextLimit * 100))
@@ -24,6 +26,15 @@ const age = timestamp => {
   const secs = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000))
   return secs < 60 ? `${secs}s` : secs < 3600 ? `${Math.floor(secs/60)}m` : secs < 86400 ? `${Math.floor(secs/3600)}h` : `${Math.floor(secs/86400)}d`
 }
+// "Today" resets at local midnight; "This week" is a rolling 7 days, so it never
+// jumps forward mid-session the way a calendar-week reset would.
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime() }
+const matchesDate = (s, when) => {
+  if (when === 'all') return true
+  if (!s.startedAt) return false
+  const started = new Date(s.startedAt).getTime()
+  return when === 'today' ? started >= startOfToday() : started >= Date.now() - 7 * 86400000
+}
 // Everything Fleet remembers between visits goes through here. It is declared before
 // its first reader on purpose: a `const` used above its declaration throws a
 // ReferenceError that the callers' own try/catch would quietly absorb, leaving every
@@ -33,7 +44,7 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, value) } catch {} },
   clear(key) { try { localStorage.removeItem(key) } catch {} },
 }
-let snapshot = null, filter = 'all', selected = null, pending = false, toastTimer
+let snapshot = null, filter = 'all', dateFilter = 'all', filterMenuOpen = false, selected = null, pending = false, toastTimer
 // A delegation row nested under a team session. Keyed on the delegation id, never on
 // its position or status, so a sub-agent finishing does not move the operator's focus.
 let selectedChild = null, childDetail = null, childDetailFor = null, childDetailError = null, childRequest = 0, lastChildId = null
@@ -279,12 +290,18 @@ function sessionRowHtml(s, spawnCounts) {
   const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
   return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
-const filterBarHtml = (counts, foreground, background, archived) => [
+// The trigger names whichever combination is active instead of repeating every
+// count Sessions' own header badge already shows.
+const filterTriggerLabel = () => {
+  const base = filter === 'all' ? 'All sessions' : filter === 'background' ? 'Background' : filter === 'archived' ? 'Archived' : LABELS[filter]
+  return dateFilter === 'all' ? base : `${base} · ${DATE_LABELS[dateFilter]}`
+}
+const filterMenuHtml = (counts, foreground, background, archived, dateCounts) => `<button type="button" class="filter-trigger" id="filter-trigger" aria-haspopup="menu" aria-expanded="${filterMenuOpen}" aria-controls="filter-panel">${esc(filterTriggerLabel())}<span class="filter-chevron" aria-hidden="true">⌄</span></button><div class="filter-panel" id="filter-panel" role="menu" aria-label="Filter sessions"${filterMenuOpen ? '' : ' hidden'}><div class="filter-group" role="group" aria-label="Status">${[
   ['all', 'All sessions', foreground],
   ...STATES.map(s => [s, LABELS[s], counts[s] || 0]),
   ...(background ? [['background', 'Background', background]] : []),
   ...(archived ? [['archived', 'Archived', archived]] : []),
-].map(([s, label, n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join('')
+].map(([s, label, n]) => `<button type="button" class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join('')}</div><div class="filter-group"><span class="filter-group-heading">Created</span>${['all', ...DATE_FILTERS].map(k => `<button type="button" class="filter" data-date-filter="${k}" aria-pressed="${dateFilter === k}">${DATE_LABELS[k]}<span>${dateCounts[k]}</span></button>`).join('')}</div></div>`
 const emptyListHtml = total =>
   filter === 'background' ? 'No background sessions right now.'
   : total ? 'No sessions match your filters.<br>Try another search or select All sessions.'
@@ -309,11 +326,14 @@ function render() {
   const pool = filter === 'archived' ? archived : filter === 'background' ? background : foreground
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
-  const shown = pool.filter(s => filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter)
+  const shown = pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
-  update('filters', filterBarHtml(visibleCounts, foreground.length, background.length, archived.length))
+  // Date counts sit against the foreground pool, same base the status counts use,
+  // so switching status tabs never makes these numbers jump for an unrelated reason.
+  const dateCounts = { all: foreground.length, today: foreground.filter(s => matchesDate(s, 'today')).length, week: foreground.filter(s => matchesDate(s, 'week')).length }
+  update('filters', filterMenuHtml(visibleCounts, foreground.length, background.length, archived.length, dateCounts))
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
   update('session-list', shown.length
     ? shown.map(s => sessionRowHtml(s, spawnCounts)).join('')
@@ -502,10 +522,21 @@ function toast(message) {
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => { box.hidden = true }, 3000)
 }
+// Click-outside is the one thing a plain button pair can't give a popover for
+// free, so it gets its own listener rather than folding into the delegated one
+// below, which only ever looks at clicks that landed on a button.
+document.addEventListener('click', event => {
+  if (filterMenuOpen && !event.target.closest('.filter-menu')) { filterMenuOpen = false; render() }
+})
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && filterMenuOpen) { filterMenuOpen = false; render(); $('filter-trigger')?.focus() }
+})
 document.addEventListener('click', async event => {
   const b = event.target.closest('button')
   if (!b) return
-  if (b.dataset.filter) { filter = b.dataset.filter; render() }
+  if (b.id === 'filter-trigger') { filterMenuOpen = !filterMenuOpen; return render() }
+  if (b.dataset.filter) { filter = b.dataset.filter; filterMenuOpen = false; render() }
+  if (b.dataset.dateFilter) { dateFilter = b.dataset.dateFilter; filterMenuOpen = false; render() }
   if (b.dataset.foldSession) {
     const k = b.dataset.foldSession, collapsed = !collapsedChildren.has(k)
     setChildrenCollapsed(k, collapsed)
