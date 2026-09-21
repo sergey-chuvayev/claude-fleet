@@ -107,7 +107,12 @@ const childRowsHtml = s => {
   const selectedOutside = selectedChild && !recent.some(d => d.id === selectedChild) ? all.find(d => d.id === selectedChild) : null
   const shown = selectedOutside ? [selectedOutside, ...recent] : recent
   const earlier = all.length - shown.length
-  return shown.map(d => childRowHtml(s, d)).join('') + (earlier ? `<div class="session-child-more" role="status">+${earlier} earlier</div>` : '')
+  // The list is oldest-first, so what got cut is the oldest end of it: the marker
+  // belongs ahead of the rows that survived, not trailing the newest one. It is a
+  // plain, non-interactive node in the reading order — no role, no aria-hidden — so
+  // it is announced once when it appears rather than looping as a live region or
+  // vanishing from every screen reader that ignores an injected one.
+  return (earlier ? `<div class="session-child-more">+${earlier} earlier</div>` : '') + shown.map(d => childRowHtml(s, d)).join('')
 }
 
 function render() {
