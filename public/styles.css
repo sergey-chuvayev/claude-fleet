@@ -174,11 +174,13 @@ select {
   font:inherit;
   max-width:145px;
   height:100%;
-  background:var(--panel);
+  appearance:none;
+  -webkit-appearance:none;
+  background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238a93a6' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
   border:1px solid var(--line);
   border-radius:var(--radius-md);
   color:var(--muted);
-  padding:0 9px;
+  padding:0 24px 0 9px;
   font-size:var(--text-sm);
 }
 .filter {
@@ -425,7 +427,6 @@ select {
 @media(max-width:720px) {
   .refresh-info #updated { display:none }
   .section-heading { padding-inline:16px }
-  .filter-menu { padding-inline:13px }
   .brand { font-size:24px }
   .session-title { font-size:var(--text-md) }
   .connection { font-size:var(--text-xs) }
@@ -944,10 +945,12 @@ body[data-resizing] { cursor:col-resize; user-select:none }
 .mode-picker select {
   font-family:var(--mono);
   font-size:var(--text-xs);
-  padding:3px 6px;
+  padding:3px 18px 3px 6px;
   height:auto;
   max-width:none;
-  background:var(--raised);
+  background-color:var(--raised);
+  background-position:right 6px center;
+  background-size:8px 5px;
 }
 .mode-picker select[data-mode="all"] {
   color:var(--term-yellow);
@@ -1068,7 +1071,6 @@ body {
 .section-heading { flex:none }
 .filter-menu {
   position:relative;
-  padding:10px 18px 9px;
   flex:none;
 }
 .filter-trigger {
@@ -1084,12 +1086,9 @@ body {
 }
 .filter-trigger:hover { background:color-mix(in oklab,var(--raised) 85%,var(--text)) }
 .filter-chevron {
-  display:inline-block;
-  position:relative;
-  top:1px;
+  display:block;
+  flex:none;
   color:var(--faint);
-  font-size:var(--text-xs);
-  line-height:1;
   transition:transform .12s ease;
 }
 .filter-trigger[aria-expanded="true"] .filter-chevron { transform:rotate(180deg) }
@@ -1099,7 +1098,7 @@ body {
 .filter-panel {
   position:absolute;
   top:calc(100% + 6px);
-  left:18px;
+  right:0;
   z-index:5;
   min-width:210px;
   padding:8px;
@@ -1196,6 +1195,41 @@ body {
   height:var(--conv-height,46vh);
   min-height:200px;
   resize:vertical;
+}
+.queued-messages {
+  list-style:none;
+  margin:10px 0 0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.queued-message {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  padding:7px 10px;
+  border:1px dashed var(--line);
+  border-radius:var(--radius-md);
+  background:var(--raised);
+  font-size:var(--text-sm);
+  color:var(--muted);
+}
+.queued-index { flex:none; color:var(--faint); font-variant-numeric:tabular-nums }
+.queued-text {
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text);
+}
+.queued-label {
+  flex:none;
+  font-size:var(--text-2xs);
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  color:var(--faint);
 }
 @media(max-width:720px) {
   body { overflow:auto; display:block }
@@ -1476,6 +1510,7 @@ main {
 .step-now.is-live .step-target { color:var(--muted) }
 .step-when {
   flex:none;
+  margin-left:auto;
   color:var(--faint);
   font-variant-numeric:tabular-nums;
 }
@@ -1922,10 +1957,11 @@ body[data-modal] { overflow:hidden }
 .modal .ask-model {
   height:36px;
   max-width:100px;
-  background:transparent;
+  background-color:transparent;
+  background-position:right 4px center;
   border:0;
   font-size:var(--text-sm);
-  padding:0 8px;
+  padding:0 18px 0 8px;
   color:var(--muted);
 }
 .ask-content { padding:0 32px 24px; min-height:260px }
@@ -2154,7 +2190,9 @@ body[data-modal] { overflow:hidden }
 .archive-days {
   max-width:96px;
   height:26px;
-  padding:0 6px;
+  padding:0 18px 0 6px;
+  background-position:right 6px center;
+  background-size:8px 5px;
   font-size:var(--text-sm);
 }
 .archive-bar .button { padding:5px 10px; font-size:var(--text-sm) }
@@ -2710,7 +2748,7 @@ body[data-modal] { overflow:hidden }
    away is the thing you came to do: under Offline, and inside Archived itself. */
 .archive-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--panel) 80%,var(--bg));font-size:11px;color:var(--muted)}
 .archive-text{min-width:0}
-.archive-days{max-width:96px;height:26px;padding:0 6px;font-size:11px}
+.archive-days{max-width:96px;height:26px;padding:0 18px 0 6px;background-position:right 6px center;background-size:8px 5px;font-size:11px}
 .archive-bar .button{padding:5px 10px;font-size:11px}
 .archive-none{color:var(--faint)}
 .archive-auto{display:flex;align-items:center;gap:6px;margin-left:auto;color:var(--faint);white-space:nowrap;cursor:pointer}

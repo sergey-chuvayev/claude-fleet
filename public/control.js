@@ -122,7 +122,7 @@ function selectControl(session) {
   window.Fleet.watchConversation(null)
   $('control-panel').innerHTML=''
   if(next){
-    $('control-panel').innerHTML=`<div class="conversation-header"><div class="header-title"><h3 id="conversation-title">Conversation</h3><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div class="header-controls"><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto">Auto approvals</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select></label><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button></div></div><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="reference-tray" class="reference-tray" aria-label="Referenced sessions" hidden></div><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="What should this agent do next?  ·  @ to reference an agent · / for commands · paste an image" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
+    $('control-panel').innerHTML=`<div class="conversation-header"><div class="header-title"><h3 id="conversation-title">Conversation</h3><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div class="header-controls"><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto">Auto approvals</option><option value="ask">Ask every time</option><option value="all">Approve everything</option></select></label><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button></div></div><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><ul id="queued-messages" class="queued-messages" aria-label="Messages waiting to send" hidden></ul><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="reference-tray" class="reference-tray" aria-label="Referenced sessions" hidden></div><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="What should this agent do next?  ·  @ to reference an agent · / for commands · paste an image" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
     window.Fleet.watchConversation($('conversation'))
     catalog=[];catalogFor=null;closePicker();renderTray();renderReferences()
     window.Fleet.syncDetails()
@@ -184,7 +184,8 @@ function renderControl() {
   const s=controlSession;if(!s || s.id!==controlId || !$('composer'))return
   window.FleetTeams?.board(s)
   $('conversation-title').textContent=s.aiTitle || s.name
-  $('agent-state').textContent=s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status]
+  const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
+  $('agent-state').textContent=(s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status])+queueNote
   $('agent-state').className=`subtle ${s.status==='approval' ? 'stale' : ''}`
   const used=s.contextTokens, limit=s.contextLimit || 200000
   const share=used==null ? null : Math.min(100,Math.round(used/limit*100))
@@ -217,11 +218,17 @@ function renderControl() {
   const held=s.openElsewhere
   const heldText=held ? `Open ${held.entrypoint==='cli' ? 'in a terminal' : 'in another program'}${held.name ? ' · '+held.name : ''}${held.startedAt ? ' · since '+new Date(held.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}. Close it there to continue here.` : null
   if(held){ $('agent-state').textContent=held.state==='busy' ? 'Working in a terminal' : 'Open in a terminal'; $('agent-state').className='subtle stale' }
-  $('send-message').disabled=working || inFlight.has(s.id) || !!held
+  // Sending no longer waits on idle: mid-turn, a message joins the queue and the run's
+  // own completion starts it. Only another live process on this session still blocks it.
+  $('send-message').disabled=inFlight.has(s.id) || !!held
+  $('send-message').textContent=working ? 'Queue ↗' : 'Send ↗'
   $('stop-agent').hidden=!working
   $('stop-agent').disabled=s.status==='stopping' || inFlight.has(`stop:${s.id}`)
-  $('composer-hint').textContent=heldText || (working ? 'You can draft your next message while Claude works.' : 'Enter to send · Shift + Enter for a new line')
+  $('composer-hint').textContent=heldText || (working ? 'Claude is still working — this joins the queue and sends the moment it’s free.' : 'Enter to send · Shift + Enter for a new line')
   $('composer-hint').classList.toggle('is-held',!!held)
+  const queue=$('queued-messages')
+  queue.hidden=!s.queue?.length
+  if(s.queue?.length) queue.innerHTML=s.queue.map((q,i)=>`<li class="queued-message"><span class="queued-index">#${i+1}</span><span class="queued-text">${esc(q.message || `${q.attachments?.length || 0} image${q.attachments?.length===1 ? '':'s'}`)}</span><span class="queued-label">Queued</span></li>`).join('')
 }
 function renderApprovals(approvals) {
   $('approvals').innerHTML=approvals.map(p=>{
@@ -284,7 +291,7 @@ function renderTray() {
 async function sendMessage(event) {
   event.preventDefault()
   const id=controlId
-  if(!id || inFlight.has(id) || !controlSession || isWorking(controlSession))return
+  if(!id || inFlight.has(id) || !controlSession)return
   const message=$('message-input').value.trim()
   const references=(pendingReferences.get(id) || []).map(r=>r.id)
   const images=attachedImages().map(img=>({ mediaType:img.mediaType, data:img.dataUrl.slice(img.dataUrl.indexOf(',')+1) }))

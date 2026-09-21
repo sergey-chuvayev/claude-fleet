@@ -195,7 +195,7 @@ class ManagedSessions extends EventEmitter {
     if (team && resume) fail('A resumed conversation cannot be given a team.',409)
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
-    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     this.sessions.set(s.id,s)
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
@@ -211,7 +211,6 @@ class ManagedSessions extends EventEmitter {
     if (s.requestIds.includes(rid)) return s
     const hasImages = Array.isArray(body.images) && body.images.length > 0
     const message = hasImages && !(body.message || '').trim() ? '' : text(body.message,'Message',16000)
-    if (this.runs.has(id)) fail('This agent is still working. Stop it or wait before sending another message.',409)
     // Another live process on the same session would write the same transcript.
     // Refuse, and name the holder so the operator can find that window.
     const holder = s.sessionId ? this.externalSessions().find(x => x.sessionId === s.sessionId && x.alive) : null
@@ -220,20 +219,28 @@ class ManagedSessions extends EventEmitter {
       const since = holder.startedAt ? ` since ${new Date(holder.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
       fail(`This conversation is open in ${where}${holder.name ? ` (${holder.name}${since})` : since ? ` (${since.trim()})` : ''}. Fleet will not send while another process is driving the same session; close it there, or keep working there.`,409)
     }
-    this.checkCapacity()
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
+    const queued = {message,attachments,references}
+    // Mid-turn, the SDK session can't take a second prompt yet: hold this one and let
+    // the run's own completion (see the `finally` in run()) start it the moment the
+    // agent is free, instead of making the operator retry once it's idle.
+    if (this.runs.has(id)) { s.queue = [...s.queue, queued]; this.changed(s,true); return s }
+    this.checkCapacity()
+    this.startTurn(s, queued)
+    return s
+  }
+  startTurn(s, {message,attachments,references}) {
     const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {}),...(references.length ? {references} : {})}
     s.messages.push(entry)
     this.pruneMessages(s)
     s.lastPrompt = message || `${attachments.length} image${attachments.length === 1 ? '' : 's'}`; s.error = null; s.status = 'starting'; s.currentTool = null
     const run = {controller:new AbortController(),query:null,stopping:false,finished:false,streamText:'',assistant:null,result:false,stderr:''}
-    this.runs.set(id,run)
+    this.runs.set(s.id,run)
     try { this.changed(s,true) }
-    catch (error) { this.runs.delete(id); s.status='error'; s.requestIds=s.requestIds.filter(x=>x!==rid); s.messages.pop(); throw error }
+    catch (error) { this.runs.delete(s.id); s.status='error'; s.messages.pop(); throw error }
     run.done = this.run(s,run,entry)
-    return s
   }
   // Validate, sniff and persist pasted images. Files are owner-only and named by a
   // fresh id, so a request can never choose where on disk its bytes land.
@@ -361,7 +368,14 @@ class ManagedSessions extends EventEmitter {
       else if (s.status !== 'error') s.status='idle'
       s.currentTool=null
       this.runs.delete(s.id)
+      // A clean finish with something waiting picks it straight back up. A stop already
+      // dropped the queue; an error drops it too rather than firing a follow-up message
+      // at a conversation that just failed, unseen, behind the operator's back.
+      if (s.status !== 'idle') s.queue=[]
+      const next = s.status === 'idle' && s.queue.length ? s.queue[0] : null
+      if (next) s.queue = s.queue.slice(1)
       try { this.changed(s,true) } catch (error) { this.emit('storage-error',error) }
+      if (next) { try { this.startTurn(s,next) } catch (error) { this.emit('storage-error',error) } }
     }
   }
   event(s,run,event) {
@@ -585,6 +599,9 @@ class ManagedSessions extends EventEmitter {
     const s=this.get(id),run=this.runs.get(id)
     if (!run || run.stopping) return s
     run.stopping=true; s.status='stopping'; this.cancelApprovals(id,'The user stopped this agent.')
+    // A deliberate stop means abandon what's queued too — firing it anyway right after
+    // the operator hit Stop would look like Fleet ignoring them.
+    s.queue=[]
     run.controller.abort()
     try { run.query?.close() } catch {}
     this.changed(s,true)
