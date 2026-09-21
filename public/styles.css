@@ -489,10 +489,22 @@ body[data-modal]{overflow:hidden}
 
 /* A Task-tool sub-agent has no process of its own, so this nested row under the
    session that ran it is the only place it ever shows up. */
+/* The group folds behind a header of its own, indented one step less than the rows it
+   owns so the chevron sits in the gutter and the hierarchy reads at a glance. */
+.session-children-toggle{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-bottom:1px solid #272c2b;padding:7px 18px 7px 26px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg));color:var(--faint);font:10px/1.4 var(--mono);letter-spacing:.6px}
+.session-children-toggle:hover{color:var(--muted);background:color-mix(in oklab,var(--panel) 78%,var(--w-fg))}
+.children-chevron{display:inline-block;flex:none;width:9px;text-align:center;font-size:12px;line-height:1;transition:transform .12s ease}
+.session-children-toggle[aria-expanded="true"] .children-chevron{transform:rotate(90deg)}
+.children-count{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* An indent guide ties the sub-agents back to the session that ran them. It sits in
+   the empty gutter left of every child's text, so it never crosses a glyph. */
+.session-children{position:relative}
+.session-children::before{content:"";position:absolute;top:0;bottom:0;left:30px;width:1px;background:var(--line);z-index:1}
 .session-child{padding-left:44px;background:color-mix(in oklab,var(--panel) 88%,var(--w-fg))}
 .session-child .session-name{color:var(--muted)}
 .session-child .session-title{font-size:11px;font-weight:400;color:var(--faint)}
-@media(max-width:1000px){.session-child{padding-left:34px}}
+@media(max-width:1000px){.session-child{padding-left:34px}.session-children-toggle{padding-left:20px}.session-children::before{left:23px}}
+@media(prefers-reduced-motion:reduce){.children-chevron{transition:none}}
 /* Only one row reads as selected: a session holding a selected child is an ancestor,
    not the selection itself, so it gets a quieter treatment and no accent bar. */
 .session-ancestor{background:#1a1f1e}

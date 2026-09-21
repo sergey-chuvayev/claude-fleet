@@ -374,6 +374,97 @@ test('a delegation selected outside the visible tail still renders, and only it 
   assert.ok(!/role=|aria-hidden=/.test(marker), 'the "+N earlier" marker must carry neither a role nor aria-hidden')
 })
 
+// A long-running initiative wedges its delegation rows between one session and the
+// next, so the group folds. The fold must never cost the list its single selected
+// row, and it must survive the poll that redraws the list two seconds later.
+test('a sub-agent group folds behind a labelled header without ever hiding the selected row', () => {
+  const vm = require('node:vm')
+  const stored = new Map()
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: k => (stored.has(k) ? stored.get(k) : null), setItem: (k, v) => stored.set(k, v), removeItem: k => stored.delete(k) },
+    matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations: [
+        { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+        { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+        { id: 'rev-1', role: 'reviewer', model: 'claude-haiku', status: 'failed' },
+      ],
+    }],
+  }
+  context.fixture = fixture
+
+  // Open by default: folding is something the operator asks for, never something
+  // that quietly removes rows that were on screen a moment ago.
+  vm.runInContext('snapshot = fixture; render()', context)
+  let list = elements.get('session-list').innerHTML
+  assert.match(list, /data-fold-session="m1"[^>]*aria-expanded="true"/, 'the group header must render, open, for a session with delegations')
+  // The header is the only summary of a folded group, so it has to carry what is in
+  // there: how many, and how many of those still want attention.
+  assert.match(list, /3 sub-agents · 1 working · 1 failed/)
+  assert.match(list, /data-delegation="dev-1"/)
+
+  // Folded: the header stays and names the group, the rows go.
+  vm.runInContext('setChildrenCollapsed("m1", true); render()', context)
+  list = elements.get('session-list').innerHTML
+  assert.match(list, /data-fold-session="m1"[^>]*aria-expanded="false"/)
+  assert.match(list, /3 sub-agents · 1 working · 1 failed/, 'a folded group must still say what it is holding')
+  assert.doesNotMatch(list, /data-delegation=/, 'a folded group draws none of its delegation rows')
+  assert.equal((list.match(/aria-pressed="true"/g) || []).length, 1, 'exactly one row must still read as selected')
+
+  // The fold outlives a reload: it is written through to storage, not held in memory.
+  assert.deepEqual(JSON.parse(stored.get('fleet:children-collapsed')), ['m1'])
+
+  // A selected delegation inside a folded group would leave the whole list with
+  // nothing reading as chosen, so the group draws open for as long as it holds one.
+  vm.runInContext('selectedChild = "qa-1"; render()', context)
+  list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="qa-1"[^]*?aria-pressed="true"/, 'a folded group still holding the selection must draw open')
+  assert.equal((list.match(/aria-pressed="true"/g) || []).length, 1)
+
+  // A session with no sub-agents gets no header at all: an empty disclosure is a
+  // control that promises something and then opens onto nothing.
+  fixture.sessions[0].delegations = []
+  vm.runInContext('selectedChild = null; snapshot = fixture; render()', context)
+  assert.doesNotMatch(elements.get('session-list').innerHTML, /data-fold-session=/)
+})
+
 // Every child row shares its data-session with the parent that owns it, so a poll
 // that only touches age()/elapsed() text must not let focus drift from a selected
 // child row up to the parent it happens to share an id with.
