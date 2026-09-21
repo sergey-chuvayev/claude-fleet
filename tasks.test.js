@@ -86,3 +86,20 @@ test('lowercase "fail" quoted from test output is never mistaken for the verdict
   tasks.finish(s,'review','ℹ tests 42 / ℹ pass 42 / ℹ fail 0\n\nPASS\nAll assertions covered the requested behavior end to end.')
   assert.equal(t.reviews.reviewer.verdict,'PASS')
 })
+test('prose that only opens with "PASS " cannot steal a real, later, standalone FAIL',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  tasks.finish(s,'review','PASS on criteria 1-4. Criterion 5 is not met.\n\nFAIL\ntasks.js:80-82 goes fail-open on a leading verdict-shaped line.')
+  assert.equal(t.reviews.reviewer.verdict,'FAIL');assert.equal(t.status,'changes_requested')
+})
+test('a quoted mandate line beginning "FAIL" cannot outrank the real standalone verdict',()=>{
+  const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+  tasks.finish(s,'review','Do not soften a\nFAIL into a pass with reservations, and do not pad a PASS with speculative concerns to look\nthorough. If it works, say it works.\n\n**PASS**\nRan the integration test and verified the requested redirect and error cases.')
+  assert.equal(t.reviews.reviewer.verdict,'PASS');assert.equal(t.status,'review')
+})
+test('"PASS:" and "PASS —" on their own line are still recognized, pinning the accepted punctuation',()=>{
+  for (const line of ['PASS:','PASS —']) {
+    const s=session(),t=create(s);delegate(s,t,'dev');tasks.finish(s,'dev','Done');delegate(s,t,'review','reviewer')
+    tasks.finish(s,'review',`${line}\nRan the integration test and verified the requested redirect and error cases.`)
+    assert.equal(t.reviews.reviewer.verdict,'PASS')
+  }
+})

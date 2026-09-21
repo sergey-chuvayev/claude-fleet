@@ -70,18 +70,20 @@ function finish(s,toolId,report,error=false) {
   const task=taskFor(s,d.taskId)
   if (error) {task.status='blocked';task.blocker='Delegation failed. Read the report before retrying.';return}
   if (d.role===task.owner) {task.status='review';return}
-  // The verdict can open any line, not just the first: verifiers often lead with quoted
-  // test output before their PASS/FAIL. Scan line by line for the first line shaped like a
-  // verdict (markdown emphasis and the usual trailing punctuation tolerated) rather than
-  // anchoring to offset zero, and strip only that line so the rest of the report — including
-  // whatever came before it — still counts as evidence. Stays case-sensitive on purpose:
+  // Two invariants, both violated in turn before this: (1) the scan is line-based — the
+  // verdict can sit below an opening test summary or quoted output, not only on line one —
+  // so we check every line rather than anchoring to offset zero; (2) the shape is whole-line —
+  // a verdict-shaped match must consume the entire trimmed line, not merely lead it — so prose
+  // that opens with "PASS ..." or a quoted mandate line beginning "FAIL into a pass with
+  // reservations, ..." cannot masquerade as the real verdict. Stays case-sensitive on purpose:
   // reports routinely quote their own test summaries (e.g. "ℹ fail 0"), and a case-insensitive
   // match would turn every one of those into a false FAIL.
-  const verdictShape=/^\*{0,2}(PASS|FAIL)\b\*{0,2}[\s:—-]*/,lines=d.report.split('\n')
-  const verdictAt=lines.findIndex(l=>verdictShape.test(l.trimStart()))
-  const verdict=verdictAt<0 ? undefined : lines[verdictAt].trimStart().match(verdictShape)[1]
-  if (verdictAt>=0) lines[verdictAt]=lines[verdictAt].trimStart().replace(verdictShape,'')
-  const evidence=lines.join('\n').trim()
+  const verdictShape=/^\*{0,2}(PASS|FAIL)\*{0,2}[\s:—.-]*$/,lines=d.report.split('\n')
+  const verdictAt=lines.findIndex(l=>verdictShape.test(l.trim()))
+  const verdict=verdictAt<0 ? undefined : lines[verdictAt].trim().match(verdictShape)[1]
+  // The whole line is the verdict, so nothing of it belongs in the evidence: drop the line
+  // itself rather than replacing a fragment within it.
+  const evidence=(verdictAt<0 ? lines : lines.filter((_,i)=>i!==verdictAt)).join('\n').trim()
   task.reviews[d.role]={verdict:verdict==='PASS' && evidence.length>=20 ? 'PASS':'FAIL',delegationId:d.id,attempt:d.attempt}
   if (task.reviews[d.role].verdict==='FAIL') {task.status='changes_requested';return}
   if (s.teamSnapshot.workflow.reviewers.every(r=>task.reviews[r]?.verdict==='PASS')) task.status='verified'
