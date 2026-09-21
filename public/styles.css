@@ -2758,3 +2758,59 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .detail:has(#composer) .conversation { height:460px; flex:none }
   .detail:has(#composer) .composer { height:auto; min-height:170px; border-top:1px solid var(--line) }
 }
+
+
+/* Session rows share a title baseline and a fixed metrics column. Activity uses
+   the full row, so long commands cannot push elapsed time out of alignment. */
+.sessions-pane { container-type:inline-size; container-name:sessions }
+.session:not(.session-child) {
+  --row-gap:8px;
+  --row-inset:20px;
+  grid-template-columns:minmax(0,1fr) 84px;
+  column-gap:16px;
+  row-gap:var(--row-gap);
+  padding:16px var(--row-inset);
+  align-items:start;
+}
+.session-body { display:flex; flex-direction:column; gap:4px; min-width:0 }
+.session-body .session-title {
+  margin:0; font-size:var(--text-lg); line-height:20px; font-weight:600;
+}
+.session-body .session-top { gap:8px; min-width:0; margin:0; min-height:20px }
+.session-top .badge { display:inline-flex; align-items:center; flex:none; gap:4px; line-height:16px; padding:2px 6px }
+.session-top .badge .dot { margin:0 }
+.session-body .session-name { min-width:0; flex:1; line-height:20px }
+.session-body .session-meta { align-items:center; gap:8px; line-height:20px; white-space:nowrap }
+.session-project, .session-body .branch { min-width:0; overflow:hidden; text-overflow:ellipsis }
+.session-project { flex:0 1 auto }
+.session-body .branch { flex:0 2 auto }
+.session-cost { flex:none; font-variant-numeric:tabular-nums }
+.session-body .initiative-tag { align-self:flex-start; margin:0; padding:0; border:0; border-radius:0; line-height:20px }
+.session:not(.session-child)>.session-context {
+  align-self:start; display:grid; grid-template-rows:20px 20px 20px;
+  row-gap:4px; min-width:0; line-height:20px;
+}
+.session-context .context-value { font-size:var(--text-lg); font-weight:500 }
+.session:not(.session-child)>.session-context .mini-bar { align-self:center; margin:0; width:100% }
+.session:not(.session-child)>.session-context small { white-space:nowrap; line-height:20px }
+.session>.unseen { position:absolute; left:6px; top:24px; box-shadow:none; width:5px; height:5px }
+.session>.turn {
+  grid-column:1 / -1; margin:0; display:grid;
+  grid-template-columns:56px minmax(0,1fr) 84px; gap:8px;
+  align-items:center; line-height:20px; font-size:var(--text-xs);
+}
+.session>.turn .steps { width:56px; max-width:none; height:5px }
+.session>.turn .steps:empty { display:inline-flex }
+.session>.turn .steps i { flex:1 1 0; min-width:1px; max-width:5px }
+.session>.turn .step-now { grid-column:2; gap:6px }
+.session>.turn .step-now::before { display:none }
+.session>.turn .step-when { grid-column:3; text-align:right; white-space:nowrap }
+.session:not(.session-child):focus-visible { outline-offset:-2px }
+@container sessions (max-width:420px) {
+  .session:not(.session-child) { --row-inset:16px; grid-template-columns:minmax(0,1fr) 64px; column-gap:12px }
+  .session>.unseen { left:4px }
+  .session>.turn { grid-template-columns:40px minmax(0,1fr) 64px }
+  .session>.turn .steps { width:40px }
+  .session-body .session-top { flex-wrap:wrap; gap:4px 8px }
+  .session-body .session-name { flex-basis:80px }
+}

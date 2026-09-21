@@ -81,7 +81,7 @@ function status(s) {
   const label = s.managed ? ({starting:'Starting',running:'Working',approval:'Needs approval',stopping:'Stopping',stopped:'Stopped',error:'Error',idle:'Ready'})[s.managedStatus] : LABELS[s.state]
   return `<span class="badge ${s.managedStatus === 'approval' ? 'stale' : s.managedStatus === 'error' ? 'hot' : s.state}"><span class="dot"></span>${label}</span>`
 }
-// The row's third line is the story of the latest turn, the way a CI job row shows
+// The row's final line is the story of the latest turn, the way a CI job row shows
 // its steps: one segment per tool call coloured by the family of work, red where it
 // failed; then the step in progress (or the last one), then how long the turn has run.
 const isWorkingRow = s => s.openElsewhere ? s.openElsewhere.state === 'busy' : s.managed ? ['starting','running','stopping'].includes(s.managedStatus) : s.state === 'busy'
@@ -248,11 +248,11 @@ function renderStatusbar(usage, sessions) {
 }
 
 // ── The session row ─────────────────────────────────────────────────────────
-// One row is four lines: what the agent is and how it is doing, what it was asked,
-// where it is working, and the story of its latest turn. Each line is built by its
-// own function, so changing the look of one does not mean reading the other three.
+// One row leads with the task, then its status/source and project metadata.
+// The latest turn spans both columns beneath the task and context meter. Each
+// line has its own renderer so its layout can change independently.
 
-// Line one, after the status badge: the qualifiers that say this row is not an
+// After the status badge: qualifiers that say this row is not an
 // ordinary foreground session you started yourself.
 function rowTags(s, spawnCounts) {
   const spawned = spawnCounts.get(s.pid)
@@ -273,22 +273,23 @@ function initiativeTag(s) {
 function rowMeta(s) {
   const project = s.cwd?.split('/').filter(Boolean).pop() || 'No project'
   const spend = money(s.costUsd)
-  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${spend ? `<span class="session-cost" title="What this conversation has cost so far">${esc(spend)}</span>` : ''}</span>`
+  return `<span class="session-meta"><span class="session-project" title="${esc(s.cwd || 'No project')}">${esc(project)}</span><span class="branch" title="${esc(s.branch || 'No branch')}">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${spend ? `<span class="session-cost" title="What this conversation has cost so far">${esc(spend)}</span>` : ''}</span>`
 }
 // The right-hand column: how full the context window is, and how long ago the
 // agent last did anything.
 function contextCell(s) {
   const p = percent(s)
-  return `<span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p) + '%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span>`
+  return `<span class="session-context ${heat(p)}"><span class="context-value" title="${p === null ? 'Context usage unavailable' : Math.round(p) + '% of context used'}">${p === null ? '—' : Math.round(p) + '%'}</span><span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span>`
 }
 function sessionRowHtml(s, spawnCounts) {
   // A row holding the selected sub-agent is an ancestor of the selection, not the
   // selection itself, so it gives up aria-pressed to the child row below it.
   const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
   const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
-  const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
-  const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
-  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+  const top = `<span class="session-top">${status(s)}<span class="session-name" title="${esc(name)}">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
+  const title = s.title || s.lastPrompt || 'Untitled session'
+  const body = `<span class="session-title" title="${esc(title)}">${esc(title)}</span>${top}${rowMeta(s)}${initiativeTag(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}<span class="session-body">${body}</span>${contextCell(s)}${turnRow(s)}</button>${childRowsHtml(s)}`
 }
 // The trigger names whichever combination is active instead of repeating every
 // count Sessions' own header badge already shows.
