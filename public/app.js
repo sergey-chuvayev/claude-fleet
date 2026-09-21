@@ -223,6 +223,61 @@ function renderStatusbar(usage, sessions) {
     if (usage?.blocked) banner.textContent = `Rate limited until ${clockAt(usage.blocked.resetsAt)} (${untilReset(usage.blocked.resetsAt, now)}). A new agent will not get past its first message until this window resets.`
   }
 }
+
+// ── The session row ─────────────────────────────────────────────────────────
+// One row is four lines: what the agent is and how it is doing, what it was asked,
+// where it is working, and the story of its latest turn. Each line is built by its
+// own function, so changing the look of one does not mean reading the other three.
+
+// Line one, after the status badge: the qualifiers that say this row is not an
+// ordinary foreground session you started yourself.
+function rowTags(s, spawnCounts) {
+  const spawned = spawnCounts.get(s.pid)
+  return [
+    spawned ? `<span class="spawn-badge" title="Running ${spawned} background session(s)">⑂ ${spawned}</span>` : '',
+    s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : '',
+    s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : '',
+  ].join('')
+}
+// A team session says which team is running it and how far through its tasks it is.
+function initiativeTag(s) {
+  if (s.kind !== 'initiative') return ''
+  const p = s.taskProgress
+  const progress = p ? ` · ${p.verified}/${p.total} verified${p.blocked ? ` · ${p.blocked} need attention` : ''}` : ''
+  return `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${progress}</span>`
+}
+// Where the work is happening, and what it has cost.
+function rowMeta(s) {
+  const project = s.cwd?.split('/').filter(Boolean).pop() || 'No project'
+  const spend = money(s.costUsd)
+  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${spend ? `<span class="session-cost" title="What this conversation has cost so far">${esc(spend)}</span>` : ''}</span>`
+}
+// The right-hand column: how full the context window is, and how long ago the
+// agent last did anything.
+function contextCell(s) {
+  const p = percent(s)
+  return `<span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p) + '%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span>`
+}
+function sessionRowHtml(s, spawnCounts) {
+  // A row holding the selected sub-agent is an ancestor of the selection, not the
+  // selection itself, so it gives up aria-pressed to the child row below it.
+  const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
+  const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
+  const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
+  const body = `${top}${initiativeTag(s)}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>${rowMeta(s)}${turnRow(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+}
+const filterBarHtml = (counts, foreground, background, archived) => [
+  ['all', 'All sessions', foreground],
+  ...STATES.map(s => [s, LABELS[s], counts[s] || 0]),
+  ...(background ? [['background', 'Background', background]] : []),
+  ...(archived ? [['archived', 'Archived', archived]] : []),
+].map(([s, label, n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join('')
+const emptyListHtml = total =>
+  filter === 'background' ? 'No background sessions right now.'
+  : total ? 'No sessions match your filters.<br>Try another search or select All sessions.'
+  : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'
+
 function render() {
   if (!snapshot) return
   const {sessions, total} = snapshot
@@ -246,13 +301,11 @@ function render() {
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
-  update('filters', [['all','All sessions',foreground.length],...STATES.map(s => [s,LABELS[s],(visibleCounts[s] || 0)]),...(background.length ? [['background','Background',background.length]] : []),...(archived.length ? [['archived','Archived',archived.length]] : [])].map(([s,label,n]) => `<button class="filter" data-filter="${s}" aria-pressed="${filter === s}">${label}<span>${n}</span></button>`).join(''))
+  update('filters', filterBarHtml(visibleCounts, foreground.length, background.length, archived.length))
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
-  update('session-list', shown.length ? shown.map(s => {
-    const p = percent(s)
-    const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
-    return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span><span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc((s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session'))}</span>${spawnCounts.get(s.pid) ? `<span class="spawn-badge" title="Running ${spawnCounts.get(s.pid)} background session(s)">⑂ ${spawnCounts.get(s.pid)}</span>` : ''}${s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : ''}${s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : ''}</span>${s.kind === 'initiative' ? `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${s.taskProgress ? ` · ${s.taskProgress.verified}/${s.taskProgress.total} verified${s.taskProgress.blocked ? ` · ${s.taskProgress.blocked} need attention` : ''}` : ''}</span>` : ''}<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span><span class="session-meta"><span>${esc(s.cwd?.split('/').filter(Boolean).pop() || 'No project')}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${money(s.costUsd) ? `<span class="session-cost" title="What this conversation has cost so far">${esc(money(s.costUsd))}</span>` : ''}</span>${turnRow(s)}</span><span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p)+'%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span></button>${childRowsHtml(s)}`
-  }).join('') : `<div class="empty">${filter === 'background' ? 'No background sessions right now.' : total ? 'No sessions match your filters.<br>Try another search or select All sessions.' : 'Your fleet is quiet.<br>Start a Claude Code session and it will appear here automatically.'}</div>`)
+  update('session-list', shown.length
+    ? shown.map(s => sessionRowHtml(s, spawnCounts)).join('')
+    : `<div class="empty">${emptyListHtml(total)}</div>`)
   const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
   // A delegation belongs to whichever session is actually current; switching sessions,
