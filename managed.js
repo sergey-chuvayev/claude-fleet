@@ -38,6 +38,9 @@ const MAX_TOOL_INPUT = 2000
 const MAX_TOOL_RESULT = 6000
 // Tool names whose result is the point of the block; others are summarised by their input.
 const QUIET_RESULT = new Set(['TodoWrite', 'Write', 'Edit', 'NotebookEdit'])
+// A delegation can run a sub-agent through an unbounded number of tool calls; capped here
+// so a long-running one cannot grow the session file without limit.
+const MAX_DELEGATION_STEPS = 200
 function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error }
 function text(value, name, max) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) fail(`${name} must contain 1–${max} characters.`)
@@ -289,7 +292,7 @@ class ManagedSessions extends EventEmitter {
       }
       if (team?.workflow) {
         const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
-        if (remaining<=0) throw new Error('Initiative budget reached. Increase the budget explicitly before continuing.')
+        if (remaining<=0) throw new Error('Usage cap reached. Increase the cap explicitly before continuing.')
         options.maxBudgetUsd=remaining
         options.maxTurns=100
         options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
@@ -334,6 +337,11 @@ class ManagedSessions extends EventEmitter {
       run.finished = true
       this.cancelApprovals(s.id,'The agent stopped before this request was answered.')
       try { run.query?.close() } catch {}
+      // Only a delegation that is itself still running was actually interrupted here; a
+      // delegation that already finished may carry a step whose tool_result simply never
+      // arrived, and flipping that step to "interrupted" next to a completed delegation
+      // would misreport a race as a stop.
+      if (s.taskBoard) for (const d of s.taskBoard.delegations) if (d.status === 'running') for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       tasks.interrupt(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
@@ -348,10 +356,18 @@ class ManagedSessions extends EventEmitter {
     if (s.taskBoard && event.parent_tool_use_id) {
       const d=s.taskBoard.delegations.find(d=>d.id===event.parent_tool_use_id)
       if (d && event.type==='assistant') {
-        d.activity=(event.message.content || []).filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
+        const content=event.message.content || []
+        d.activity=content.filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
         d.model=event.message.model || d.model
-        const output=(event.message.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n')
+        const output=content.filter(b=>b.type==='text').map(b=>b.text).join('\n')
         if (output) d.output=output.slice(0,24000)
+        // The one place a sub-agent's own tool calls are kept at all: as steps on its
+        // delegation, never as messages (every branch above stays guarded by
+        // `!event.parent_tool_use_id`). No input, no result; those belong to d.report.
+        for (const block of content) if (block.type==='tool_use') this.stepStarted(d,block)
+      }
+      if (d && event.type==='user') {
+        for (const block of event.message?.content || []) if (block.type==='tool_result') this.stepFinished(d,block)
       }
     }
     if (event.type === 'system' && event.subtype === 'init') { s.model=event.model; s.status='running' }
@@ -412,16 +428,40 @@ class ManagedSessions extends EventEmitter {
     entry.status = block.is_error ? 'error' : 'done'
     entry.ms = Date.now()-entry.at
     const result = resultText(block.content)
-    if (s.taskBoard) tasks.finish(s,block.tool_use_id,result,!!block.is_error)
+    if (s.taskBoard) {
+      tasks.finish(s,block.tool_use_id,result,!!block.is_error)
+      // The delegation just reached a terminal status. A step whose own tool_result
+      // never arrived from the sub-agent can no longer resolve on its own, by
+      // definition; left as "running" it would look like a live step under a
+      // finished delegation, so it gets its own terminal label instead.
+      const d=s.taskBoard.delegations.find(d=>d.id===block.tool_use_id)
+      if (d && d.status!=='running') for (const step of d.steps || []) if (step.status==='running') step.status='unreported'
+    }
     entry.truncated = result.length > MAX_TOOL_RESULT
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
+  }
+  // A sub-agent's tool call becomes a step on its delegation rather than a conversation
+  // entry: name, target, status and timing only, so the operator can see what happened
+  // without the console ever rendering it.
+  stepStarted(d,block) {
+    if (!block.id) return
+    d.steps ||= []
+    if (d.steps.some(step=>step.id===block.id)) return
+    d.steps.push({id:block.id,tool:block.name || 'Tool',target:toolTarget(block.name,block.input),status:'running',at:Date.now(),ms:null})
+    if (d.steps.length > MAX_DELEGATION_STEPS) { d.steps=d.steps.slice(-MAX_DELEGATION_STEPS); d.stepsTruncated=true }
+  }
+  stepFinished(d,block) {
+    const step=d.steps?.find(step=>step.id===block.tool_use_id)
+    if (!step || step.status!=='running') return
+    step.status=block.is_error ? 'error' : 'done'
+    step.ms=Date.now()-step.at
   }
   setLimits(id,body) {
     const s=this.get(id)
     if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
     if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
     const {budgetUsd,maxAttempts}=body
-    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a budget between the amount already spent and $1,000 (minimum $0.10).')
+    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a usage cap between the amount already used and $1,000 (minimum $0.10).')
     if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')
     const previous=s.limits
     s.limits={budgetUsd,maxAttempts}

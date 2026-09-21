@@ -71,6 +71,13 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       // that over Fleet's first-prompt slice, and keep it for the detail view too.
       const aiTitle=transcriptFor(s.sessionId)?.title
       if(aiTitle){s.title=aiTitle;try{manager.get(s.managedId).aiTitle=aiTitle}catch{}}
+      // A Task-tool sub-agent has no PID and never gets its own row, so the left panel
+      // needs just enough per-delegation state to draw a nested one. Prompts, reports
+      // and steps stay off this polled payload; the detail route carries those.
+      try {
+        const raw=manager.get(s.managedId)
+        if(raw.taskBoard?.delegations?.length) s.delegations=raw.taskBoard.delegations.map(d=>({id:d.id,role:d.role,model:d.model || raw.teamSnapshot?.roles?.[d.role]?.model || null,status:d.status}))
+      } catch {}
     }
     const sessions=[...managed,...external].sort((a,b)=>{
       const rank=s=>s.managedStatus==='approval'?0:s.state==='busy'?1:s.state==='idle'?2:s.state==='stale'?3:4

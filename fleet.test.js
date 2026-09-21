@@ -124,7 +124,7 @@ test('the browser scripts load together without redeclaring a shared-scope ident
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     // A redeclaration is a SyntaxError raised when the script is instantiated in the
     // shared scope, before any statement runs. Runtime errors from the stub DOM are
@@ -220,4 +220,258 @@ test('the cost label never rounds a real spend down to nothing', () => {
   assert.equal(money('money(0.01)'), '$0.01')
   assert.equal(money('money(0.426)'), '$0.43')
   assert.equal(money('money(12.3)'), '$12.30')
+})
+
+// A Task-tool sub-agent has no PID and never earns a row of its own in the process
+// registry; the list payload is the only place it can appear, nested under the
+// session that ran it.
+test('a team session renders one nested child row per delegation, with role, model and status', () => {
+  const vm = require('node:vm')
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations: [
+        { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+        { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+      ],
+    }],
+  }
+  context.fixture = fixture
+  vm.runInContext('snapshot = fixture; render()', context)
+  const list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="dev-1"/)
+  assert.match(list, /data-delegation="qa-1"/)
+  assert.match(list, /data-delegation="dev-1"[^]*?Working[^]*?developer[^]*?sonnet-5/)
+  assert.match(list, /data-delegation="qa-1"[^]*?Done[^]*?qa[^]*?haiku/)
+})
+
+// The child row list caps itself at the most recent CHILD_ROW_LIMIT delegations, but
+// a delegation selected before it aged out of that window must still draw as
+// selected: the parent row has already given up aria-pressed to session-ancestor,
+// so an unrendered selection would leave nothing in the whole list reading as chosen.
+test('a delegation selected outside the visible tail still renders, and only it reads as selected', () => {
+  const vm = require('node:vm')
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  // 25 delegations: the tail (CHILD_ROW_LIMIT = 20) keeps only the newest 20, so
+  // the earliest 5, including the one selected below, start out of the window.
+  const delegations = Array.from({ length: 25 }, (_, i) => ({ id: `d${i}`, role: 'developer', model: 'claude-sonnet-5', status: 'completed' }))
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations,
+    }],
+  }
+  context.fixture = fixture
+  vm.runInContext('snapshot = fixture; selectedChild = "d0"; render()', context)
+  const list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="d0"/, 'the selected delegation must render even though it aged out of the visible tail')
+  const pressedCount = (list.match(/aria-pressed="true"/g) || []).length
+  assert.equal(pressedCount, 1, 'exactly one row in the whole list must read as selected')
+  assert.match(list, /data-delegation="d0"[^]*?aria-pressed="true"/, 'the row reading as selected must be the one actually chosen')
+  // 25 delegations, minus the pulled-forward selection (d0) and the 20-row tail
+  // (d5..d24), leaves 4 (d1..d4) genuinely un-rendered: the count the "+N earlier"
+  // line reports has to track that arithmetic, not just appear.
+  assert.match(list, /class="session-child-more">\+4 earlier</, 'the "+N earlier" line must report exactly the delegations that are not drawn')
+  // The list is oldest-first, so the cut rows are the oldest ones: the marker has to
+  // sit ahead of the surviving rows, not trail the newest one.
+  const moreIndex = list.indexOf('session-child-more')
+  const firstRowIndex = list.indexOf('data-delegation=')
+  assert.ok(moreIndex !== -1 && moreIndex < firstRowIndex, 'the "+N earlier" marker must sit at the elision point, ahead of the rows it is a stand-in for')
+  // An injected role="status" is read by some screen readers and not others, and the
+  // list this sits in is rewritten wholesale every poll: on the readers that do
+  // announce it, it would repeat on a loop. Being a plain node already in the
+  // reading order is what makes it announced once, everywhere, without looping.
+  const marker = list.slice(moreIndex, list.indexOf('>', moreIndex) + 1)
+  assert.ok(!/role=|aria-hidden=/.test(marker), 'the "+N earlier" marker must carry neither a role nor aria-hidden')
+})
+
+// Every child row shares its data-session with the parent that owns it, so a poll
+// that only touches age()/elapsed() text must not let focus drift from a selected
+// child row up to the parent it happens to share an id with.
+test('focus on a selected child row survives a re-render that changes the list HTML', () => {
+  const vm = require('node:vm')
+  const parseButtons = html => {
+    const buttons = []
+    const re = /<button\b([^>]*)>/g
+    let match
+    while ((match = re.exec(html))) {
+      const attrs = match[1]
+      const attr = name => attrs.match(new RegExp(`${name}="([^"]*)"`))?.[1]
+      buttons.push({ dataset: { session: attr('data-session'), delegation: attr('data-delegation'), filter: attr('data-filter') }, focus() { focused = this } })
+    }
+    return buttons
+  }
+  let focused = null
+  let buttons = []
+  const sessionList = {
+    _html: '', get innerHTML() { return this._html }, set innerHTML(v) { this._html = v; buttons = parseButtons(v) },
+    scrollTop: 0, contains: node => buttons.includes(node), querySelector: () => null,
+    querySelectorAll: sel => sel === 'button' ? buttons : [],
+  }
+  const elements = new Map([['session-list', sessionList]])
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const documentStub = {
+    getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+    createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+    documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+  }
+  const context = vm.createContext({
+    window: {}, document: documentStub,
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  const session = {
+    managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+    branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+    managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+    lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+    contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+    selectedModel: '', messages: 3, links: [], approvals: 0,
+    turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+    error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+    taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+    delegations: [
+      { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running' },
+      { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed' },
+    ],
+  }
+  const fixture = () => ({ generatedAt: Date.now(), counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1, archiveRule: { enabled: false, days: 14 }, sessions: [session] })
+  context.fixture = fixture()
+  vm.runInContext('snapshot = fixture; selectedChild = "dev-1"; render()', context)
+
+  const devButton = buttons.find(b => b.dataset.delegation === 'dev-1')
+  assert.ok(devButton, 'the delegation row must render')
+  documentStub.activeElement = devButton
+
+  // A normal poll tick: age() moves forward even though nothing about the selected
+  // delegation itself changed, so the list HTML differs and update() redraws it.
+  session.lastActivity = now - 2000
+  context.fixture = fixture()
+  vm.runInContext('snapshot = fixture; render()', context)
+
+  assert.ok(focused, 'focus must be restored to some row after the re-render')
+  assert.equal(focused.dataset.delegation, 'dev-1', 'focus must stay on the child row, not jump to the parent session row that shares its data-session')
+})
+
+// The list route is polled every couple of seconds, so it carries only enough to draw
+// the child row: never the mandate or report that made it into the delegation.
+test('the session list carries a compact delegation summary, with the role model as a fallback, and nothing else', async () => {
+  const { execFileSync } = require('node:child_process')
+  const { randomUUID } = require('node:crypto')
+  const { ManagedSessions } = require('./managed')
+  const { createApp } = require('./server')
+  const tasksMod = require('./tasks')
+  const delay = ms => new Promise(r => setTimeout(r, ms))
+  const until = async fn => { for (let i = 0; i < 100; i++) { if (fn()) return; await delay(5) } throw Error('Condition timed out') }
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-managed-'))
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-initiative-repo-'))
+  const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'ignore' })
+  git('init', '-q', '-b', 'main'); git('config', 'user.email', 't@example.invalid'); git('config', 'user.name', 'T')
+  fs.writeFileSync(path.join(repo, 'README.md'), 'hi'); git('add', 'README.md'); git('commit', '-qm', 'initial')
+  const manager = new ManagedSessions({ directory, queryFactory: async () => ({ close() {}, async *[Symbol.asyncIterator]() { yield { type: 'result', result: 'done', is_error: false } } }) })
+  const app = createApp({ manager, collectSessions: () => ({ sessions: [], counts: {}, total: 0, generatedAt: Date.now() }) })
+  try {
+    await new Promise((resolve, reject) => { app.server.once('error', reject); app.server.listen(0, '127.0.0.1', resolve) })
+    const base = `http://127.0.0.1:${app.server.address().port}`
+    const s = manager.create({ cwd: repo, prompt: 'Fix login', requestId: randomUUID(), teamId: 'delivery' })
+    await until(() => s.status === 'idle')
+    const task = tasksMod.act(s, { action: 'create', title: 'Fix login', owner: 'developer', criteria: ['Keep redirect query parameters.'] })
+    tasksMod.start(s, 'dev-1', { subagent_type: 'developer', prompt: `Fleet task: ${task.id}\nA secret mandate that must not reach the polled list.` })
+    const body = await (await fetch(base + '/api/sessions')).json()
+    const row = body.sessions.find(x => x.managedId === s.id)
+    // No model has been reported yet, so this falls back to the developer role's own.
+    assert.deepEqual(row.delegations, [{ id: 'dev-1', role: 'developer', model: 'sonnet', status: 'running' }])
+    assert.equal(JSON.stringify(body).includes('secret mandate'), false)
+  } finally {
+    await app.close?.(); await manager.close()
+    fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(repo, { recursive: true, force: true })
+  }
 })
