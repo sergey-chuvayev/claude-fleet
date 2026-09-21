@@ -280,6 +280,22 @@ test('a team session renders one nested child row per delegation, with role, mod
   assert.match(list, /data-delegation="qa-1"/)
   assert.match(list, /data-delegation="dev-1"[^]*?Working[^]*?developer[^]*?sonnet-5/)
   assert.match(list, /data-delegation="qa-1"[^]*?Done[^]*?qa[^]*?haiku/)
+  context.inspectorFixture={id:'dev-1',startedAt:now-45000,finishedAt:now,attempt:2,
+    usage:{input_tokens:950,output_tokens:320,cache_read_input_tokens:12000},
+    steps:[{id:'tool1',tool:'Bash',status:'done',ms:1000,input:{command:'<script>unsafe</script>'},result:'6 tests passed'}],report:'PASS with test evidence'}
+  vm.runInContext("childDetail=inspectorFixture;childDetailFor='dev-1';renderChildDetail(fixture.sessions[0],'dev-1')",context)
+  const detail=elements.get('detail-content').innerHTML
+  assert.match(detail,/45s · attempt 2/)
+  assert.match(detail,/950 input · 320 output · 12k cache read/)
+  assert.match(detail,/Per-agent cost not reported/)
+  assert.match(detail,/6 tests passed/)
+  assert.match(detail,/&lt;script&gt;unsafe&lt;\/script&gt;/)
+  assert.doesNotMatch(detail,/<script>unsafe/)
+  context.inspectorFixture.usage=null
+  context.inspectorFixture.runtimeUsage={total_tokens:1300}
+  vm.runInContext("renderChildDetail(fixture.sessions[0],'dev-1')",context)
+  assert.match(elements.get('detail-content').innerHTML,/1k tokens reported/)
+
 })
 
 // The child row list caps itself at the most recent CHILD_ROW_LIMIT delegations, but
@@ -370,7 +386,7 @@ test('focus on a selected child row survives a re-render that changes the list H
     while ((match = re.exec(html))) {
       const attrs = match[1]
       const attr = name => attrs.match(new RegExp(`${name}="([^"]*)"`))?.[1]
-      buttons.push({ dataset: { session: attr('data-session'), delegation: attr('data-delegation'), filter: attr('data-filter') }, focus() { focused = this } })
+      buttons.push({ closest: () => null, dataset: { session: attr('data-session'), delegation: attr('data-delegation'), filter: attr('data-filter') }, focus() { focused = this } })
     }
     return buttons
   }

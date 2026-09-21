@@ -6,7 +6,18 @@ function ledger(s) {return s.taskBoard ||= {tasks:[],delegations:[]}}
 function taskFor(s,id) {const task=ledger(s).tasks.find(t=>t.id===id);if(!task)fail('Task not found. Read the Fleet task board.');return task}
 function act(s,input) {
   const board=ledger(s)
-  if (input.action==='list') return board
+  // The durable ledger also powers the inspector. Never send its full transcript
+  // back into the manager context on every list call.
+  if (input.action==='list') return {
+    tasks:board.tasks,
+    delegations:board.delegations.map(d=>({id:d.id,taskId:d.taskId,role:d.role,attempt:d.attempt,status:d.status,startedAt:d.startedAt,finishedAt:d.finishedAt})),
+    detailHint:'Use inspect with delegationId to read an assignment and report.',
+  }
+  if (input.action==='inspect') {
+    const d=board.delegations.find(d=>d.id===input.delegationId)
+    if (!d) fail('Delegation not found. Read the Fleet task board.')
+    return {id:d.id,taskId:d.taskId,role:d.role,status:d.status,prompt:d.prompt,report:d.report,output:d.report ? undefined:d.output}
+  }
   if (input.action==='create') {
     if (board.tasks.length>=100) fail('This initiative has reached its 100-task limit.')
     const owner=input.owner,team=s.teamSnapshot
@@ -91,8 +102,8 @@ function progress(s) {
 async function sdkServer(s,changed) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('tasks','Read the durable task board; create scoped tasks with criteria and dependencies; record blockers. Fleet records verification from actual agent reports.',{
-    action:z.enum(['list','create','block']),title:z.string().optional(),owner:z.string().optional(),criteria:z.array(z.string()).optional(),dependencies:z.array(z.string()).optional(),taskId:z.string().optional(),reason:z.string().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('tasks','Read a compact task board; inspect delegation assignments/reports by delegationId; create scoped tasks with criteria and dependencies; record blockers. Fleet records verification from actual agent reports.',{
+    action:z.enum(['list','inspect','create','block']),delegationId:z.string().optional(),title:z.string().optional(),owner:z.string().optional(),criteria:z.array(z.string()).optional(),dependencies:z.array(z.string()).optional(),taskId:z.string().optional(),reason:z.string().optional(),
   },async input=>{
     const before=structuredClone(s.taskBoard)
     try {const result=act(s,input);changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}

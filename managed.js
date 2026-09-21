@@ -359,18 +359,30 @@ class ManagedSessions extends EventEmitter {
         const content=event.message.content || []
         d.activity=content.filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
         d.model=event.message.model || d.model
+        this.delegationUsage(d,run,event.message)
         const output=content.filter(b=>b.type==='text').map(b=>b.text).join('\n')
         if (output) d.output=output.slice(0,24000)
         // The one place a sub-agent's own tool calls are kept at all: as steps on its
         // delegation, never as messages (every branch above stays guarded by
-        // `!event.parent_tool_use_id`). No input, no result; those belong to d.report.
+        // `!event.parent_tool_use_id`). Inputs and results are bounded for inspection.
         for (const block of content) if (block.type==='tool_use') this.stepStarted(d,block)
       }
+      if (d && event.type==='result' && Number.isFinite(event.total_cost_usd) && event.total_cost_usd>=0) d.costUsd=event.total_cost_usd
       if (d && event.type==='user') {
         for (const block of event.message?.content || []) if (block.type==='tool_result') this.stepFinished(d,block)
       }
     }
-    if (event.type === 'system' && event.subtype === 'init') { s.model=event.model; s.status='running' }
+    if (s.taskBoard && event.type==='system' && ['task_progress','task_notification'].includes(event.subtype)) {
+      const d=s.taskBoard.delegations.find(d=>d.id===event.tool_use_id)
+      if (d && event.usage) {
+        d.runtimeUsage ||= {}
+        for (const key of ['total_tokens','tool_uses','duration_ms']) {
+          const value=event.usage[key]
+          if (Number.isFinite(value) && value>=0) d.runtimeUsage[key]=Math.max(d.runtimeUsage[key] || 0,value)
+        }
+      }
+    }
+    if (event.type === 'system' && event.subtype === 'init' && !event.parent_tool_use_id) { s.model=event.model; s.status='running' }
     if (event.type === 'stream_event' && !event.parent_tool_use_id) {
       if (event.event.type === 'message_start') { run.assistant=null; run.streamText='' }
       if (event.event.delta?.type === 'text_delta') {
@@ -398,9 +410,9 @@ class ManagedSessions extends EventEmitter {
     if (event.type === 'user' && !event.parent_tool_use_id) {
       for (const block of event.message?.content || []) if (block.type==='tool_result') this.toolFinished(s,run,block)
     }
-    if (event.type === 'tool_progress') s.currentTool=event.tool_name
+    if (event.type === 'tool_progress' && !event.parent_tool_use_id) s.currentTool=event.tool_name
     if (s.taskBoard && event.type==='system' && event.subtype==='task_notification' && event.tool_use_id && event.status!=='completed') tasks.finish(s,event.tool_use_id,event.summary,true)
-    if (event.type === 'result') {
+    if (event.type === 'result' && !event.parent_tool_use_id) {
       run.result=true
       if (event.is_error) { s.status='error'; s.error=event.errors?.join('\n') || event.result || 'Claude could not finish this turn.' }
       else if (event.result && !s.messages.some(m=>m.role==='assistant' && m.text===event.result.slice(-24000))) s.messages.push({id:randomUUID(),role:'assistant',text:event.result.slice(-24000),at:Date.now()})
@@ -441,13 +453,13 @@ class ManagedSessions extends EventEmitter {
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
   }
   // A sub-agent's tool call becomes a step on its delegation rather than a conversation
-  // entry: name, target, status and timing only, so the operator can see what happened
+  // entry: bounded input/output, status and timing, so the operator can see what happened
   // without the console ever rendering it.
   stepStarted(d,block) {
     if (!block.id) return
     d.steps ||= []
     if (d.steps.some(step=>step.id===block.id)) return
-    d.steps.push({id:block.id,tool:block.name || 'Tool',target:toolTarget(block.name,block.input),status:'running',at:Date.now(),ms:null})
+    d.steps.push({id:block.id,tool:block.name || 'Tool',target:toolTarget(block.name,block.input),input:clampInput(block.input),result:null,status:'running',at:Date.now(),ms:null})
     if (d.steps.length > MAX_DELEGATION_STEPS) { d.steps=d.steps.slice(-MAX_DELEGATION_STEPS); d.stepsTruncated=true }
   }
   stepFinished(d,block) {
@@ -455,6 +467,26 @@ class ManagedSessions extends EventEmitter {
     if (!step || step.status!=='running') return
     step.status=block.is_error ? 'error' : 'done'
     step.ms=Date.now()-step.at
+    const result=resultText(block.content)
+    step.result=result.slice(0,MAX_TOOL_RESULT)
+    step.truncated=result.length>MAX_TOOL_RESULT
+  }
+  // The SDK can emit multiple blocks for the same assistant message. Count each
+  // usage counter only once, accepting later updates without double-counting.
+  delegationUsage(d,run,message) {
+    if (!message.id || !message.usage) return
+    run.delegationUsage ||= new Map()
+    const key=JSON.stringify([d.id,message.id])
+    const previous=run.delegationUsage.get(key) || {}
+    d.usage ||= {}
+    for (const field of ['input_tokens','output_tokens','cache_read_input_tokens','cache_creation_input_tokens']) {
+      const value=message.usage[field]
+      if (!Number.isFinite(value) || value<0) continue
+      const next=Math.max(previous[field] || 0,value)
+      d.usage[field]=(d.usage[field] || 0)+next-(previous[field] || 0)
+      previous[field]=next
+    }
+    run.delegationUsage.set(key,previous)
   }
   setLimits(id,body) {
     const s=this.get(id)

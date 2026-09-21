@@ -412,7 +412,11 @@ In **New agent**, choose **Software delivery** to give a brief to a Manager back
 Product, Developer, Reviewer and QA roles. Choose **Customize team…** to save your own
 team: rename/add/remove roles, write their instructions, select a Claude model per role,
 and choose allowed tools. Built-in teams are copied; existing custom teams can be edited.
-The original Bug fix preset remains available for existing workflows.
+Choose **Quick task** for small, clearly scoped changes: a Sonnet manager, one developer,
+and one independent QA verifier, with two implementation attempts and a $3 usage cap.
+**Software delivery** keeps the thorough review-and-QA workflow. **No team · single agent**
+avoids orchestration entirely when you just need one agent. Existing initiatives keep
+their original team snapshot. The original Bug fix preset remains available.
 
 One role is the manager and at least one separate role is a required verifier. A third
 role owns the work. Fleet adds delegation and operator-question tools to the manager;
@@ -431,7 +435,7 @@ not a guarantee that their evaluation is correct or that later work cannot regre
 
 Delegations run sequentially in the shared initiative worktree. After an interruption,
 the saved task board survives and unfinished delegations are marked interrupted. Message
-the Manager to resume. The initial limits are three implementation attempts per task and
+the Manager to resume. Software delivery starts with three implementation attempts per task and
 $10 in reported SDK usage; **Adjust limits** changes them explicitly while idle. The SDK
 budget is an execution cutoff, not a billing guarantee: usage is reported at turn end,
 and a killed runtime may not report its final spend. Each turn also has a 100-turn SDK
@@ -442,3 +446,21 @@ snapshots live with the initiative in `sessions.json`. This version supports mod
 available through the Claude Agent SDK, up to eight roles per team, and 100 tasks per
 initiative. It finishes at a local branch ready for review; it does not automatically
 publish or merge changes.
+
+### Inspect individual agents
+
+Select a subagent row beneath a managed initiative to inspect its assignment, actual
+model, status, elapsed time, attempt, tool steps, and report. Expand **Input and output**
+to see a tool's recorded payload. The inspector is read-only; send direction and answer
+approvals through the manager. Tool history keeps the most recent 200 steps with bounded
+inputs and outputs. Older runs may have no recorded steps or usage.
+
+The inspector shows reported input/output and cache tokens, or SDK progress totals when
+only those are available. Repeated assistant events do not count usage twice. Per-agent
+cost appears only when the SDK explicitly reports it; missing data is not shown as zero.
+Token totals describe recorded usage across messages, not current context size.
+
+Task-board reads return compact metadata, so repeatedly checking task state does not
+re-inject all assignments, tool output and reports into the manager's context. The manager
+can request a specific delegation's full assignment/report using the task tool's
+`inspect` action with `delegationId`. Verification gates and saved evidence are unchanged.

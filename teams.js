@@ -174,7 +174,7 @@ const TEAMS = {
 const READ_TOOLS = ['Read','Glob','Grep','WebSearch','WebFetch']
 TEAMS.delivery = {
   id:'delivery', name:'Software delivery',
-  description:'Turn a brief into scoped work, implementation, independent code review and QA.',
+  description:'Thorough workflow: scoped work, implementation, independent code review and QA.',
   manager:'manager',
   workflow:{reviewers:['reviewer','qa'],maxAttempts:3,budgetUsd:10},
   roles:{
@@ -185,9 +185,22 @@ TEAMS.delivery = {
     qa:{description:'Verifies acceptance criteria with reproducible evidence.',prompt:QA,model:'sonnet',tools:[...READ_TOOLS,'Bash']},
   },
 }
+// A lighter explicit choice, using the same durable gates and snapshot mechanism.
+TEAMS.quick = {
+  id:'quick',name:'Quick task',
+  description:'Small, clear changes: one developer and one independent verifier, with focused checks.',
+  manager:'manager',workflow:{reviewers:['qa'],maxAttempts:2,budgetUsd:3},
+  roles:{
+    manager:{...TEAMS.delivery.roles.manager,model:'sonnet',prompt:'Coordinate a small, clearly scoped task. Read only relevant instructions and files. Create one task unless the goal has independent deliverables. Give the developer file boundaries, acceptance criteria and exact checks. Use one QA verification. Avoid broad audits, speculative improvements and repeated repository exploration. Pass concise findings and test evidence between roles.'},
+    developer:{...TEAMS.delivery.roles.developer,prompt:DEVELOPER+'\nKeep investigation scoped to the acceptance criteria. Run relevant checks once after the final change; repeat only after a failure or further change.'},
+    qa:{...TEAMS.delivery.roles.qa,prompt:QA+'\nKeep verification proportional to this small task. Focus on acceptance criteria and directly affected behavior; stop once sufficient evidence exists.'},
+  },
+}
 const TASK_RULES = `
 
 Fleet owns the durable task board. Use mcp__fleet__tasks to read it and create tasks before delegating.
+List returns compact metadata; use inspect with delegationId when you need a prior assignment or report.
+Read the board on resume and when state is uncertain, not repeatedly between every action.
 Each task needs an owner, acceptance criteria and optional dependencies. All configured verification
 roles must verify each deliverable. Include a line "Fleet task: <task ID>" in EVERY Agent prompt.
 Invoke only the owner or a configured verification role. Work sequentially in this shared worktree.
