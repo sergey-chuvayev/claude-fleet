@@ -463,7 +463,10 @@ body[data-modal]{overflow:hidden}
 .delegation-mandate .block-prose,.delegation-report .block-prose{padding:12px 0 0}
 .delegation-mandate .block-plain,.delegation-report .block-plain{white-space:pre-wrap;overflow-wrap:anywhere}
 
-.app-version{align-self:center;margin-left:8px;color:var(--muted);font-size:10px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+/* The version belongs to the wordmark. With connection state moved to the status bar
+   it is the only thing left between the brand and the buttons, so it is pinned here
+   rather than left to drift into the middle of the bar. */
+.app-version{align-self:center;margin-left:8px;margin-right:auto;color:var(--muted);font-size:10px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
 .session-cost{font-variant-numeric:tabular-nums}
 
 /* Configurable teams share the launch dialog and the Warp console palette. */
@@ -522,3 +525,38 @@ body[data-modal]{overflow:hidden}
 .child-step-detail summary{cursor:pointer;color:var(--muted);padding:4px 0}
 .child-step-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:12px}
 .child-step-detail h4{margin:10px 0 4px;font-size:12px}
+
+/* ── Status bar ────────────────────────────────────────────────────────────────
+   Ambient telemetry at the bottom, actions at the top. The plan windows belong to
+   the account rather than to any one session, so they are drawn once here and never
+   on a row: every Claude process on this machine spends the same five hours. */
+.statusbar{flex:none;display:flex;align-items:center;gap:14px;height:26px;padding:0 14px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--w-bg) 96%,var(--w-fg));font:10.5px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.status-usage{display:flex;align-items:center;gap:12px;min-width:0;overflow:hidden}
+.status-fleet{display:flex;align-items:center;gap:7px;margin-left:auto;flex:none}
+.status-conn{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:14px}
+.status-conn .local{border:0;margin:0;padding:0;font-size:9px}
+.status-sep{color:var(--line)}
+.usage-window{display:flex;align-items:center;gap:7px}
+.usage-window b,.usage-other b{font-weight:600;letter-spacing:.3px;color:var(--text)}
+.usage-window.warn b,.usage-window.hot b{color:currentColor}
+/* The countdown, shown instead of the bar once the window is nearly gone. */
+.usage-window em{font-style:normal;font-weight:600}
+.usage-window small,.usage-stale{color:var(--faint);font-size:10px}
+.status-usage .mini-bar{display:block;width:58px;height:4px;margin:0;flex:none}
+.usage-pct{color:var(--text)}
+.usage-window.warn .usage-pct,.usage-window.hot .usage-pct{color:currentColor}
+.usage-other{display:flex;align-items:center;gap:5px;color:var(--faint)}
+.usage-other b{font-weight:500;color:var(--muted)}
+/* A reading only refreshes while an agent runs. An idle hour must not look live, and
+   every window in the cluster shares the one timestamp, so they dim together. */
+.status-usage:has(.is-stale){opacity:.55}
+.usage-blocked{display:flex;align-items:center;gap:7px;font-weight:600}
+/* The same wall, repeated where it changes a decision rather than only informing one. */
+.rate-warning{font-size:12px;line-height:1.6;color:var(--stale);border:1px solid color-mix(in oklab,var(--stale) 45%,var(--line));background:color-mix(in oklab,var(--stale) 9%,var(--panel));border-radius:8px;padding:11px 14px;margin:0 32px 14px}
+@media(max-width:720px){.rate-warning{margin:0 20px 12px}}
+/* The form scrolls inside the dialog and was already within a few pixels of pushing its
+   own submit button out of sight. Anything added above the fields, this warning
+   included, would have hidden it, so the action bar now holds the bottom edge. */
+.modal-launch .launch-footer{position:sticky;bottom:0;z-index:1}
+@media(max-width:900px){.statusbar .local,.usage-other{display:none}}
+@media(max-width:720px){.statusbar{height:auto;flex-wrap:wrap;gap:8px;padding:8px 14px;white-space:normal}.status-fleet{margin-left:0}.status-conn{border:0;padding-left:0}}

@@ -121,6 +121,55 @@ session's own process and never appear as separate rows at all.
 
 </details>
 
+### The status bar watches the account, not the session
+
+Context pressure is per conversation. The five-hour and weekly plan windows are not:
+every Claude process on the machine draws on the same ones, including the terminal
+sessions Fleet only watches. They get one line along the bottom of the window.
+
+```
+5h ▇▇▇▇▇▇░░░░ 62%  resets 13:28   ·   week 31%   ·   opus wk 48%
+```
+
+Only the window closest to stopping you gets a bar; the rest stay bare numbers. The
+same 75% amber and 90% red as context, so "nearly full" reads the same way everywhere.
+Past 90% the countdown replaces the bar, because by then the question is when it clears,
+not how full it is.
+
+When a request is actually refused, the bar turns into the refusal, and the new-agent
+dialog says so before you write a prompt:
+
+```
+⊘ Rate limited · five-hour window · resets 11:42 (35m) · organisation spend cap reached
+```
+
+<details>
+<summary><b>Where the numbers come from, and when they are missing</b></summary>
+
+Three sources, none of them available all the time:
+
+| Source | Gives | Available |
+|---|---|---|
+| `rate_limit_event` | utilisation, reset | only while a Fleet agent streams |
+| The runtime's `/usage` data | every window, the plan | pulled once at the end of a turn |
+| A refused request in any transcript | the wall and its reset | whenever it happened, to any session |
+
+Nothing here ever spends a token to find out: a synthetic request would consume the
+window it claims to measure. That has consequences the bar is explicit about.
+
+Utilisation only refreshes while an agent is running, so after an idle stretch the
+cluster dims and stamps itself `as of 09:38` rather than presenting an old reading as
+current. Nothing measured yet shows nothing at all, never `0%`. On an API key, Bedrock
+or Vertex, where plan limits do not apply, the cluster is absent entirely.
+
+A refusal is the one signal that survives Fleet being idle, because it is written into
+the transcript of whichever session hit it. It expires by itself at its reset time, and
+a refusal with no reset time is discarded rather than shown: a warning that cannot
+clear itself is worse than none. Being blocked never disables anything. Fleet says what
+it knows and leaves the decision where it belongs.
+
+</details>
+
 ### Old sessions can be put away
 
 Every transcript Claude has ever written is a row, so a machine that has been

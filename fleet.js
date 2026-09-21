@@ -189,6 +189,9 @@ function readTranscript(file) {
     events: [],
     cwd: null,
     gitBranch: null,
+    // The newest 429 this transcript recorded, if any. Plan limits are account-wide, so
+    // a rejection here describes the whole machine, not only this session.
+    rateLimit: null,
   }
 
   for (const line of text.split('\n')) {
@@ -208,6 +211,16 @@ function readTranscript(file) {
     if (d.timestamp) {
       if (!data.firstTs) data.firstTs = d.timestamp
       data.lastTs = d.timestamp
+    }
+    // Claude records the quota it hit only when a request was actually refused. There is
+    // no routine utilisation record to read here, so this is a wall, never a gauge.
+    if (d.quotaLimits && d.quotaLimits.status === 'rejected') {
+      data.rateLimit = {
+        at: d.timestamp ? Date.parse(d.timestamp) || null : null,
+        rateLimitType: d.quotaLimits.rateLimitType || null,
+        resetsAt: d.quotaLimits.resetsAt || null,
+        reason: d.quotaLimits.overageDisabledReason || null,
+      }
     }
     if (d.timestamp) {
       const at = Date.parse(d.timestamp)
@@ -349,6 +362,7 @@ function collect() {
   const index = transcriptIndex()
   const now = Date.now()
   const sessions = []
+  let rateLimit = null
 
   // The registry describes running processes, not saved conversations: Claude
   // removes registrations on exit. Join it with durable transcripts so handoff
@@ -372,6 +386,10 @@ function collect() {
     const alive = isAlive(meta.pid)
     const file = meta.sessionId ? index.get(meta.sessionId) : null
     const t = file ? readTranscript(file) : null
+
+    // Whoever hit the wall, the wall is the account's. The freshest rejection on this
+    // machine describes the whole fleet, including sessions Fleet only watches.
+    if (t && t.rateLimit && (!rateLimit || (t.rateLimit.at || 0) > (rateLimit.at || 0))) rateLimit = t.rateLimit
 
     const lastActivity = Math.max(
       meta.updatedAt || 0,
@@ -436,7 +454,7 @@ function collect() {
   const counts = { busy: 0, idle: 0, stale: 0, dead: 0 }
   for (const s of sessions) counts[s.state] = (counts[s.state] || 0) + 1
 
-  return { generatedAt: now, counts, total: sessions.length, sessions }
+  return { generatedAt: now, counts, total: sessions.length, sessions, rateLimit }
 }
 
 // Look up a transcript by session id without going through the process registry.
