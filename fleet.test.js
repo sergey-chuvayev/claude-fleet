@@ -282,6 +282,67 @@ test('a team session renders one nested child row per delegation, with role, mod
   assert.match(list, /data-delegation="qa-1"[^]*?Done[^]*?qa[^]*?haiku/)
 })
 
+// The child row list caps itself at the most recent CHILD_ROW_LIMIT delegations, but
+// a delegation selected before it aged out of that window must still draw as
+// selected: the parent row has already given up aria-pressed to session-ancestor,
+// so an unrendered selection would leave nothing in the whole list reading as chosen.
+test('a delegation selected outside the visible tail still renders, and only it reads as selected', () => {
+  const vm = require('node:vm')
+  const elements = new Map()
+  const makeElement = () => ({
+    _html: '',
+    get innerHTML() { return this._html }, set innerHTML(v) { this._html = v },
+    textContent: '', scrollTop: 0, hidden: false, dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    contains: () => false, querySelector: () => null, querySelectorAll: () => [],
+    focus() {}, setAttribute() {}, getAttribute: () => null, removeAttribute() {},
+    addEventListener() {}, removeEventListener() {}, closest: () => null, append() {}, remove() {},
+  })
+  const getElementById = id => { if (!elements.has(id)) elements.set(id, makeElement()); return elements.get(id) }
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      createElement: makeElement, body: { setAttribute() {}, removeAttribute() {} },
+      documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete', activeElement: null,
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  new vm.Script(source, { filename: 'app.js' }).runInContext(context)
+
+  const now = Date.now()
+  // 25 delegations: the tail (CHILD_ROW_LIMIT = 20) keeps only the newest 20, so
+  // the earliest 5, including the one selected below, start out of the window.
+  const delegations = Array.from({ length: 25 }, (_, i) => ({ id: `d${i}`, role: 'developer', model: 'claude-sonnet-5', status: 'completed' }))
+  const fixture = {
+    generatedAt: now, counts: { busy: 1, idle: 0, stale: 0, dead: 0 }, total: 1,
+    archiveRule: { enabled: false, days: 14 },
+    sessions: [{
+      managedId: 'm1', sessionId: 's1', shortId: 's1', name: 'Fix login', title: 'Fix login',
+      branch: 'main', cwd: '/repo', cwdShort: '~/repo', state: 'busy', managedStatus: 'running',
+      managed: true, alive: true, pid: null, lastActivity: now, startedAt: now,
+      lastPrompt: 'Fix login', latestResponse: null, model: 'claude-sonnet-5',
+      contextTokens: null, contextLimit: 200000, permissionMode: 'default', approvalMode: 'auto',
+      selectedModel: '', messages: 3, links: [], approvals: 0,
+      turn: { steps: [], current: null, last: null, turnStartedAt: null, answers: 0 },
+      error: null, currentTool: null, resumeCmd: null, kind: 'initiative', teamId: 'delivery', teamName: 'Delivery',
+      taskProgress: { total: 1, verified: 0, blocked: 0 }, worktreeBranch: null, costUsd: 0.05,
+      delegations,
+    }],
+  }
+  context.fixture = fixture
+  vm.runInContext('snapshot = fixture; selectedChild = "d0"; render()', context)
+  const list = elements.get('session-list').innerHTML
+  assert.match(list, /data-delegation="d0"/, 'the selected delegation must render even though it aged out of the visible tail')
+  const pressedCount = (list.match(/aria-pressed="true"/g) || []).length
+  assert.equal(pressedCount, 1, 'exactly one row in the whole list must read as selected')
+  assert.match(list, /data-delegation="d0"[^]*?aria-pressed="true"/, 'the row reading as selected must be the one actually chosen')
+})
+
 // Every child row shares its data-session with the parent that owns it, so a poll
 // that only touches age()/elapsed() text must not let focus drift from a selected
 // child row up to the parent it happens to share an id with.
