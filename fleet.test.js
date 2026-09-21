@@ -341,6 +341,21 @@ test('a delegation selected outside the visible tail still renders, and only it 
   const pressedCount = (list.match(/aria-pressed="true"/g) || []).length
   assert.equal(pressedCount, 1, 'exactly one row in the whole list must read as selected')
   assert.match(list, /data-delegation="d0"[^]*?aria-pressed="true"/, 'the row reading as selected must be the one actually chosen')
+  // 25 delegations, minus the pulled-forward selection (d0) and the 20-row tail
+  // (d5..d24), leaves 4 (d1..d4) genuinely un-rendered: the count the "+N earlier"
+  // line reports has to track that arithmetic, not just appear.
+  assert.match(list, /class="session-child-more">\+4 earlier</, 'the "+N earlier" line must report exactly the delegations that are not drawn')
+  // The list is oldest-first, so the cut rows are the oldest ones: the marker has to
+  // sit ahead of the surviving rows, not trail the newest one.
+  const moreIndex = list.indexOf('session-child-more')
+  const firstRowIndex = list.indexOf('data-delegation=')
+  assert.ok(moreIndex !== -1 && moreIndex < firstRowIndex, 'the "+N earlier" marker must sit at the elision point, ahead of the rows it is a stand-in for')
+  // An injected role="status" is read by some screen readers and not others, and the
+  // list this sits in is rewritten wholesale every poll: on the readers that do
+  // announce it, it would repeat on a loop. Being a plain node already in the
+  // reading order is what makes it announced once, everywhere, without looping.
+  const marker = list.slice(moreIndex, list.indexOf('>', moreIndex) + 1)
+  assert.ok(!/role=|aria-hidden=/.test(marker), 'the "+N earlier" marker must carry neither a role nor aria-hidden')
 })
 
 // Every child row shares its data-session with the parent that owns it, so a poll
