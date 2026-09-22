@@ -1,11 +1,13 @@
 'use strict'
 const {randomUUID}=require('node:crypto')
+const ownerReview=require('./owner-review')
 const fail=message=>{throw new Error(message)}
 const idFrom=prompt=>typeof prompt==='string' ? prompt.match(/^Fleet task: ([\w-]+)\s*$/m)?.[1] : null
 function ledger(s) {return s.taskBoard ||= {tasks:[],delegations:[]}}
 function taskFor(s,id) {const task=ledger(s).tasks.find(t=>t.id===id);if(!task)fail('Task not found. Read the Fleet task board.');return task}
 function act(s,input) {
   const board=ledger(s)
+  ownerReview.refresh(s)
   // The durable ledger also powers the inspector. Never send its full transcript
   // back into the manager context on every list call.
   if (input.action==='list') return {
@@ -21,7 +23,10 @@ function act(s,input) {
   if (input.action==='create') {
     if (board.tasks.length>=100) fail('This initiative has reached its 100-task limit.')
     const owner=input.owner,team=s.teamSnapshot
-    if (!Object.hasOwn(team.roles,owner) || owner===team.manager || team.workflow.reviewers.includes(owner)) fail('Choose a worker role as owner, separate from manager and verification roles.')
+    if (ownerReview.enabled(s)) {
+      if (board.tasks.length) fail('Owner + review has one durable request task. Continue it; follow-up tasks cannot reset its limits.')
+      if (owner!==team.manager) fail('The main-thread owner implements this request.')
+    } else if (!Object.hasOwn(team.roles,owner) || owner===team.manager || team.workflow.reviewers.includes(owner)) fail('Choose a worker role as owner, separate from manager and verification roles.')
     if (typeof input.title!=='string' || !input.title.trim() || input.title.length>200) fail('Task title must contain 1–200 characters.')
     if (!Array.isArray(input.criteria) || !input.criteria.length || input.criteria.length>20 || input.criteria.some(c=>typeof c!=='string' || !c.trim() || c.length>2000)) fail('Supply 1–20 concrete acceptance criteria.')
     const dependencies=input.dependencies || []
@@ -30,9 +35,13 @@ function act(s,input) {
     const task={id:randomUUID(),title:input.title.trim(),owner,criteria:input.criteria,dependencies:[...new Set(dependencies)],status:'pending',attempt:0,reviews:{},createdAt:Date.now()}
     board.tasks.push(task);return task
   }
+  if (input.action==='ready') {
+    if (!ownerReview.enabled(s)) fail('Only Owner + review uses action ready.')
+    return ownerReview.ready(s,taskFor(s,input.taskId),input)
+  }
   if (input.action==='block') {
     const task=taskFor(s,input.taskId)
-    if (task.status==='verified') fail('This task is already verified. Create a follow-up for additional work.')
+    if (task.status==='verified') fail(ownerReview.enabled(s) ? 'The code is already verified. Finish delivery in the owner session; subsequent code changes require review again.' : 'This task is already verified. Create a follow-up for additional work.')
     if (board.delegations.some(d=>d.taskId===task.id && d.status==='running')) fail('Wait for the running delegation before blocking this task.')
     if (typeof input.reason!=='string' || !input.reason.trim() || input.reason.length>2000) fail('Explain the blocker in 1–2,000 characters.')
     task.status='blocked';task.blocker=input.reason;return task
@@ -45,6 +54,7 @@ function start(s,toolId,input) {
   if (input.run_in_background || input.resume) fail('Use a fresh foreground delegation so Fleet can track its evidence.')
   if (role!==task.owner && !team.workflow.reviewers.includes(role)) fail('Delegate to the task owner or one of its verification roles.')
   if (board.delegations.some(d=>d.status==='running')) fail('Wait for the current delegation: this initiative shares one worktree.')
+  if (ownerReview.enabled(s)) return ownerReview.start(s,task,toolId,input)
   if (task.dependencies.some(id=>taskFor(s,id).status!=='verified')) fail('Complete this task’s dependencies first.')
   if (role===task.owner) {
     if (task.attempt>=(s.limits?.maxAttempts ?? team.workflow.maxAttempts)) fail('Repair attempt limit reached. Report the blocker to the operator.')
@@ -79,6 +89,7 @@ function finish(s,toolId,report,error=false) {
   if (!d || d.status!=='running') return
   d.report=String(error ? report : d.output || unwrapReport(report)).slice(0,24000);d.status=error ? 'failed':'completed';d.finishedAt=Date.now()
   const task=taskFor(s,d.taskId)
+  if (ownerReview.enabled(s)) {ownerReview.finish(s,task,d,error);return}
   if (error) {task.status='blocked';task.blocker='Delegation failed. Read the report before retrying.';return}
   if (/^\s*(?:\*\*)?SPLIT_REQUIRED\b/.test(d.report)) {
     task.status='blocked';task.blocker='Delegate needs a smaller mandate. Inspect completed work and split the remainder; do not raise the turn cap.';return
@@ -94,20 +105,23 @@ function interrupt(s) {
   if (!s.taskBoard) return
   for (const d of s.taskBoard.delegations) if (d.status==='running') {
     d.status='interrupted';d.finishedAt=Date.now()
-    const task=taskFor(s,d.taskId);task.status='blocked';task.blocker='Execution interrupted. Ask the manager to resume.'
+    const task=taskFor(s,d.taskId)
+    if (ownerReview.enabled(s)) ownerReview.executionError(task,'Review execution interrupted. Resume the owner session; one execution retry is allowed per request.')
+    else {task.status='blocked';task.blocker='Execution interrupted. Ask the manager to resume.'}
   }
 }
 function progress(s) {
   if (!s.taskBoard) return null
   const tasks=s.taskBoard.tasks
-  return {total:tasks.length,verified:tasks.filter(t=>t.status==='verified').length,blocked:tasks.filter(t=>['blocked','changes_requested'].includes(t.status)).length}
+  return {total:tasks.length,verified:tasks.filter(t=>t.status==='verified').length,blocked:tasks.filter(t=>['blocked','changes_requested','review_error','stale'].includes(t.status)).length}
 }
 async function sdkServer(s,changed) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('tasks','Read a compact task board; inspect delegation assignments/reports by delegationId; create scoped tasks with criteria and dependencies; record blockers. Fleet records verification from actual agent reports.',{
-    action:z.enum(['list','inspect','create','block']),delegationId:z.string().optional(),title:z.string().optional(),owner:z.string().optional(),criteria:z.array(z.string()).optional(),dependencies:z.array(z.string()).optional(),taskId:z.string().optional(),reason:z.string().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('tasks','Read a compact task board; inspect delegation evidence; create tasks with acceptance criteria; record blockers. Owner + review permits one request task and uses ready with taskId and evidence after committing a clean worktree. Fleet records verification from actual reviewer reports.',{
+    action:z.enum(['list','inspect','create','block','ready']),delegationId:z.string().optional(),title:z.string().optional(),owner:z.string().optional(),criteria:z.array(z.string()).optional(),dependencies:z.array(z.string()).optional(),taskId:z.string().optional(),reason:z.string().optional(),evidence:z.string().optional(),
   },async input=>{
+    if (ownerReview.refresh(s)) changed()
     const before=structuredClone(s.taskBoard)
     try {const result=act(s,input);changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}
     catch(error){s.taskBoard=before;return {isError:true,content:[{type:'text',text:error.message}]}}

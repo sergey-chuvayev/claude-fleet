@@ -17,7 +17,9 @@ function validateTeam(input) {
   const name=string(input.name,'Team name',80), description=string(input.description,'Team description',500)
   if (!input.roles || typeof input.roles!=='object' || Array.isArray(input.roles)) bad('Roles must be an object.')
   const entries=Object.entries(input.roles)
-  if (entries.length<3 || entries.length>8) bad('A team needs 3–8 roles, including its manager.')
+  const mode=input.workflow?.mode || 'team',ownerReview=mode==='owner-review'
+  if (!['team','owner-review'].includes(mode)) bad('Choose a supported execution mode.')
+  if (ownerReview ? entries.length!==2 : entries.length<3 || entries.length>8) bad(ownerReview ? 'Owner + review needs exactly two roles.' : 'A team needs 3–8 roles, including its manager.')
   const manager=string(input.manager,'Manager role',40), roles={}
   for (const [key,role] of entries) {
     if (!/^[a-z][a-z0-9-]{0,39}$/.test(key) || ['constructor','prototype','__proto__'].includes(key)) bad('Role IDs must use lowercase letters, numbers and hyphens.')
@@ -35,17 +37,17 @@ function validateTeam(input) {
   if (!Array.isArray(input.workflow?.reviewers) || !input.workflow.reviewers.length) bad('Choose at least one independent verification role.')
   const reviewers=[...new Set(input.workflow.reviewers)]
   if (reviewers.some(r=>typeof r!=='string' || !Object.hasOwn(roles,r) || r===manager)) bad('Verification roles must exist and cannot be the manager.')
-  if (!entries.some(([r])=>r!==manager && !reviewers.includes(r))) bad('Include a worker role separate from the verification roles.')
+  if (ownerReview ? reviewers.length!==1 : !entries.some(([r])=>r!==manager && !reviewers.includes(r))) bad(ownerReview ? 'Choose exactly one independent reviewer.' : 'Include a worker role separate from the verification roles.')
   const maxAttempts=input.workflow.maxAttempts ?? 3, budgetUsd=input.workflow.budgetUsd ?? 10
   if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) bad('Attempts must be between 1 and 10.')
   if (typeof budgetUsd!=='number' || !Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000) bad('Usage cap must be between $0.10 and $1,000.')
   // Manager is a coordinator. Verification can run commands but cannot use edit tools.
-  roles[manager].tools=roles[manager].tools.filter(t=>['Read','Glob','Grep','WebSearch','WebFetch'].includes(t))
+  if (!ownerReview) roles[manager].tools=roles[manager].tools.filter(t=>['Read','Glob','Grep','WebSearch','WebFetch'].includes(t))
   for (const key of reviewers) roles[key].tools=roles[key].tools.filter(t=>!['Write','Edit','MultiEdit','NotebookEdit'].includes(t))
-  return {id,name,description,manager,roles,workflow:{reviewers,maxAttempts,budgetUsd}}
+  return {id,name,description,manager,roles,workflow:{...(ownerReview ? {mode}:{}),reviewers,maxAttempts,budgetUsd}}
 }
 function summary(team) {
-  return {id:team.id,name:team.name,description:team.description,manager:team.manager,custom:!!team.custom,roles:Object.entries(team.roles).map(([name,r])=>({name,description:r.description,model:r.model || null}))}
+  return {id:team.id,name:team.name,description:team.description,manager:team.manager,mode:team.workflow?.mode || 'team',custom:!!team.custom,roles:Object.entries(team.roles).map(([name,r])=>({name,description:r.description,model:r.model || null}))}
 }
 class TeamStore {
   constructor(directory) {

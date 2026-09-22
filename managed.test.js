@@ -586,6 +586,89 @@ function gitRepo(){
 }
 const finished=()=>({close(){},async *[Symbol.asyncIterator](){yield {type:'result',result:'done',is_error:false,total_cost_usd:0}}})
 
+test('owner-review hooks keep implementation in a resumed owner session and bind review to Git evidence',async()=>{
+  const tasks=require('./tasks'),calls=[],sessionId=randomUUID()
+  const {directory,manager}=setup(async args=>{
+    calls.push(args)
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'system',subtype:'init',session_id:sessionId,model:'sonnet'}
+      yield {type:'result',result:'done',is_error:false,total_cost_usd:0.25}
+    }}
+  })
+  const repo=gitRepo()
+  try {
+    const s=manager.create({cwd:repo,prompt:'Keep login redirect query strings.',requestId:randomUUID(),teamId:'owner-review'})
+    await until(()=>s.status==='idle' || s.status==='error')
+    assert.equal(s.error,null)
+    const {options}=calls[0],pre=options.hooks.PreToolUse[0].hooks[0],stop=options.hooks.Stop[0].hooks[0]
+    assert.equal(options.agent,'owner');assert.equal(options.model,'sonnet')
+    assert.ok(options.agents.owner.tools.includes('Edit'))
+    assert.equal(options.maxBudgetUsd,10)
+    assert.equal((await stop()).decision,'block','an empty task board must not bypass review')
+    const task=tasks.act(s,{action:'create',owner:'owner',title:'Fix login',criteria:['Preserve query strings.']})
+    const denied=await pre({tool_name:'Agent',tool_use_id:'dev',tool_input:{subagent_type:'owner',prompt:`Fleet task: ${task.id}`}})
+    assert.equal(denied.hookSpecificOutput.permissionDecision,'deny')
+    const nested=await pre({agent_id:'reviewer-1',tool_name:'mcp__fleet__tasks',tool_input:{action:'ready'}})
+    assert.equal(nested.hookSpecificOutput.permissionDecision,'deny')
+    assert.deepEqual(await stop({agent_id:'reviewer-1'}),{},'subagents do not drive the owner stop hook')
+    tasks.act(s,{action:'ready',taskId:task.id,evidence:'node --test: redirect regression checks passed.'})
+    const approved=await pre({tool_name:'Agent',tool_use_id:'review',tool_input:{subagent_type:'reviewer',prompt:`Fleet task: ${task.id}\nCheck the login change.`}})
+    assert.match(approved.hookSpecificOutput.updatedInput.prompt,/Keep login redirect query strings/)
+    assert.ok(approved.hookSpecificOutput.updatedInput.prompt.includes(s.reviewBaseCommit))
+    assert.ok(s.taskBoard.delegations[0].prompt.includes('Owner test evidence'))
+    const run={tools:new Map()}
+    manager.event(s,run,{type:'assistant',message:{content:[{type:'tool_use',id:'review',name:'Agent',input:{subagent_type:'reviewer'}}]}})
+    manager.event(s,run,{type:'user',message:{content:[{type:'tool_result',tool_use_id:'review',content:'FAIL\nBlocking: the login redirect still loses query parameters in the regression case.'}]}})
+    assert.equal(task.status,'changes_requested')
+    manager.send(s.id,{message:'Repair the query-string issue.',requestId:randomUUID()})
+    await until(()=>calls.length===2 && s.status==='idle')
+    assert.equal(calls[1].options.resume,sessionId)
+    assert.equal(calls[1].options.agent,'owner')
+    assert.equal(calls[1].options.maxBudgetUsd,9.75,'the owner and all reviews share the session budget')
+    fs.writeFileSync(path.join(s.cwd,'README.md'),'fixed redirect')
+    execFileSync('git',['add','README.md'],{cwd:s.cwd})
+    execFileSync('git',['commit','-qm','fix: keep query strings'],{cwd:s.cwd})
+    tasks.act(s,{action:'ready',taskId:task.id,evidence:'node --test: the query-string regression now passes.'})
+    const pre2=calls[1].options.hooks.PreToolUse[0].hooks[0]
+    const rereview=await pre2({tool_name:'Agent',tool_use_id:'review2',tool_input:{subagent_type:'reviewer',prompt:`Fleet task: ${task.id}`}})
+    assert.match(rereview.hookSpecificOutput.updatedInput.prompt,/Previous review/)
+    manager.event(s,run,{type:'assistant',message:{content:[{type:'tool_use',id:'review2',name:'Agent',input:{subagent_type:'reviewer'}}]}})
+    manager.event(s,run,{type:'user',message:{content:[{type:'tool_result',tool_use_id:'review2',content:'PASS\nInspected the repair and verified that the actual redirect preserves query parameters.'}]}})
+    assert.equal(task.status,'verified');assert.equal(task.attempt,2)
+    assert.deepEqual(await calls[1].options.hooks.Stop[0].hooks[0](),{})
+    assert.deepEqual(await pre2({tool_name:'Bash',tool_input:{command:'gh pr view --json url,headRefOid'}}),{},'administrative work stays with the owner')
+    fs.writeFileSync(path.join(s.cwd,'README.md'),'later change')
+    const stale=await calls[1].options.hooks.PostToolUse[0].hooks[0]({hook_event_name:'PostToolUse',tool_name:'Edit'})
+    assert.match(stale.hookSpecificOutput.additionalContext,/review is stale/)
+    assert.equal(manager.detail(s.id).taskBoard.tasks[0].status,'stale')
+    assert.equal(s.taskBoard.delegations.length,2,'only the two reviews were delegated')
+  } finally {await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
+test('owner-review failure hooks and detail reads invalidate externally changed verified code',async()=>{
+  const tasks=require('./tasks'),calls=[]
+  const {directory,manager}=setup(async args=>{calls.push(args);return finished()}),repo=gitRepo()
+  try {
+    const s=manager.create({cwd:repo,prompt:'Fix login.',requestId:randomUUID(),teamId:'owner-review'})
+    await until(()=>s.status==='idle')
+    const task=tasks.act(s,{action:'create',owner:'owner',title:'Fix login',criteria:['Keep redirects.']})
+    const verify=id=>{
+      tasks.act(s,{action:'ready',taskId:task.id,evidence:'node --test: redirect regression cases pass.'})
+      tasks.start(s,id,{subagent_type:'reviewer',prompt:`Fleet task: ${task.id}`})
+      tasks.finish(s,id,'PASS\nChecked the implementation against the redirect acceptance criteria.')
+    }
+    verify('r1')
+    fs.writeFileSync(path.join(s.cwd,'new-file.js'),'new source')
+    const result=await calls[0].options.hooks.PostToolUseFailure[0].hooks[0]({hook_event_name:'PostToolUseFailure',tool_name:'Bash'})
+    assert.equal(result.hookSpecificOutput.hookEventName,'PostToolUseFailure')
+    assert.equal(task.status,'stale')
+    fs.unlinkSync(path.join(s.cwd,'new-file.js'));verify('r2')
+    fs.writeFileSync(path.join(s.cwd,'README.md'),'external edit')
+    assert.equal(manager.detail(s.id).taskBoard.tasks[0].status,'stale')
+    assert.equal(tasks.progress(s).verified,0)
+  } finally {await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
+})
+
 test('a team puts the manager on the main thread and the work on its own branch',async()=>{
   const calls=[]
   const {directory,manager}=setup(async args=>{calls.push(args);return finished()})

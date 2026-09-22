@@ -5,6 +5,24 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path')
 const {TeamStore,validateTeam}=require('./team-store')
 const {getTeam,compile}=require('./teams')
 const template=()=>({...getTeam('delivery'),id:'my-team'})
+test('owner-review copies retain their two roles, mode and owner editing tools',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-owner-team-'))
+  try {
+    const store=new TeamStore(dir),team={...getTeam('owner-review'),id:'my-owner'}
+    store.save(team)
+    const saved=new TeamStore(dir).get(team.id)
+    assert.equal(saved.workflow.mode,'owner-review')
+    assert.ok(compile(saved).agents.owner.tools.includes('Bash'))
+    assert.ok(compile(saved).agents.owner.tools.includes('Edit'))
+    assert.equal(store.list().find(t=>t.id===team.id).mode,'owner-review')
+    team.roles.worker={...team.roles.owner}
+    assert.throws(()=>validateTeam(team),/exactly two/)
+    delete team.roles.worker;team.workflow.reviewers=['owner']
+    assert.throws(()=>validateTeam(team),/cannot be the manager/)
+    team.workflow.mode='unknown'
+    assert.throws(()=>validateTeam(team),/execution mode/)
+  } finally {fs.rmSync(dir,{recursive:true,force:true})}
+})
 test('custom limits survive validation and old configurations receive bounded defaults',()=>{
   const team=template()
   team.roles.developer.maxTurns=12

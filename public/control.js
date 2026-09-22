@@ -32,10 +32,11 @@ async function initializeControls() {
 let launchTeams=null, launchTeamsLoading=false
 function updateLaunchTeam() {
   const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
-  $('launch-title').textContent=resumeSource ? 'Continue this conversation in Fleet.' : team ? 'Give your team a brief.' : 'Give your next task a home.'
-  document.querySelector('label[for="launch-prompt"]').textContent=team ? 'Brief for the manager' : 'What are we working on?'
-  document.querySelector('.launch-task-note').textContent=team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'Big ideas, small fixes. Every task starts here.'
-  $('launch-prompt').placeholder=team ? 'Describe what you want to accomplish. Your manager will work out the tasks and bring back any questions.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
+  const ownerReview=team?.mode==='owner-review'
+  $('launch-title').textContent=resumeSource ? 'Continue this conversation in Fleet.' : ownerReview ? 'Give your owner a task.' : team ? 'Give your team a brief.' : 'Give your next task a home.'
+  document.querySelector('label[for="launch-prompt"]').textContent=ownerReview ? 'Task for the owner' : team ? 'Brief for the manager' : 'What are we working on?'
+  document.querySelector('.launch-task-note').textContent=ownerReview ? 'Your owner implements, tests and finishes the request. One independent reviewer checks the changes.' : team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'Big ideas, small fixes. Every task starts here.'
+  $('launch-prompt').placeholder=ownerReview ? 'Describe the task, the expected behavior, and any constraints. Your owner will implement it and request independent review.' : team ? 'Describe what you want to accomplish. Your manager will work out the tasks and bring back any questions.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
   if(!$('launch-submit').disabled) $('launch-submit').textContent=team ? 'Launch initiative ↗' : 'Launch agent ↗'
   if($('customize-team')) $('customize-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
   $('launch-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled

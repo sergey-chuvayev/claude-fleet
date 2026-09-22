@@ -219,6 +219,47 @@ TEAMS.bugfix.roles={
   developer:{...TEAMS.delivery.roles.developer},
   qa:{...TEAMS.delivery.roles.qa},
 }
+const OWNER_RULES = `
+You own this request end to end in this persistent session. Read project instructions,
+investigate, implement, test, commit, repair findings and finish the PR yourself.
+Do not delegate implementation, investigation, repairs or administrative work.
+Use mcp__fleet__tasks to create ONE task owned by your main-thread role with concrete
+acceptance criteria. Read its existing state on resume; never create follow-up tasks
+to reset limits. The original user request remains authoritative.
+After relevant checks pass, commit your changes and leave a clean worktree. Call
+the task tool with action ready, taskId and evidence (commands, results and limitations).
+Fleet records the actual Git snapshot. Then invoke the configured reviewer in the
+foreground with "Fleet task: <task ID>" on its own line. Fleet supplies the original
+request, criteria, base, snapshot and test evidence. Only review may be delegated.
+For blocking findings, fix them HERE, run the affected checks, commit and call ready
+again. Optional suggestions do not require repairs. There are three reviewed
+implementations total by default, including the initial one. A review execution
+error permits one retry across the request; it is not evidence of a code defect.
+If you cannot proceed or exhaust a limit, record a concrete blocker and report it.
+Never split the request to evade limits or claim verification without a current PASS.
+After PASS, finish the PR yourself using the project's conventions and approval mode.
+Verify its URL, base branch and head with commands. Do not delegate PR verification.
+Any subsequent code changes require review again. Administrative actions do not.
+Summarize changed behavior, test results, blocking/optional findings and the actual PR URL.
+`
+TEAMS['owner-review']={
+  id:'owner-review',name:'Owner + review',
+  description:'One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.',
+  manager:'owner',workflow:{mode:'owner-review',reviewers:['reviewer'],maxAttempts:3,budgetUsd:10},
+  roles:{
+    owner:{description:'Owns implementation, tests, repairs and PR delivery in one session.',prompt:'Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.',model:'sonnet',maxTurns:100,effort:'medium',tools:[...READ_TOOLS,'Bash','Write','Edit','MultiEdit','NotebookEdit']},
+    reviewer:{description:'Independently checks correctness and required behavior.',prompt:`Review the actual committed diff against the original request and acceptance criteria.
+Read relevant project instructions and inspect the supplied base and snapshot. Check
+that tests exercise the affected behavior; reproduce relevant checks where useful.
+Do not edit source, commit, move the worktree, or create a PR. Report PASS if there
+are no blocking correctness, regression or required-evidence gaps. Report FAIL only
+for concrete blocking findings, with file locations, evidence and a repair direction.
+Separate optional improvements from blocking findings; optional suggestions do not
+turn a PASS into a FAIL. If verification cannot run, return REVIEW_ERROR and explain
+the execution problem instead of inventing a defect. Keep review proportional to
+the request; on re-review focus on repairs and their affected behavior.`,model:'sonnet',maxTurns:25,effort:'medium',tools:[...READ_TOOLS,'Bash']},
+  },
+}
 const TASK_RULES = `
 
 Fleet owns the durable task board. Use mcp__fleet__tasks to read it and create tasks before delegating.
@@ -249,7 +290,7 @@ function getTeam(id) {
 // What the UI needs to offer a choice. Prompts are large and of no use to the browser.
 function listTeams() {
   return Object.values(TEAMS).map(team => ({
-    id: team.id, name: team.name, description: team.description, manager: team.manager,
+    id: team.id, name: team.name, description: team.description, manager: team.manager, mode:team.workflow?.mode || 'team',
     roles: Object.entries(team.roles).map(([name, role]) => ({
       name, description: role.description, model: role.model || null,
     })),
@@ -264,14 +305,15 @@ function compile(team) {
   if (!team) return null
   if (!team.roles[team.manager]) throw new Error(`Team ${team.id} names a manager role that does not exist.`)
   const agents={}
+  const ownerReview=team.workflow?.mode==='owner-review'
   for (const [name,role] of Object.entries(team.roles)) {
     const manager=name===team.manager
     const bounded={...roleLimits(name,manager),...role,model:boundedModel(role.model,manager ? 'opus':'inherit')}
     if (!team.workflow) {agents[name]={...bounded,prompt:role.prompt+(manager ? '\nSplit mandates when delegates reach their turn limit; do not raise the cap.':SUBAGENT_RULE)};continue}
     agents[name]={...bounded,
       tools:[...(role.tools || []),...(manager ? ['Agent','AskUserQuestion','mcp__fleet__tasks'] : [])],
-      disallowedTools:manager ? [...NO_EDITS,'Bash'] : [...NO_DELEGATION,'AskUserQuestion','mcp__fleet__tasks',...(team.workflow.reviewers.includes(name) ? NO_EDITS : [])],
-      prompt:role.prompt+(manager ? TASK_RULES : SUBAGENT_RULE),
+      disallowedTools:manager ? (ownerReview ? [] : [...NO_EDITS,'Bash']) : [...NO_DELEGATION,'AskUserQuestion','mcp__fleet__tasks',...(team.workflow.reviewers.includes(name) ? NO_EDITS : [])],
+      prompt:role.prompt+(manager ? (ownerReview ? OWNER_RULES : TASK_RULES) : SUBAGENT_RULE),
     }
   }
   return {agent:team.manager,agents}
