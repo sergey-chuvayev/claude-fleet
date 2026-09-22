@@ -279,6 +279,34 @@ conversation on every question.
 
 ### An initiative is a team behind one conversation
 
+For a focused coding request, choose **New agent → Owner + review** to try the
+opt-in execution mode. A Sonnet owner investigates, implements, tests, repairs and
+finishes the PR in the same session. Only the independent Sonnet reviewer is
+delegated. Existing presets and launch defaults remain unchanged. **Customize team…**
+can save a copy with different models, tools, effort, turn limits and budget while
+keeping its two-role workflow.
+
+The owner registers one request task, commits a clean worktree, and submits test
+evidence with the task tool's `ready` action. Fleet attaches the original request,
+acceptance criteria, launch base commit, review commit/tree and prior findings to
+the reviewer mandate. A blocking FAIL returns to the same owner for repair; optional
+suggestions do not require another cycle. Defaults allow three submitted
+implementations total (initial plus two repairs), one execution retry across the
+request, and $10 of shared reported SDK usage. Creating follow-up tasks cannot reset
+these limits. A crash or malformed report appears as **review error**, not a code
+failure. The owner gets 100 turns per run and the reviewer 25, both at medium effort.
+
+Verification belongs to the clean Git tree. Tracked or untracked changes make it
+**stale**; ignored build files are not part of that snapshot. Empty commits and
+administrative commands preserve a pass when the tree stays unchanged. Review is
+checked at tool boundaries, on resume, at stop and when opening the session detail.
+The owner handles PR creation and checks the actual URL, base and head with commands;
+the verified badge records code review, not remote PR delivery. Reviewer shell access
+uses the existing approval mode and is not a read-only security sandbox. Usage is
+reported by the SDK, so the cap remains an execution cutoff with possible overshoot.
+
+The manager-led presets below remain available for work that benefits from several roles.
+
 Some work is too big for one agent and too small to project-manage by hand. Launch it with a
 **team** instead of alone and you get an *initiative*: a manager that plans and delegates,
 one or more roles that implement, and a required verifier that checks the work

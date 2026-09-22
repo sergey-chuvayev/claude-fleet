@@ -8,6 +8,18 @@ test('all presets have bounded roles and a budgeted workflow',()=>{
     const {agents}=compile(team)
     assert.ok(team.workflow.budgetUsd>0)
     assert.ok(team.workflow.maxAttempts>0)
+    if (team.workflow.mode==='owner-review') {
+      assert.equal(agents.owner.maxTurns,100)
+      assert.equal(agents.owner.model,'sonnet')
+      assert.equal(agents.reviewer.maxTurns,25)
+      assert.ok(agents.owner.tools.includes('Edit'))
+      assert.ok(!agents.owner.disallowedTools.includes('Bash'))
+      assert.ok(agents.reviewer.disallowedTools.includes('Edit'))
+      assert.ok(agents.reviewer.disallowedTools.includes('Agent'))
+      assert.match(agents.owner.prompt,/ONE task/)
+      assert.doesNotMatch(agents.owner.prompt,/You do not write code/)
+      continue
+    }
     assert.equal(agents.manager.maxTurns,100)
     assert.equal(agents.manager.effort,'high')
     assert.equal(agents.developer.maxTurns,40)

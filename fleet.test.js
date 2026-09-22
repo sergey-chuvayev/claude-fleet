@@ -848,4 +848,13 @@ test('the initiative board button can reach the names it uses', () => {
     catch (error) { if (error && error.name === 'ReferenceError') unresolved.push(error.message) }
   }
   assert.deepEqual(unresolved, [], 'the board action reached for a name no namespace hands it')
+
+  context.fixture={...context.fixture,teamName:'Owner + review',teamSnapshot:require('./teams').getTeam('owner-review'),taskBoard:{tasks:[{
+    id:'request',title:'Fix redirect',owner:'owner',status:'stale',attempt:2,criteria:['Keep query parameters.'],dependencies:[],reviews:{},snapshot:{commit:'1234567890abcdef',tree:'tree'},reviewErrors:1,
+  }],delegations:[]}}
+  vm.runInContext('window.FleetTeams.board(fixture)',context)
+  assert.match(panel.innerHTML,/reviewed implementation 2/)
+  assert.match(panel.innerHTML,/1234567890ab/)
+  assert.match(panel.innerHTML,/Later code changes make that review stale/)
+  assert.equal(byId.get('message-input').placeholder,'Message owner…')
 })

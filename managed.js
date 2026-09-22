@@ -12,6 +12,7 @@ const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
 const { Dispatcher } = require('./dispatch')
 const tasks = require('./tasks')
+const ownerReview = require('./owner-review')
 const worktrees = require('./worktree')
 
 const { resolveReferences, referencePrompt } = require('./references')
@@ -160,7 +161,11 @@ class ManagedSessions extends EventEmitter {
     this.emit('change', s.id)
   }
   get(id) { const s = this.sessions.get(id); if (!s) fail('Session not found.',404); return s }
-  detail(id) { return structuredClone(this.get(id)) }
+  detail(id) {
+    const s=this.get(id)
+    if (ownerReview.refresh(s)) this.changed(s,true)
+    return structuredClone(s)
+  }
   summaries() {
     return [...this.sessions.values()].map(s => ({
       managedId:s.id, sessionId:s.sessionId, shortId:(s.sessionId || s.id).slice(0,8),
@@ -222,6 +227,10 @@ class ManagedSessions extends EventEmitter {
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
     const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    if (ownerReview.enabled(s)) {
+      try {s.reviewBaseCommit=ownerReview.snapshot(s).commit;s.ownerRequest=prompt || 'Implement the request in the attached images.'}
+      catch(error) {worktrees.remove(worktree);throw error}
+    }
     this.sessions.set(s.id,s)
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
@@ -368,12 +377,17 @@ class ManagedSessions extends EventEmitter {
         options.maxTurns=manager.maxTurns
       }
       if (team?.workflow) {
+        if (ownerReview.refresh(s)) this.changed(s,true)
         const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
         if (remaining<=0) throw new Error('Usage cap reached. Increase the cap explicitly before continuing.')
         options.maxBudgetUsd=remaining
         options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
         options.hooks={
           PreToolUse:[{hooks:[async input=>{
+            if (ownerReview.refresh(s)) this.changed(s,true)
+            if (ownerReview.enabled(s) && input.agent_id && (['Agent','Task'].includes(input.tool_name) || input.tool_name==='mcp__fleet__tasks')) {
+              return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'Only the persistent owner can manage the request or invoke its reviewer.'}}
+            }
             if (!['Agent','Task'].includes(input.tool_name)) return {}
             const before=structuredClone(s.taskBoard)
             let applied=false
@@ -381,11 +395,28 @@ class ManagedSessions extends EventEmitter {
               const delegation=tasks.start(s,input.tool_use_id,input.tool_input)
               applied=true
               const task=s.taskBoard.tasks.find(t=>t.id===delegation.taskId)
+              const mandate=ownerReview.enabled(s) ? ownerReview.mandate(s,task,this.attachmentsDir) : `\n\nFleet acceptance criteria:\n${task.criteria.map(c=>'- '+c).join('\n')}\nReturn PASS or FAIL with evidence if you are verifying. Do not edit source while verifying.`
+              delegation.prompt=(input.tool_input.prompt+mandate).slice(0,48000)
               this.changed(s,true)
-              return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,prompt:input.tool_input.prompt+`\n\nFleet acceptance criteria:\n${task.criteria.map(c=>'- '+c).join('\n')}\nReturn PASS or FAIL with evidence if you are verifying. Do not edit source while verifying.`}}}
+              return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,prompt:input.tool_input.prompt+mandate}}}
             } catch(error) {if(applied)s.taskBoard=before;return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:error.message}}}
           }]}],
-          Stop:[{hooks:[async ()=>{
+          Stop:[{hooks:[async (input={})=>{
+            if (input.agent_id) return {}
+            if (ownerReview.refresh(s)) this.changed(s,true)
+            if (ownerReview.enabled(s)) {
+              const task=s.taskBoard.tasks[0]
+              if (!task || !['verified','blocked'].includes(task.status)) {
+                const limit=s.limits?.maxAttempts ?? team.workflow.maxAttempts
+                const exhausted=task && ((task.reviewErrors || 0)>=2 || (task.attempt>=limit && !['review','review_error'].includes(task.status)))
+                if (!exhausted && (run.continuations || 0)<2) {
+                  run.continuations=(run.continuations || 0)+1
+                  return {decision:'block',reason:'The request is not verified. Continue in this owner session: register one task if needed, implement/test/commit, submit with action ready, and invoke the reviewer. Read the board first. Record a concrete blocker if you cannot proceed.'}
+                }
+                if (task) {task.status='blocked';task.blocker ||= exhausted ? 'Request-wide review or execution retry limit reached. Operator action is required.' : 'Owner stopped before completing independent review. Resume this session to continue.';this.changed(s,true)}
+              }
+              return {}
+            }
             const unfinished=s.taskBoard.tasks.filter(t=>!['verified','blocked'].includes(t.status) && t.attempt<(s.limits?.maxAttempts ?? team.workflow.maxAttempts))
             if (unfinished.length && (run.continuations || 0)<2) {
               run.continuations=(run.continuations || 0)+1
@@ -394,6 +425,15 @@ class ManagedSessions extends EventEmitter {
             return {}
           }]}],
           SubagentStart:[{hooks:[async input=>{run.agentRoles ||= new Map();run.agentRoles.set(input.agent_id,input.agent_type);return {}}]}],
+        }
+        if (ownerReview.enabled(s)) {
+          const check=async input=>{
+            if (!ownerReview.refresh(s)) return {}
+            this.changed(s,true)
+            return {hookSpecificOutput:{hookEventName:input.hook_event_name,additionalContext:'Fleet review is stale because the code changed or its Git snapshot is unavailable. Submit a clean committed snapshot for review again.'}}
+          }
+          options.hooks.PostToolUse=[{hooks:[check]}]
+          options.hooks.PostToolUseFailure=[{hooks:[check]}]
         }
       }
       if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
@@ -419,6 +459,7 @@ class ManagedSessions extends EventEmitter {
       // would misreport a race as a stop.
       if (s.taskBoard) for (const d of s.taskBoard.delegations) if (d.status === 'running') for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       tasks.interrupt(s)
+      ownerReview.refresh(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
