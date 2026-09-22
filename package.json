@@ -27,6 +27,7 @@
     "build/make-app.sh",
     "archive.js",
     "catalog.js",
+    "dispatch.js",
     "fleet.js",
     "managed.js",
     "open.js",

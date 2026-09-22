@@ -732,3 +732,34 @@ test('the status bar reports absence honestly and swaps to the countdown when a 
   assert.match(blocked, /38m/)
   assert.match(blocked, /organisation spend cap reached/)
 })
+
+// A queued session's `state` stays 'idle', so the fleet counts keep working, which means
+// the badge is the only thing telling the operator it is waiting rather than done. It was
+// also the one status with no entry in the label map, which renders "undefined".
+test('a waiting session says it is queued, and where it is in the queue', () => {
+  const vm = require('node:vm')
+  const context = vm.createContext({
+    window: {}, document: { getElementById: () => null, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], createElement: () => ({ style: {}, classList: { add() {} }, querySelectorAll: () => [] }), body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete' },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+  try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
+  catch (error) { if (error && error.name === 'SyntaxError') throw error }
+  const badge = session => { context.fixture = session; return vm.runInContext('window.Fleet.status(fixture)', context) }
+
+  const queued = badge({ managed: true, managedStatus: 'queued', state: 'idle', queuePosition: 2 })
+  assert.match(queued, /Queued · 2nd/, 'it says it is waiting, and how far down')
+  assert.doesNotMatch(queued, /undefined/, 'every managed status needs an entry in the label map')
+  assert.match(badge({ managed: true, managedStatus: 'queued', state: 'idle', queuePosition: 1 }), /Queued · 1st/)
+  // Position is only known for managed rows the manager reported; absence must not
+  // turn the badge into "Queued · undefinedth".
+  assert.match(badge({ managed: true, managedStatus: 'queued', state: 'idle' }), /Queued<\/span>/)
+
+  // The statuses this shares a map with must keep reading the way they always have.
+  assert.match(badge({ managed: true, managedStatus: 'idle', state: 'idle' }), /Ready/)
+  assert.match(badge({ managed: true, managedStatus: 'running', state: 'busy' }), /Working/)
+  assert.match(badge({ managed: true, managedStatus: 'approval', state: 'idle' }), /Needs approval/)
+})

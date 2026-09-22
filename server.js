@@ -96,7 +96,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
     // beside it: the dashboard should never have to reconcile two rate-limit stories.
     const {rateLimit,...rest}=snap
     const usage=manager.usage ? manager.usage.snapshot({rejection:rateLimit}) : null
-    return {...rest,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,storageError,usage}
+    return {...rest,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,queue:manager.queueState(),storageError,usage}
   }
   const authorized=(req)=>{
     const supplied=req.headers['x-fleet-token']
@@ -139,6 +139,9 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
         if(url.pathname==='/api/archive') return json(res,200,{changed:archive.set(data.ids,data.archived!==false),archived:archive.archived.size})
         if(url.pathname==='/api/archive/rule') return json(res,200,{rule:archive.setRule(data)})
+        // Raising the limit or resuming can start waiting work, so this answers with the
+        // queue as it stands after the change rather than with what was asked for.
+        if(url.pathname==='/api/queue') return json(res,200,{queue:manager.setQueue(data)})
         if(url.pathname==='/api/update'){
           const update=await updater.apply()
           // The new code is on disk but this process is still the old one. Hand the
@@ -159,7 +162,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:4,storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
       if(url.pathname==='/api/update'){
         // Answer from the cache and refresh behind the request: a page load should
         // never wait on npm's registry, and the dashboard asks again shortly after.

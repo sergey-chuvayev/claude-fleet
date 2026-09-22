@@ -10,6 +10,7 @@ const { stateDir } = require('./paths')
 const { getTeam, compile, boundedModel } = require('./teams')
 const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
+const { Dispatcher } = require('./dispatch')
 const tasks = require('./tasks')
 const worktrees = require('./worktree')
 
@@ -55,7 +56,7 @@ function requestId(value) {
 }
 
 class ManagedSessions extends EventEmitter {
-  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [] } = {}) {
+  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue } = {}) {
     super()
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
@@ -64,6 +65,11 @@ class ManagedSessions extends EventEmitter {
     this.runs = new Map()
     this.pending = new Map()
     this.closed = false
+    // Admission control. Off by default: with the queue disabled, a turn over the limit
+    // is refused exactly as it always was, so an existing install behaves identically
+    // until the operator opts in with CLAUDE_FLEET_QUEUE=1.
+    this.queueing = queue ?? process.env.CLAUDE_FLEET_QUEUE === '1'
+    this.dispatch = new Dispatcher({ limit: process.env.CLAUDE_FLEET_CONCURRENCY })
     this.models = null
     this.saveTimer = null
     // Plan windows belong to the account, so one tracker serves every session and
@@ -84,6 +90,11 @@ class ManagedSessions extends EventEmitter {
         for (const s of data.sessions) {
           if (!s.id || !Array.isArray(s.messages)) throw new Error('Invalid saved session')
           if (ACTIVE.has(s.status)) { s.status = 'stopped'; s.error = 'Fleet restarted. Send a message to continue this conversation.' }
+          // The order sessions were waiting in lives in memory and does not survive a
+          // restart, so a reloaded session cannot be left claiming a place it no longer
+          // holds. It says so rather than sitting at "queued" forever, waiting for a
+          // turn that nothing will ever hand it.
+          if (s.status === 'queued') { s.status = 'stopped'; s.error = 'Fleet restarted while this was waiting for a free agent. Send a message to start it.' }
           tasks.interrupt(s)
           s.approvals = []
           s.currentTool = null
@@ -164,7 +175,22 @@ class ManagedSessions extends EventEmitter {
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
       kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s),
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
+      // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
+      // line" rather than the bare "queued" that tells the operator nothing.
+      queuePosition:this.dispatch.position(s.id),
     }))
+  }
+  // The queue as the dashboard needs it: what it is set to, and what is waiting.
+  queueState() {
+    const { limit, paused, waiting } = this.dispatch.snapshot()
+    return { enabled:this.queueing, limit, paused, running:this.runs.size, waiting:waiting.length }
+  }
+  // Raising the limit or resuming can release work immediately, so both dispatch.
+  setQueue({ limit, paused } = {}) {
+    if (limit !== undefined) this.dispatch.setLimit(limit)
+    if (paused !== undefined) this.dispatch.setPaused(paused)
+    this.dispatchNext()
+    return this.queueState()
   }
   create(body) {
     const rid = requestId(body.requestId)
@@ -203,7 +229,28 @@ class ManagedSessions extends EventEmitter {
   }
   checkCapacity() {
     if (this.closed) fail('Fleet is shutting down.',503)
-    if (this.runs.size >= 4) fail('Four agents are already running. Stop one or wait for it to finish.',409)
+    // With the queue on, being over the limit is a reason to wait, not to refuse, so
+    // the limit is enforced by admit() below instead of by this throw.
+    if (this.queueing) return
+    if (this.runs.size >= this.dispatch.limit) fail(`${this.dispatch.limit} agents are already running. Stop one or wait for it to finish.`,409)
+  }
+  // Hand the slot a finished run just freed to whoever has waited longest. Loops
+  // because a waiting session can have gone away, or had its queue emptied by a stop,
+  // and skipping it should let the next one in rather than waste the slot.
+  dispatchNext() {
+    if (!this.queueing) return
+    for (;;) {
+      const id = this.dispatch.next(this.runs.size)
+      if (!id) return
+      const s = this.sessions.get(id)
+      if (!s) continue
+      const next = s.queue[0]
+      // Nothing left to send: the operator stopped it, or closed it, while it waited.
+      if (!next) { if (s.status === 'queued') { s.status = 'idle'; this.changed(s,true) } ; continue }
+      s.queue = s.queue.slice(1)
+      try { this.startTurn(s,next) }
+      catch (error) { this.emit('storage-error',error) }
+    }
   }
   send(id, body) {
     const s = this.get(id)
@@ -228,6 +275,15 @@ class ManagedSessions extends EventEmitter {
     // agent is free, instead of making the operator retry once it's idle.
     if (this.runs.has(id)) { s.queue = [...s.queue, queued]; this.changed(s,true); return s }
     this.checkCapacity()
+    // Every agent slot is busy: take a place in line and park the payload on the session,
+    // the same place a mid-turn message already waits. dispatchNext() starts it when a
+    // run ends. Without the queue, checkCapacity above has already thrown.
+    if (this.queueing && !this.dispatch.admit(id, this.runs.size)) {
+      s.queue = [...s.queue, queued]
+      s.status = 'queued'
+      this.changed(s,true)
+      return s
+    }
     this.startTurn(s, queued)
     return s
   }
@@ -376,6 +432,9 @@ class ManagedSessions extends EventEmitter {
       if (next) s.queue = s.queue.slice(1)
       try { this.changed(s,true) } catch (error) { this.emit('storage-error',error) }
       if (next) { try { this.startTurn(s,next) } catch (error) { this.emit('storage-error',error) } }
+      // This session's own follow-up comes first — it is mid-conversation and already
+      // holds the slot. Only what is genuinely left over goes to the queue.
+      this.dispatchNext()
     }
   }
   event(s,run,event) {
@@ -597,6 +656,14 @@ class ManagedSessions extends EventEmitter {
   cancelApprovals(id,message) { for (const p of [...this.pending.values()]) if (p.sessionId===id) p.finish({behavior:'deny',message}) }
   stop(id) {
     const s=this.get(id),run=this.runs.get(id)
+    // Stopping something that is only waiting has no run to abort: give up its place
+    // and drop what it was going to send. Without this, Stop looks broken on a queued
+    // session — the one state where the operator is most likely to press it.
+    if (!run && this.dispatch.drop(id)) {
+      s.queue=[]; s.status='idle'
+      this.changed(s,true)
+      return s
+    }
     if (!run || run.stopping) return s
     run.stopping=true; s.status='stopping'; this.cancelApprovals(id,'The user stopped this agent.')
     // A deliberate stop means abandon what's queued too — firing it anyway right after
@@ -612,6 +679,9 @@ class ManagedSessions extends EventEmitter {
   async remove(id) {
     const s=this.get(id), run=this.runs.get(id)
     if (run) { this.stop(id); try { await run.done } catch {} }
+    // A closed session must not keep a place in line; dispatchNext would otherwise
+    // spend a slot on it and find nothing to send.
+    this.dispatch.drop(id)
     this.cancelApprovals(id,'This agent was closed.')
     for (const m of s.messages) this.deleteAttachments(m)
     this.sessions.delete(id)
