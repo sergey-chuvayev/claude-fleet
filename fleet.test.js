@@ -146,13 +146,57 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
   for (const name of added) assert.equal(typeof context[name], 'object', `${name} must be published even when the boot wiring finds no DOM`)
   // The cross-file contract, stated once so a rename cannot quietly break a caller.
   for (const [name, keys] of [
-    ['Fleet', ['$', 'esc', 'update', 'key', 'age', 'money', 'status', 'usageHtml', 'snapshot', 'render', 'setSnapshot', 'setFilter', 'select', 'setChildrenCollapsed', 'setChildDetail', 'toast', 'modalIsOpen', 'openModal', 'closeModal', 'watchConversation', 'syncDetails']],
+    ['Fleet', ['$', 'esc', 'update', 'key', 'age', 'money', 'status', 'usageHtml', 'snapshot', 'render', 'tick', 'setSnapshot', 'setFilter', 'select', 'setChildrenCollapsed', 'setChildDetail', 'toast', 'modalIsOpen', 'openModal', 'closeModal', 'watchConversation', 'syncDetails']],
     ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
     ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight']],
     ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
   ]) for (const k of keys) assert.equal(typeof context[name][k], 'function', `${name}.${k} must stay part of the published surface`)
   // The one member that is a bag of functions rather than a function.
   for (const k of ['get', 'set', 'clear']) assert.equal(typeof context.Fleet.store[k], 'function', `Fleet.store.${k} must stay part of the published surface`)
+})
+
+// The contract list above only proves that what a namespace publishes is still there.
+// It cannot see a name a file USES but never destructured: that resolves to nothing,
+// and because the reference sits inside a handler rather than at the top level, loading
+// the file proves nothing. `tick` shipped that way — control.js called it in six places
+// while it stayed private to app.js, so every send, approval, stop and close reported
+// "tick is not defined" after the server had already done the work. So: wire the page,
+// then fire what it wired. A ReferenceError here means a file reached for a name the
+// page does not hand it. Anything the stub DOM throws is expected noise and ignored.
+test('every handler the browser scripts wire can reach the names it uses', () => {
+  const vm = require('node:vm')
+  const wired = []
+  const context = vm.createContext({
+    window: {}, document: { getElementById: () => null, addEventListener: (type, fn) => wired.push([`document ${type}`, fn]), querySelector: () => null, querySelectorAll: () => [], createElement: () => ({ style: {}, classList: { add() {} }, querySelectorAll: () => [] }), body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } }, hidden: false, readyState: 'complete' },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }),
+    addEventListener: (type, fn) => wired.push([`window ${type}`, fn]), removeEventListener() {},
+    setInterval() {}, setTimeout() {}, clearTimeout() {}, fetch: () => new Promise(() => {}),
+    // The stream is wired both ways: addEventListener for named events, and `onopen` as
+    // a property. The property assignment is the one that caught `tick`, so record both.
+    EventSource: function () {
+      const source = { addEventListener: (type, fn) => wired.push([`events ${type}`, fn]) }
+      return new Proxy(source, { set(target, key, value) {
+        if (typeof key === 'string' && key.startsWith('on') && typeof value === 'function') wired.push([`events ${key}`, value])
+        target[key] = value
+        return true
+      } })
+    },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']) {
+    const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
+    try { new vm.Script(source, { filename: file }).runInContext(context) }
+    catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
+  }
+  assert.ok(wired.length > 10, 'the page should have wired its handlers before any of them is fired')
+  const unresolved = []
+  for (const [name, handler] of wired) {
+    // An async handler rejects rather than throws, so settle it quietly either way.
+    try { const result = handler({ data: 'null', target: {} }); if (result && typeof result.catch === 'function') result.catch(() => {}) }
+    catch (error) { if (error && error.name === 'ReferenceError') unresolved.push(`${name}: ${error.message}`) }
+  }
+  assert.deepEqual(unresolved, [], 'a handler reached for a name no namespace hands it')
 })
 
 test('a terminal session survives registry removal and restart, and resumes its saved conversation', async () => {
