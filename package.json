@@ -45,10 +45,11 @@
   ],
   "scripts": {
     "start": "node bin/claude-fleet.js start",
-    "test": "node --require ./test-setup.js --test *.test.js",
+    "test": "node --require ./test-setup.js --test *.test.js docs/prototypes/*/*.test.js",
     "vendor": "esbuild build/vendor-entry.js --bundle --minify --format=iife --target=es2022 --outfile=public/vendor/libs.js",
     "icons": "node build/make-icons.js",
     "app": "node bin/claude-fleet.js install-app",
+    "prototype": "node docs/prototypes/task-control/preview-server.js",
     "prepack": "npm run vendor"
   },
   "engines": {

@@ -1,0 +1,70 @@
+/* Only the added preview surfaces. Fleet's public/styles.css owns the app shell,
+   typography, palette, session rows, badges, buttons and conversation blocks. */
+.qp-tabs {display:flex;gap:3px;align-items:center;margin-left:18px}
+.qp-tabs .button[aria-pressed=true] {background:var(--selected);color:var(--text);border-color:var(--accent)}
+.qp-banner {display:flex;align-items:center;gap:12px;padding:7px 18px;border-bottom:1px solid var(--line);background:var(--pane);font-size:var(--text-sm);color:var(--muted);flex:none}
+.qp-banner strong {font-size:var(--text-2xs);letter-spacing:1px;color:var(--stale);font-weight:500}
+.qp-banner .qp-demo-actions {display:flex;gap:8px;margin-left:auto}
+.qp-banner .button {font-size:var(--text-xs);padding:4px 8px}
+#qp-workspace {flex:1;min-height:0}
+.qp-controls {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:var(--text-sm);color:var(--muted)}
+.qp-controls label {display:flex;gap:8px;align-items:center}
+.qp-controls select {height:29px;min-width:50px}
+.qp-control-actions {display:flex;align-items:center;gap:8px}
+.qp-filters {display:flex;align-items:center;gap:3px;padding:8px 12px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.qp-search {margin-left:auto;max-width:110px;background:transparent;border:0;color:var(--text);padding:6px;font-size:var(--text-sm)}
+.qp-group {padding:14px 18px 7px;font:var(--text-xs) var(--mono);color:var(--muted);display:flex;gap:8px}
+.qp-group[data-state=attention] {color:var(--stale)}
+.qp-group[data-state=review] {color:var(--accent)}
+.qp-group span {color:var(--faint)}
+.qp-row .session-title {white-space:normal;overflow-wrap:anywhere}
+.qp-row .session-meta {flex-wrap:wrap;gap:5px}
+.qp-next {display:block;color:var(--muted);font-size:var(--text-sm);margin-top:7px}
+.qp-next.is-attention {color:var(--stale)}
+.qp-summary {font-size:var(--text-xs);color:var(--faint)}
+#qp-detail {display:flex;flex-direction:column;padding:0;overflow:hidden}
+.qp-detail-head {display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex:none}
+.qp-detail-head h3 {font-size:var(--text-lg);margin:0}
+.qp-detail-head .badge {margin-left:auto}
+.qp-team-strip {display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);font-size:var(--text-sm);color:var(--muted);flex:none}
+.qp-team-strip small {font-size:var(--text-xs);color:var(--faint)}
+.qp-detail-scroll {flex:1;min-height:0;overflow:auto;padding:0 16px 16px}
+.qp-section {padding:16px 0;border-bottom:1px solid var(--line)}
+.qp-section h4 {font-size:var(--text-xs);font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:0 0 12px}
+.qp-section p {font-size:var(--text-md);line-height:1.8;margin:6px 0;color:var(--muted)}
+.qp-section.is-decision h4 {color:var(--stale)}
+.qp-section h3 {font-size:var(--text-lg);line-height:1.6;margin:0 0 12px;font-weight:500}
+.qp-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.qp-form {display:grid;gap:12px}
+.qp-form label {display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:var(--text-sm)}
+.qp-form input,.qp-form textarea,.qp-form select {width:100%;max-width:none;background:var(--term-bg);color:var(--text);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;font:var(--text-md)/1.6 var(--mono);height:auto}
+.qp-form textarea {min-height:72px;resize:vertical}
+.qp-form button {justify-self:start}
+.qp-checks {padding:0;margin:0;list-style:none;color:var(--muted);font-size:var(--text-md)}
+.qp-checks li {padding:5px 0}
+.qp-checks span {color:var(--accent);margin-right:8px}
+.qp-integration {color:var(--stale)!important}
+.qp-integration.is-current {color:var(--accent)!important}
+.qp-log.conversation {height:auto;min-height:0;resize:none;padding:0;border:0;border-radius:0;background:transparent;overflow:visible}
+.qp-detail-scroll>details {border-bottom:1px solid var(--line);padding:14px 0}
+.qp-detail-scroll summary {color:var(--muted);font-size:var(--text-sm);cursor:pointer}
+.qp-detail-scroll details form {padding-top:14px}
+.qp-form-wrap {padding:18px;overflow:auto}
+.qp-form-wrap h3 {margin:0 0 15px;font-size:var(--text-lg)}
+.qp-form-wrap .note {margin-bottom:16px}
+.qp-form-wrap form+form {border-top:1px solid var(--line);margin-top:22px;padding-top:22px}
+.qp-two {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qp-resize {background:var(--line)}
+.qp-empty {padding:35px 18px;color:var(--muted);font-size:var(--text-md)}
+.qp-mobile-back {display:none}
+@media(max-width:1000px) {.qp-tabs{margin-left:8px}.qp-banner{padding:7px 12px}.qp-search{max-width:90px}}
+@media(max-width:720px) {
+ .topbar:has(.qp-tabs){flex-wrap:wrap;height:auto;min-height:56px;padding:10px 12px;gap:8px}
+ .qp-tabs{margin:0}.qp-banner{flex-wrap:wrap;gap:8px}.qp-banner .qp-demo-actions{margin-left:auto}
+ #qp-workspace{display:block}#qp-detail{overflow:visible;min-height:400px}
+ #qp-workspace .sessions-pane{min-height:320px}#qp-workspace .session-list{max-height:55vh}
+ #qp-workspace[data-detail-open=true] .sessions-pane{display:none}
+ #qp-workspace:not([data-detail-open=true]) #qp-detail{display:none}
+ .qp-mobile-back{display:block}.qp-detail-scroll{overflow:visible}.qp-resize{display:none}
+ .qp-controls .button,.qp-filters .filter,.qp-tabs .button,.qp-actions .button{min-height:40px}
+}
