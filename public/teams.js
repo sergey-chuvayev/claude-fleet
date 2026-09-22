@@ -111,9 +111,17 @@ window.FleetTeams=(()=>{
   function board(s) {
     let panel=document.getElementById('initiative-board')
     if(!s.teamSnapshot?.workflow){panel?.remove();return}
-    if(!panel){panel=document.createElement('details');panel.id='initiative-board';panel.open=true;document.getElementById('conversation').before(panel);panel.addEventListener('click',event=>{if(event.target.closest('[data-adjust-limits]'))adjustLimits(s.id)})}
+    // The listener is bound once, for the life of the panel, but the panel outlives the
+    // session shown in it: switching from one initiative to another reuses this element.
+    // So the click reads whose board it is now, from the dataset below, instead of
+    // closing over whichever session happened to create it — that closure kept pointing
+    // at the first initiative, and Adjust limits silently did nothing on every one after.
+    if(!panel){panel=document.createElement('details');panel.id='initiative-board';panel.open=true;document.getElementById('conversation').before(panel);panel.addEventListener('click',event=>{if(event.target.closest('[data-adjust-limits]'))adjustLimits(panel.dataset.sessionId)})}
+    panel.dataset.sessionId=s.id
     const b=s.taskBoard || {tasks:[],delegations:[]},done=b.tasks.filter(t=>t.status==='verified').length
-    const signature=JSON.stringify([b,s.status,s.costUsd,s.teamSnapshot,s.limits])
+    // The id belongs in the signature: two initiatives can present identical boards, and
+    // without it the second one keeps the first one's rendering.
+    const signature=JSON.stringify([s.id,b,s.status,s.costUsd,s.teamSnapshot,s.limits])
     if(panel.fleetSignature===signature)return
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
     const scrollTop=panel.querySelector('.initiative-body')?.scrollTop || 0
@@ -126,7 +134,10 @@ window.FleetTeams=(()=>{
     const composer=document.getElementById('message-input');composer.placeholder=`Message ${s.teamSnapshot.manager}…`
   }
   async function adjustLimits(id){
-    const s=controlSession;if(!s || s.id!==id)return
+    // control.js owns the open conversation; this file has no `controlSession` of its own.
+    // Reading the bare name here resolved to nothing and threw, which is why Adjust limits
+    // did nothing at all rather than doing the wrong thing.
+    const s=control().session();if(!s || s.id!==id)return
     const panel=document.getElementById('initiative-board')
     if(panel.querySelector('.initiative-limits'))return
     const box=document.createElement('div');box.className='initiative-limits'
