@@ -3,7 +3,7 @@
 // app.js is destructured once, here, instead of being picked out of a global scope
 // the two files happened to share.
 ;(() => {
-const { $, esc, update, toast, modalIsOpen, openModal, closeModal } = window.Fleet
+const { $, esc, update, toast, tick, modalIsOpen, openModal, closeModal } = window.Fleet
 let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
 const drafts=new Map()
 const inFlight=new Set()

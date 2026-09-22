@@ -635,6 +635,9 @@ window.Fleet = {
   snapshot: () => snapshot,
   // Actions. Each one renders, so a caller never has to remember to.
   render,
+  // Refetch the session list. control.js awaits this after an action that changed
+  // the server's state, so the list reflects it without waiting for the next poll.
+  tick,
   setSnapshot(next) { snapshot = next; render() },
   setFilter(next) { filter = next; render() },
   select(sessionKey, delegationId = null) { selected = sessionKey; selectedChild = delegationId; render() },
