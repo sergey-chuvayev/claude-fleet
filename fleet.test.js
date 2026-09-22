@@ -147,7 +147,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
   // The cross-file contract, stated once so a rename cannot quietly break a caller.
   for (const [name, keys] of [
     ['Fleet', ['$', 'esc', 'update', 'key', 'age', 'money', 'status', 'usageHtml', 'snapshot', 'render', 'tick', 'setSnapshot', 'setFilter', 'select', 'setChildrenCollapsed', 'setChildDetail', 'toast', 'modalIsOpen', 'openModal', 'closeModal', 'watchConversation', 'syncDetails']],
-    ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
+    ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'session', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
     ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight']],
     ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
   ]) for (const k of keys) assert.equal(typeof context[name][k], 'function', `${name}.${k} must stay part of the published surface`)
@@ -762,4 +762,90 @@ test('a waiting session says it is queued, and where it is in the queue', () => 
   assert.match(badge({ managed: true, managedStatus: 'idle', state: 'idle' }), /Ready/)
   assert.match(badge({ managed: true, managedStatus: 'running', state: 'busy' }), /Working/)
   assert.match(badge({ managed: true, managedStatus: 'approval', state: 'idle' }), /Needs approval/)
+})
+
+// The handler test above fires what the page wires AT LOAD. This one is wired later, when
+// an initiative board is first rendered, and it went unprotected: `adjustLimits` read a
+// bare `controlSession`, which lives in control.js and was never published, so the button
+// threw a ReferenceError and did nothing at all. Same class of bug as `tick`, one layer
+// further in. So: render a board, press the button, and require it to reach its names.
+test('the initiative board button can reach the names it uses', () => {
+  const vm = require('node:vm')
+  // A DOM small enough to read and real enough to run board() and its click handler.
+  // querySelector hands back a persistent stub per selector so the code under test can
+  // find what it just wrote, except '.initiative-limits', which must be absent the first
+  // time or adjustLimits treats the editor as already open and returns.
+  const byId = new Map()
+  const makeElement = (tag = 'div') => {
+    const stubs = new Map()
+    let id = ''
+    const element = {
+      // Setting an id is what puts an element within reach of getElementById, which is
+      // what lets board() see that its panel does not exist yet and create it once.
+      get id() { return id }, set id(value) { id = value; byId.set(value, element) },
+      tagName: tag.toUpperCase(), dataset: {}, style: {}, classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+      innerHTML: '', textContent: '', value: '', placeholder: '', scrollTop: 0, open: false, disabled: false,
+      listeners: {}, children: [],
+      addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn) },
+      append(...nodes) { this.children.push(...nodes) }, before() {}, remove() {}, focus() {},
+      setAttribute() {}, getAttribute: () => null, contains: () => false, closest() { return element },
+      querySelectorAll: () => [],
+      querySelector(selector) {
+        if (selector === '.initiative-limits') return null
+        if (!stubs.has(selector)) stubs.set(selector, makeElement())
+        return stubs.get(selector)
+      },
+    }
+    return element
+  }
+  // The chrome the board is mounted into already exists; the panel itself does not.
+  for (const id of ['conversation', 'message-input', 'composer']) makeElement().id = id
+  const context = vm.createContext({
+    window: {},
+    document: {
+      getElementById: id => byId.get(id) ?? null,
+      createElement: tag => makeElement(tag),
+      addEventListener() {}, querySelector: () => null, querySelectorAll: () => [],
+      body: { setAttribute() {}, removeAttribute() {} }, documentElement: { style: { setProperty() {} } },
+      hidden: false, readyState: 'complete',
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, matchMedia: () => ({ matches: false }),
+    addEventListener() {}, removeEventListener() {}, setInterval() {}, setTimeout() {}, clearTimeout() {},
+    fetch: () => new Promise(() => {}), EventSource: function () { return { addEventListener() {} } },
+    crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
+  })
+  context.window = context
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js']) {
+    const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
+    try { new vm.Script(source, { filename: file }).runInContext(context) }
+    catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
+  }
+
+  // control.js has to hand the open conversation to teams.js; without it the board's
+  // actions have no way to know which initiative they are for.
+  assert.equal(typeof context.FleetControl.session, 'function', 'FleetControl must publish the open session')
+
+  context.fixture = {
+    id: 'i1', name: 'Bug fix', teamName: 'Bug fix', status: 'error', costUsd: 18.81, limits: null, selectedModel: 'opus',
+    teamSnapshot: { manager: 'manager', roles: { manager: { model: 'opus' }, developer: { model: 'sonnet' } }, workflow: { budgetUsd: 10, maxAttempts: 3 } },
+    taskBoard: { tasks: [], delegations: [] },
+  }
+  vm.runInContext('window.FleetTeams.board(fixture)', context)
+  const panel = byId.get('initiative-board')
+  assert.equal(panel.dataset.sessionId, 'i1', 'the panel records whose board it is showing')
+
+  // The panel outlives the session in it, so the click must read the id from the panel
+  // rather than from whichever session first created it.
+  context.fixture = { ...context.fixture, id: 'i2', teamName: 'Second initiative' }
+  vm.runInContext('window.FleetTeams.board(fixture)', context)
+  assert.equal(panel.dataset.sessionId, 'i2', 'switching initiative updates it')
+
+  const clicks = panel.listeners.click || []
+  assert.ok(clicks.length, 'the board wires a click handler')
+  const unresolved = []
+  for (const handler of clicks) {
+    try { handler({ target: { closest: () => ({ dataset: { adjustLimits: '' } }) } }) }
+    catch (error) { if (error && error.name === 'ReferenceError') unresolved.push(error.message) }
+  }
+  assert.deepEqual(unresolved, [], 'the board action reached for a name no namespace hands it')
 })

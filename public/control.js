@@ -82,6 +82,10 @@ window.FleetControl = {
   // teams.js posts to the same endpoints through the same helper, and app.js and
   // ask.js borrow it back: this file owns the token every write is signed with.
   api,
+  // The conversation this file is currently showing. Handed out through a function,
+  // never as a live binding, so a caller cannot hold one and read a stale session after
+  // the next refresh. teams.js needs it to know which initiative a board action is for.
+  session: () => controlSession,
   launchTeams: () => launchTeams,
   setLaunchTeams(teams) { launchTeams = teams },
   setLaunchRequestId(id) { launchRequestId = id },

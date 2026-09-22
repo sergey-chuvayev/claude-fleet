@@ -2781,8 +2781,18 @@ body[data-modal] { overflow:hidden }
   min-height:0; flex:0 1 auto;
 }
 #initiative-board[open] { display:flex; flex-direction:column }
+/* A `details` does not lay its content out as a direct child any more: Chrome puts an
+   anonymous `::details-content` box between the element and everything after `summary`.
+   That box, not `.initiative-body`, is the flex item here, so with no rule of its own it
+   kept its full content height while the board shrank around it — and the board's
+   `overflow:hidden` quietly cropped the rest. On a long board that hid the tasks below
+   the fold AND the Adjust limits button, with nothing to scroll. Letting it shrink hands
+   the constraint down to the body, which is what actually scrolls. Browsers without the
+   pseudo-element ignore this and shrink `.initiative-body` directly instead, which the
+   `flex` below makes work the same way. */
+#initiative-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
 #initiative-board>summary { flex:none; background:transparent; padding:10px 0 }
-#initiative-board .initiative-body { min-height:0; max-height:none; overflow:auto; padding:10px 0 }
+#initiative-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
 #initiative-board .initiative-handoff { border-radius:0; background:transparent; border-left:1px solid var(--line) }
 .detail:has(#composer) .composer {
   display:flex; flex-direction:column; min-height:130px; flex:0 1 auto;
