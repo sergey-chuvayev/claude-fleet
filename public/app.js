@@ -21,6 +21,8 @@ const key = s => s.managedId || s.sessionId || `session:${s.pid}`
 const percent = s => s.contextTokens == null ? null : Math.min(100, Math.max(0, s.contextTokens / s.contextLimit * 100))
 const heat = p => p >= 90 ? 'hot' : p >= 75 ? 'warn' : ''
 const tokens = n => n >= 1000000 ? `${(n / 1000000).toFixed(1)}m` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n)
+// 1 → 1st. Only ever sees a queue position, so the teens rule is enough to be correct.
+const ordinal = n => `${n}${[11,12,13].includes(n % 100) ? 'th' : ({1:'st',2:'nd',3:'rd'})[n % 10] || 'th'}`
 const age = timestamp => {
   if (!timestamp) return '—'
   const secs = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000))
@@ -78,8 +80,12 @@ function status(s) {
     const title = `Open ${s.openElsewhere.entrypoint === 'cli' ? 'in a terminal' : 'in another program'}${s.openElsewhere.name ? ' (' + s.openElsewhere.name + ')' : ''}${s.openElsewhere.state === 'busy' ? ', working' : ', idle'}`
     return `<span class="badge elsewhere ${s.openElsewhere.state === 'busy' ? 'busy' : ''}" title="${esc(title)}"><span class="dot"></span>${where}</span>`
   }
-  const label = s.managed ? ({starting:'Starting',running:'Working',approval:'Needs approval',stopping:'Stopping',stopped:'Stopped',error:'Error',idle:'Ready'})[s.managedStatus] : LABELS[s.state]
-  return `<span class="badge ${s.managedStatus === 'approval' ? 'stale' : s.managedStatus === 'error' ? 'hot' : s.state}"><span class="dot"></span>${label}</span>`
+  // A queued session is waiting for a free agent, not idle. Its state is 'idle' so the
+  // fleet counts stay the four they have always been, which is exactly why the badge has
+  // to say otherwise — and say how far down the queue it is, since "Queued" alone leaves
+  // the operator wondering whether anything is going to happen.
+  const label = s.managed ? ({starting:'Starting',running:'Working',approval:'Needs approval',stopping:'Stopping',stopped:'Stopped',error:'Error',queued:`Queued${s.queuePosition ? ` · ${ordinal(s.queuePosition)}` : ''}`,idle:'Ready'})[s.managedStatus] : LABELS[s.state]
+  return `<span class="badge ${s.managedStatus === 'approval' ? 'stale' : s.managedStatus === 'error' ? 'hot' : s.managedStatus === 'queued' ? 'dead' : s.state}"><span class="dot"></span>${label}</span>`
 }
 // The row's third line is the story of the latest turn, the way a CI job row shows
 // its steps: one segment per tool call coloured by the family of work, red where it

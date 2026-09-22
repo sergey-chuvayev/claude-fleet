@@ -527,6 +527,8 @@ run and left in place.
 | `CLAUDE_FLEET_DIR` | Claude home to read sessions from, default `~/.claude` |
 | `CLAUDE_FLEET_EXECUTABLE` | Absolute path to the `claude` binary, or `bundled` for the SDK's own |
 | `CLAUDE_FLEET_WARP_DIR` | Warp configuration directory to theme from |
+| `CLAUDE_FLEET_QUEUE` | `1` makes a turn over the concurrency limit wait for a free agent instead of being refused |
+| `CLAUDE_FLEET_CONCURRENCY` | How many agents may run at once, 1 to 8, default 4 |
 | `CLAUDE_FLEET_SEARCH_DAYS` | How far back Ask indexes transcripts, default 60 |
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |
 

@@ -186,7 +186,9 @@ test('concurrency limit prevents a fifth agent and restart marks unfinished work
   const {directory,manager}=setup(async args=>({close(){},async *[Symbol.asyncIterator](){await args.options.canUseTool('Write',{file_path:'test.txt'},{signal:args.options.abortController.signal})}}))
   try{
     const sessions=Array.from({length:4},()=>create(manager,directory))
-    assert.throws(()=>create(manager,directory),/Four agents/)
+    // Refusal is still the behaviour with the queue off; the limit is configurable now,
+    // so the message carries the number rather than the word.
+    assert.throws(()=>create(manager,directory),/4 agents are already running/)
     await until(()=>sessions.every(s=>s.approvals.length===1))
     const persisted=JSON.parse(fs.readFileSync(path.join(directory,'sessions.json'),'utf8'))
     assert.equal(persisted.sessions.length,4)
@@ -1016,4 +1018,149 @@ test('referenced context is captured at send time, persisted and sent to the SDK
     assert.match(reopened.detail(target.id).messages.find(m=>m.text==='Use this finding').references[0].context,/Fresh finding/)
     await reopened.close()
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+// ── The work queue ──────────────────────────────────────────────────────────
+// Fleet used to refuse the fifth agent. With CLAUDE_FLEET_QUEUE on it holds the order
+// instead, so these exercise the handover: runs are held open by a gate the test
+// releases, which is the only way to control when a slot actually frees.
+function gated(){
+  const releases=[]
+  const factory=async args=>{
+    let release
+    const finished=new Promise(r=>{release=r})
+    releases.push(release)
+    return {close(){},async *[Symbol.asyncIterator](){
+      // Also settle on abort, or manager.close() would wait forever on a held run.
+      await Promise.race([finished,new Promise(r=>args.options.abortController.signal.addEventListener('abort',r,{once:true}))])
+    }}
+  }
+  return {factory,releases}
+}
+function queueSetup(){
+  const {factory,releases}=gated()
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-queue-'))
+  return {directory,releases,manager:new ManagedSessions({directory,queryFactory:factory,queue:true})}
+}
+const summaryFor=(manager,id)=>manager.summaries().find(s=>s.managedId===id)
+
+test('a fifth agent waits for a free slot instead of being refused, then starts when one frees',async()=>{
+  const {directory,releases,manager}=queueSetup()
+  try{
+    const running=Array.from({length:4},()=>create(manager,directory))
+    await until(()=>manager.runs.size===4)
+    // This is the line that used to throw.
+    const waiting=create(manager,directory)
+    assert.equal(waiting.status,'queued')
+    assert.equal(manager.runs.size,4,'the limit still holds; it just does not refuse')
+    assert.equal(summaryFor(manager,waiting.id).queuePosition,1,'and the row can say where it is in line')
+    assert.equal(manager.queueState().waiting,1)
+    // The turn it could not send is parked on the session, not lost.
+    assert.equal(waiting.queue.length,1)
+    releases[0]()
+    await until(()=>manager.runs.has(waiting.id))
+    assert.equal(waiting.status!=='queued',true,'the freed slot started the waiting turn')
+    assert.equal(waiting.queue.length,0,'and its parked turn was consumed, not duplicated')
+    assert.equal(manager.dispatch.position(waiting.id),0,'it no longer holds a place')
+    assert.equal(running.length,4)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('the queue is served oldest first, and stopping a waiting session gives up its place',async()=>{
+  const {directory,releases,manager}=queueSetup()
+  try{
+    Array.from({length:4},()=>create(manager,directory))
+    await until(()=>manager.runs.size===4)
+    const first=create(manager,directory), second=create(manager,directory)
+    assert.deepEqual([summaryFor(manager,first.id).queuePosition,summaryFor(manager,second.id).queuePosition],[1,2])
+    // Stop has no run to abort here; it has to cancel the wait instead.
+    manager.stop(first.id)
+    assert.equal(first.status,'idle')
+    assert.equal(first.queue.length,0,'the turn it was waiting to send is dropped')
+    assert.equal(summaryFor(manager,second.id).queuePosition,1,'the queue closes over the gap')
+    releases[0]()
+    await until(()=>manager.runs.has(second.id))
+    assert.equal(manager.runs.has(first.id),false,'the stopped one is not started by the freed slot')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('pausing stops admission while running work finishes, and resuming releases the queue',async()=>{
+  const {directory,releases,manager}=queueSetup()
+  try{
+    create(manager,directory)
+    await until(()=>manager.runs.size===1)
+    manager.setQueue({paused:true})
+    const held=create(manager,directory)
+    assert.equal(held.status,'queued','nothing is admitted while paused, even with three slots free')
+    releases[0]()
+    await until(()=>manager.runs.size===0)
+    assert.equal(manager.runs.has(held.id),false,'a freed slot admits nothing while paused')
+    assert.equal(held.status,'queued')
+    manager.setQueue({paused:false})
+    await until(()=>manager.runs.has(held.id))
+    assert.equal(manager.queueState().waiting,0,'resuming released what was held')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('raising the limit starts waiting work immediately; closing a session frees its place',async()=>{
+  const {directory,manager}=queueSetup()
+  try{
+    Array.from({length:4},()=>create(manager,directory))
+    await until(()=>manager.runs.size===4)
+    const a=create(manager,directory), b=create(manager,directory)
+    assert.equal(manager.queueState().waiting,2)
+    await manager.remove(a.id)
+    assert.equal(manager.queueState().waiting,1,'a closed session does not keep a place in line')
+    manager.setQueue({limit:6})
+    await until(()=>manager.runs.has(b.id))
+    assert.equal(manager.queueState().limit,6)
+    assert.equal(manager.runs.size,5,'the extra room went to the queue without a new send')
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('with the queue off, the fifth agent is still refused and nothing is left waiting',async()=>{
+  const {factory}=gated()
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-noqueue-'))
+  const manager=new ManagedSessions({directory,queryFactory:factory,queue:false})
+  try{
+    Array.from({length:4},()=>create(manager,directory))
+    await until(()=>manager.runs.size===4)
+    assert.throws(()=>create(manager,directory),/4 agents are already running/)
+    assert.equal(manager.queueState().waiting,0)
+    assert.equal(manager.queueState().enabled,false)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('the dashboard can read the queue and change its limit over HTTP',async()=>{
+  const {factory,releases}=gated()
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-queue-http-'))
+  const manager=new ManagedSessions({directory,queryFactory:factory,queue:true})
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const base=`http://127.0.0.1:${app.server.address().port}`
+    const config=await (await fetch(base+'/api/control')).json()
+    assert.equal(config.queue.enabled,true)
+    assert.equal(config.maxConcurrent,4,'the advertised limit is the one actually enforced')
+
+    Array.from({length:4},()=>create(manager,directory))
+    await until(()=>manager.runs.size===4)
+    const waiting=create(manager,directory)
+    const snapshot=await (await fetch(base+'/api/sessions')).json()
+    assert.equal(snapshot.queue.waiting,1,'the polled snapshot carries the queue')
+    assert.equal(snapshot.sessions.find(s=>s.managedId===waiting.id).queuePosition,1)
+
+    const headers={'content-type':'application/json','x-fleet-token':config.token,origin:base}
+    const response=await fetch(base+'/api/queue',{method:'POST',headers,body:JSON.stringify({limit:6})})
+    assert.equal(response.status,200)
+    const {queue}=await response.json()
+    assert.equal(queue.limit,6)
+    assert.equal(queue.waiting,0,'the answer reflects that raising the limit already released it')
+    await until(()=>manager.runs.has(waiting.id))
+
+    const paused=await (await fetch(base+'/api/queue',{method:'POST',headers,body:JSON.stringify({paused:true})})).json()
+    assert.equal(paused.queue.paused,true)
+    assert.equal(paused.queue.limit,6,'pausing does not reset the limit')
+    releases.forEach(release=>release())
+  }finally{await new Promise(r=>app.server.close(r));await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
