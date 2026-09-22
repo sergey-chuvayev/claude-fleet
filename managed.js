@@ -88,6 +88,11 @@ class ManagedSessions extends EventEmitter {
       if (fs.existsSync(this.file)) {
         const data = JSON.parse(fs.readFileSync(this.file, 'utf8'))
         if (data.version !== 1 || !Array.isArray(data.sessions)) throw new Error('Unsupported session store format')
+        if (data.queueSettings) {
+          if (queue===undefined && process.env.CLAUDE_FLEET_QUEUE===undefined) this.queueing=data.queueSettings.enabled===true
+          if (process.env.CLAUDE_FLEET_CONCURRENCY===undefined) this.dispatch.setLimit(data.queueSettings.limit)
+          this.dispatch.setPaused(this.queueing && data.queueSettings.paused===true)
+        }
         for (const s of data.sessions) {
           if (!s.id || !Array.isArray(s.messages)) throw new Error('Invalid saved session')
           if (ACTIVE.has(s.status)) { s.status = 'stopped'; s.error = 'Fleet restarted. Send a message to continue this conversation.' }
@@ -149,7 +154,7 @@ class ManagedSessions extends EventEmitter {
   save() {
     clearTimeout(this.saveTimer); this.saveTimer = null
     const tmp = `${this.file}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify({version:1,sessions:[...this.sessions.values()].map(s => ({...s,approvals:[]}))}), {mode:0o600})
+    fs.writeFileSync(tmp, JSON.stringify({version:1,queueSettings:{enabled:this.queueing,limit:this.dispatch.limit,paused:this.dispatch.paused},sessions:[...this.sessions.values()].map(s => ({...s,approvals:[]}))}), {mode:0o600})
     fs.renameSync(tmp, this.file)
   }
   changed(s, immediate = false) {
@@ -191,10 +196,23 @@ class ManagedSessions extends EventEmitter {
     return { enabled:this.queueing, limit, paused, running:this.runs.size, waiting:waiting.length }
   }
   // Raising the limit or resuming can release work immediately, so both dispatch.
-  setQueue({ limit, paused } = {}) {
+  setQueue({ limit, paused, enabled } = {}) {
+    if (enabled!==undefined && typeof enabled!=='boolean') fail('Queue enabled must be true or false.')
+    if (paused!==undefined && typeof paused!=='boolean') fail('Queue paused must be true or false.')
+    if (limit!==undefined && (!Number.isInteger(limit) || limit<1 || limit>8)) fail('Choose 1–8 concurrent tasks.')
+    if (enabled===false && this.dispatch.waiting.length) fail('Stop queued tasks before disabling the queue.',409)
+    if (paused===true && !(enabled ?? this.queueing)) fail('Enable the queue before pausing dispatch.')
+    const previous={enabled:this.queueing,limit:this.dispatch.limit,paused:this.dispatch.paused}
+    if (enabled!==undefined) this.queueing=enabled
     if (limit !== undefined) this.dispatch.setLimit(limit)
     if (paused !== undefined) this.dispatch.setPaused(paused)
+    if (!this.queueing) this.dispatch.setPaused(false)
+    try {this.save()} catch(error) {
+      this.queueing=previous.enabled;this.dispatch.setLimit(previous.limit);this.dispatch.setPaused(previous.paused)
+      throw error
+    }
     this.dispatchNext()
+    this.emit('change','queue')
     return this.queueState()
   }
   create(body) {
@@ -470,9 +488,13 @@ class ManagedSessions extends EventEmitter {
       // at a conversation that just failed, unseen, behind the operator's back.
       if (s.status !== 'idle') s.queue=[]
       const next = s.status === 'idle' && s.queue.length ? s.queue[0] : null
-      if (next) s.queue = s.queue.slice(1)
+      // Follow-up messages are new turns too: pausing or lowering the limit must
+      // gate them just like a newly submitted task, without losing their payload.
+      const admitted=next && (!this.queueing || this.dispatch.admit(s.id,this.runs.size))
+      if (admitted) s.queue = s.queue.slice(1)
+      else if (next) s.status='queued'
       try { this.changed(s,true) } catch (error) { this.emit('storage-error',error) }
-      if (next) { try { this.startTurn(s,next) } catch (error) { this.emit('storage-error',error) } }
+      if (admitted) { try { this.startTurn(s,next) } catch (error) { this.emit('storage-error',error) } }
       // This session's own follow-up comes first — it is mid-conversation and already
       // holds the slot. Only what is genuinely left over goes to the queue.
       this.dispatchNext()

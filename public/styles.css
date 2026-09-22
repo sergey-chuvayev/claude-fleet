@@ -2823,3 +2823,33 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .detail:has(#composer) .conversation { height:460px; flex:none }
   .detail:has(#composer) .composer { height:auto; min-height:170px; border-top:1px solid var(--line) }
 }
+/* Live Work queue shares the existing list/detail shell and terminal tokens. */
+.work-tabs { display:flex;align-items:center;gap:3px;margin-left:16px;flex:none }
+.work-tabs .button[aria-pressed=true] { color:var(--text);background:var(--selected);border-color:var(--accent) }
+.work-tabs span { color:var(--muted);font-size:var(--text-xs) }
+.work-controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-size:var(--text-sm) }
+.work-controls label { display:flex;align-items:center;gap:8px;margin-left:auto }
+.work-controls select { min-width:48px;padding:5px 20px 5px 8px }
+.work-controls p { flex-basis:100%;margin:0 }
+.work-filters { display:flex;flex-wrap:wrap;gap:3px;padding:8px 12px 0 }
+.work-filters .filter { width:auto;gap:8px }
+.work-search { display:block;padding:8px 18px;border-bottom:1px solid var(--line) }
+.work-search input { width:100%;background:transparent;border:0;border-radius:0;color:var(--text);font:inherit;padding:6px 0 }
+.work-search input:focus-visible { outline:1px solid var(--accent);outline-offset:3px }
+.work-group { display:flex;gap:8px;padding:14px 18px 7px;margin:0;font:var(--text-xs) var(--mono);font-weight:500;color:var(--muted) }
+.work-group[data-state=attention] { color:var(--stale) }
+.work-group[data-state=review] { color:var(--accent) }
+.work-group span { color:var(--faint) }
+.work-row { text-align:left;width:100% }
+.work-row .session-title { white-space:normal;overflow-wrap:anywhere }
+.work-row .session-meta { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.work-next { display:block;margin-top:7px;color:var(--muted);font-size:var(--text-sm);overflow-wrap:anywhere }
+@media(max-width:1100px) { .work-tabs { margin-left:4px }.brand-sub { display:none } }
+@media(max-width:720px) {
+  .topbar { flex-wrap:wrap;height:auto;min-height:56px }
+  .topbar .refresh-info { flex-direction:row;flex-wrap:wrap;gap:5px }
+  .work-tabs { order:3;width:100%;margin:0;padding-top:5px }
+  .work-tabs .button { flex:1 }
+  .work-controls { padding:10px 12px }.work-controls label { margin-left:0 }
+  .work-pane { min-height:280px }
+}

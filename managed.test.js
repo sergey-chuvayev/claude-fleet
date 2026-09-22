@@ -1223,6 +1223,11 @@ test('the dashboard can read the queue and change its limit over HTTP',async()=>
     await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
     const base=`http://127.0.0.1:${app.server.address().port}`
     const config=await (await fetch(base+'/api/control')).json()
+    const page=await (await fetch(base+'/')).text()
+    assert.match(page,/id="view-queue"/)
+    const asset=await fetch(base+'/work-queue.js')
+    assert.equal(asset.status,200)
+    assert.match(await asset.text(),/window\.FleetQueue/)
     assert.equal(config.queue.enabled,true)
     assert.equal(config.maxConcurrent,4,'the advertised limit is the one actually enforced')
 
@@ -1246,4 +1251,74 @@ test('the dashboard can read the queue and change its limit over HTTP',async()=>
     assert.equal(paused.queue.limit,6,'pausing does not reset the limit')
     releases.forEach(release=>release())
   }finally{await new Promise(r=>app.server.close(r));await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('enabling and pausing dispatch through settings persists and prevents accidental admission',async()=>{
+  const {factory,releases}=gated()
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-live-queue-'))
+  let manager=new ManagedSessions({directory,queryFactory:factory,queue:false})
+  try {
+    assert.equal(manager.queueState().enabled,false)
+    assert.throws(()=>manager.setQueue({paused:true}),/Enable/)
+    manager.setQueue({enabled:true,paused:true,limit:2})
+    const queued=create(manager,directory)
+    assert.equal(queued.status,'queued');assert.equal(manager.runs.size,0)
+    assert.throws(()=>manager.setQueue({enabled:false}),/Stop queued tasks/)
+    assert.throws(()=>manager.setQueue({limit:0}),/1–8/)
+    assert.throws(()=>manager.setQueue({paused:'false'}),/true or false/)
+    assert.throws(()=>manager.setQueue({enabled:'true'}),/true or false/)
+    manager.setQueue({paused:false})
+    await until(()=>manager.runs.has(queued.id))
+    assert.equal(manager.dispatch.waiting.length,0)
+    manager.setQueue({paused:true})
+    await manager.close()
+    manager=new ManagedSessions({directory,queryFactory:factory})
+    assert.deepEqual(manager.queueState(),{enabled:true,limit:2,paused:true,running:0,waiting:0})
+    const another=create(manager,directory)
+    assert.equal(another.status,'queued')
+    manager.stop(another.id)
+    assert.equal(manager.queueState().waiting,0)
+    manager.setQueue({enabled:false})
+    assert.equal(manager.queueState().paused,false)
+    releases.forEach(release=>release())
+  } finally {await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('a queue settings write failure restores settings and cannot release waiting work',async()=>{
+  const {directory,manager,releases}=queueSetup()
+  const save=manager.save
+  try {
+    manager.setQueue({paused:true,limit:1})
+    const queued=create(manager,directory)
+    manager.save=()=>{throw Error('Disk full')}
+    assert.throws(()=>manager.setQueue({paused:false,limit:3}),/Disk full/)
+    assert.deepEqual(manager.queueState(),{enabled:true,limit:1,paused:true,running:0,waiting:1})
+    assert.equal(queued.status,'queued')
+    releases.forEach(release=>release())
+  } finally {manager.save=save;await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('pausing dispatch also holds a follow-up queued during the current turn',async()=>{
+  let release,calls=0
+  const finishedFirst=new Promise(resolve=>{release=resolve})
+  const {directory,manager}=setup(async args=>({close(){},async *[Symbol.asyncIterator](){
+    calls++
+    if(calls===1) await Promise.race([finishedFirst,new Promise(resolve=>args.options.abortController.signal.addEventListener('abort',resolve,{once:true}))])
+    yield {type:'result',result:'Done',is_error:false,total_cost_usd:0}
+  }}))
+  try {
+    manager.setQueue({enabled:true})
+    const s=create(manager,directory)
+    await until(()=>calls===1)
+    manager.send(s.id,{message:'Follow-up',requestId:randomUUID()})
+    manager.setQueue({paused:true})
+    release()
+    await until(()=>!manager.runs.has(s.id))
+    assert.equal(calls,1,'pause must hold new turns, including existing queued follow-ups')
+    assert.equal(s.status,'queued')
+    assert.equal(s.queue[0].message,'Follow-up')
+    manager.setQueue({paused:false})
+    await until(()=>calls===2 && s.status==='idle')
+    assert.equal(s.queue.length,0)
+  } finally {release();await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })

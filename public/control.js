@@ -8,7 +8,7 @@ let controlToken=null, controlSession=null, controlId=null, controlFetch=null, c
 const drafts=new Map()
 const inFlight=new Set()
 let launchRequestId=null, resumeSource=null, fallbackWarned=false, referencesAvailable=false
-const managedLabels={starting:'Starting Claude…',running:'Working on your task',approval:'Your input is needed',stopping:'Stopping the agent…',stopped:'Stopped · ready to continue',error:'Turn failed',idle:'Ready for your next message'}
+const managedLabels={starting:'Starting Claude…',running:'Working on your task',approval:'Your input is needed',stopping:'Stopping the agent…',stopped:'Stopped · ready to continue',error:'Turn failed',idle:'Ready for your next message',queued:'Queued · waiting for a free slot'}
 const isWorking=s=>['starting','running','approval','stopping'].includes(s.status)
 
 async function api(url,body) {
@@ -79,7 +79,7 @@ function openLaunch(source=null) {
 // not cost it the whole namespace. The two values teams.js has to change are handed
 // out as setters rather than as variables it reaches in and assigns.
 window.FleetControl = {
-  selectControl, isWorking, updateLaunchTeam, renderUpdate,
+  selectControl, isWorking, updateLaunchTeam, renderUpdate, openLaunch,
   // teams.js posts to the same endpoints through the same helper, and app.js and
   // ask.js borrow it back: this file owns the token every write is signed with.
   api,
@@ -112,10 +112,13 @@ $('launch-form')?.addEventListener('submit',async event=>{
   launchRequestId ||= crypto.randomUUID()
   try{
     const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource ? {teamId:form.elements.teamId.value}: {}),cwd:form.elements.cwd.value,name:form.elements.name.value,prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
-    selected=data.session.id;filter='all'
     form.elements.prompt.value='';launchRequestId=null
     closeModal()
-    await tick();toast(form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
+    await tick()
+    window.Fleet.setFilter('all')
+    window.FleetQueue?.reveal()
+    window.Fleet.select(data.session.id)
+    toast(data.session.status==='queued' ? 'Task queued' : form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
   }catch(error){$('launch-error').textContent=error.message;$('launch-error').hidden=false}
   finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=!!el.closest('#team-editor'));if($('launch-team'))updateLaunchTeam()}
@@ -227,7 +230,8 @@ function renderControl() {
   // own completion starts it. Only another live process on this session still blocks it.
   $('send-message').disabled=inFlight.has(s.id) || !!held
   $('send-message').textContent=working ? 'Queue ↗' : 'Send ↗'
-  $('stop-agent').hidden=!working
+  $('stop-agent').hidden=!working && s.status!=='queued'
+  $('stop-agent').textContent=s.status==='queued' ? 'Cancel queued task' : '■ Stop'
   $('stop-agent').disabled=s.status==='stopping' || inFlight.has(`stop:${s.id}`)
   $('composer-hint').textContent=heldText || (working ? 'Claude is still working — this joins the queue and sends the moment it’s free.' : 'Enter to send · Shift + Enter for a new line')
   $('composer-hint').classList.toggle('is-held',!!held)
@@ -342,7 +346,7 @@ async function closeAgent(event) {
   button.disabled=true;button.textContent='Closing…'
   try{
     await api(`/api/managed/${id}/close`,{})
-    if(controlId===id){selected=null;selectControl(null);$('control-panel').innerHTML=''}
+    if(controlId===id){selectControl(null);$('control-panel').innerHTML=''}
     await tick()
     toast('Closed. Claude still has its own transcript of it.')
   }catch(error){button.disabled=false;button.dataset.armed='';button.textContent='Close';toast(error.message)}

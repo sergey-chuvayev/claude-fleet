@@ -337,7 +337,7 @@ function render() {
   const pool = filter === 'archived' ? archived : filter === 'background' ? background : foreground
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
-  const shown = pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
+  const shown = window.FleetQueue?.active() ? window.FleetQueue.visible(live) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
@@ -372,6 +372,7 @@ function render() {
     window.FleetControl?.selectControl(current)
   }
   syncDetails()
+  window.FleetQueue?.render(snapshot,selected)
 }
 // ── The archive ──────────────────────────────────────────────────────────────
 // Putting a session away hides its row and nothing else: the transcript stays in

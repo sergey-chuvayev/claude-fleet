@@ -35,7 +35,9 @@ function createPreviewServer() {
     if(match){const session=sessions.find(s=>s.id===match[1]);return session?json(200,match[2]?{commands:[]}:{session}):json(404,{error:'Unknown demo session'});}
     if(url.pathname==='/theme.css') {res.writeHead(200,{'content-type':'text/css'});return res.end('/* Fleet default theme; no personal configuration loaded. */');}
     if(url.pathname==='/' || url.pathname==='/index.html') {
-      const html=fs.readFileSync(path.join(publicDir,'index.html'),'utf8').replace('</head>','<link rel="stylesheet" href="/prototype/queue.css"><script src="/prototype/state.js" defer></script><script src="/prototype/queue.js" defer></script></head>');
+      const html=fs.readFileSync(path.join(publicDir,'index.html'),'utf8')
+        .replace('<script src="/work-queue.js" defer></script>','').replace(/<nav class="work-tabs"[^>]*>[\s\S]*?<\/nav>/,'')
+        .replace('</head>','<link rel="stylesheet" href="/prototype/queue.css"><script src="/prototype/state.js" defer></script><script src="/prototype/queue.js" defer></script></head>');
       res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});return res.end(html);
     }
     const prototype=url.pathname.startsWith('/prototype/');
