@@ -277,6 +277,26 @@ conversation on every question.
 
 </details>
 
+### Work queue
+
+The **Work queue** tab sits beside **Sessions** in the installed app. It shows real
+Fleet-managed requests grouped into **Needs you**, **Ready to review**, **Running**,
+**Queued**, and **Ready**. External terminal sessions remain in Sessions. Select a
+task to use its existing conversation, approval forms, review evidence and composer.
+An idle single agent appears as Ready; it is not automatically verified or merged.
+
+Use **Add task** to open the normal launch form, with a single agent by default and
+Owner + review or existing teams available. Click **Enable queue** to hold work when
+all slots are occupied. **Pause queue** holds new turns, including follow-up messages;
+running turns can finish. Set **Concurrent tasks** from 1 to 8. These settings persist
+across restart; interrupted or previously queued sessions need a message to resume.
+Select queued work and use **Cancel queued task** to remove it from dispatch.
+
+Queue controls use Fleet's existing authenticated API. The tab ships in `public/`
+and the npm package; the older interactive simulation stays under `docs/prototypes/`.
+There are no simulated acceptance or integration checks in the live tab. Independent
+review evidence and any PR links remain available in the conversation.
+
 ### An initiative is a team behind one conversation
 
 For a focused coding request, choose **New agent → Owner + review** to try the
@@ -555,7 +575,7 @@ run and left in place.
 | `CLAUDE_FLEET_DIR` | Claude home to read sessions from, default `~/.claude` |
 | `CLAUDE_FLEET_EXECUTABLE` | Absolute path to the `claude` binary, or `bundled` for the SDK's own |
 | `CLAUDE_FLEET_WARP_DIR` | Warp configuration directory to theme from |
-| `CLAUDE_FLEET_QUEUE` | `1` makes a turn over the concurrency limit wait for a free agent instead of being refused |
+| `CLAUDE_FLEET_QUEUE` | Startup override: `1` enables queuing, `0` disables it; otherwise use the saved Work queue setting |
 | `CLAUDE_FLEET_CONCURRENCY` | How many agents may run at once, 1 to 8, default 4 |
 | `CLAUDE_FLEET_SEARCH_DAYS` | How far back Ask indexes transcripts, default 60 |
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |

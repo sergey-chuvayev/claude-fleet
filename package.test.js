@@ -46,3 +46,12 @@ test('the bin entry point ships',()=>{
     assert.ok([...shipped].some(f=>entry===f || (f.endsWith('/') && entry.startsWith(f))),`${entry} is not in files`)
   }
 })
+
+test('the production Work queue tab and its script ship in npm, not just the prototype',()=>{
+  const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8')
+  assert.match(html,/id="view-queue"/)
+  assert.match(html,/<script src="\/work-queue.js" defer>/)
+  assert.ok(shipped.has('public/'))
+  assert.ok(fs.existsSync(path.join(root,'public/work-queue.js')))
+  assert.doesNotMatch(html,/\/prototype\//)
+})
