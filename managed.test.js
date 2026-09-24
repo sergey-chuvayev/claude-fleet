@@ -601,7 +601,7 @@ test('owner-review hooks keep implementation in a resumed owner session and bind
     await until(()=>s.status==='idle' || s.status==='error')
     assert.equal(s.error,null)
     const {options}=calls[0],pre=options.hooks.PreToolUse[0].hooks[0],stop=options.hooks.Stop[0].hooks[0]
-    assert.equal(options.agent,'owner');assert.equal(options.model,'sonnet')
+    assert.equal(options.agent,'owner');assert.equal(options.model,'claude-opus-5-5')
     assert.ok(options.agents.owner.tools.includes('Edit'))
     assert.equal(options.maxBudgetUsd,10)
     assert.equal((await stop()).decision,'block','an empty task board must not bypass review')
