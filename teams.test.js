@@ -10,7 +10,7 @@ test('all presets have bounded roles and a budgeted workflow',()=>{
     assert.ok(team.workflow.maxAttempts>0)
     if (team.workflow.mode==='owner-review') {
       assert.equal(agents.owner.maxTurns,100)
-      assert.equal(agents.owner.model,'sonnet')
+      assert.equal(agents.owner.model,'claude-opus-5-5')
       assert.equal(agents.reviewer.maxTurns,25)
       assert.ok(agents.owner.tools.includes('Edit'))
       assert.ok(!agents.owner.disallowedTools.includes('Bash'))

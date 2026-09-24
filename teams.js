@@ -247,7 +247,7 @@ TEAMS['owner-review']={
   description:'One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.',
   manager:'owner',workflow:{mode:'owner-review',reviewers:['reviewer'],maxAttempts:3,budgetUsd:10},
   roles:{
-    owner:{description:'Owns implementation, tests, repairs and PR delivery in one session.',prompt:'Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.',model:'sonnet',maxTurns:100,effort:'medium',tools:[...READ_TOOLS,'Bash','Write','Edit','MultiEdit','NotebookEdit']},
+    owner:{description:'Owns implementation, tests, repairs and PR delivery in one session.',prompt:'Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.',model:'claude-opus-5-5',maxTurns:100,effort:'medium',tools:[...READ_TOOLS,'Bash','Write','Edit','MultiEdit','NotebookEdit']},
     reviewer:{description:'Independently checks correctness and required behavior.',prompt:`Review the actual committed diff against the original request and acceptance criteria.
 Read relevant project instructions and inspect the supplied base and snapshot. Check
 that tests exercise the affected behavior; reproduce relevant checks where useful.
