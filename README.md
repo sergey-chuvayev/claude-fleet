@@ -615,3 +615,19 @@ MIT. See [LICENSE](LICENSE).
 <div align="center">
 <sub>Screenshots use synthetic sessions generated for the purpose. Fleet is not affiliated with Anthropic.</sub>
 </div>
+
+## MCP connections
+
+Open **Connections** in the toolbar or a Fleet conversation to inspect configured MCP
+servers. Select a session for its live tool availability, or a project directory to
+check connections without sending a model prompt. Idle sessions use a separate
+project check; it does not resume the task.
+
+The panel supports reconnecting and enabling/disabling existing servers. For servers
+that need sign-in, authorize Claude.ai connectors in the linked settings page, or
+run `/mcp` in Claude Code in that project for local server authentication. Then check
+again and reconnect. Already-running agents need their own live reconnect; a project
+check does not refresh other sessions. Fleet's internal task tools cannot be disabled.
+
+Server credentials and raw transport errors are never returned to the panel.
+Diagnostic connections expire after two minutes without a check.

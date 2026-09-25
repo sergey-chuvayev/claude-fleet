@@ -2853,3 +2853,31 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .work-controls { padding:10px 12px }.work-controls label { margin-left:0 }
   .work-pane { min-height:280px }
 }
+
+/* Connections use the same flat rows and separators as the session console. */
+.modal-connections{width:min(900px,calc(100vw - 32px))}
+.modal-connections .modal-body{padding:0 32px 28px}
+.connections-form{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
+.connections-form label{display:flex;flex-direction:column;gap:8px;min-width:0}
+.connections-form input,.connections-form select{width:100%;max-width:none;min-width:0;height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--text);font:inherit;font-size:12px}
+#connections-context{margin-top:16px;line-height:1.6}
+.connections-form [hidden]{display:none}
+.connections-summary,.connection-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.connections-summary{padding:20px 0 12px;border-bottom:1px solid var(--line);font-size:12px}
+.connections-summary>span,.connection-heading small{color:var(--muted)}
+.connections-list{list-style:none;padding:0;margin:0}
+.connection-row{padding:20px 0;border-bottom:1px solid var(--line)}
+.connection-heading strong{overflow-wrap:anywhere}
+.connection-heading small{display:block;margin-top:6px;font-size:12px}
+.connection-status{font-size:12px;white-space:nowrap;color:var(--muted)}
+.connection-status[data-status=connected]{color:var(--term-green)}
+.connection-status[data-status=failed],.connection-status[data-status=needs-auth]{color:var(--term-yellow)}
+.connection-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.connection-auth{margin-top:12px}
+.connection-tools{margin-top:12px;font-size:12px}
+.connection-tools ul{padding-left:20px;max-height:180px;overflow:auto;overflow-wrap:anywhere}
+.connections-empty{padding:30px 0;color:var(--muted)}
+.connections-help{margin-top:24px;font-size:13px;line-height:1.6}
+.connections-help summary,.connection-tools summary{cursor:pointer}
+.connections-help a{color:var(--term-green)}
+@media(max-width:650px){.modal-connections .modal-body{padding:0 20px 20px}.connections-form{grid-template-columns:1fr}.connection-heading{align-items:flex-start}.modal-connections{width:calc(100vw - 16px)}}
