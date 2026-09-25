@@ -128,7 +128,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
   })
   context.window = context
   const before = new Set(Object.keys(context))
-  const FILES = ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js']
+  const FILES = ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js']
   for (const file of FILES) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     // A redeclaration is a SyntaxError raised when the script is instantiated, before
@@ -137,7 +137,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
   }
   const added = Object.keys(context).filter(k => !before.has(k)).sort()
-  assert.deepEqual(added, ['Fleet', 'FleetAsk', 'FleetBlocks', 'FleetControl', 'FleetQueue', 'FleetTeams'],
+  assert.deepEqual(added, ['Fleet', 'FleetAsk', 'FleetBlocks', 'FleetConnections', 'FleetControl', 'FleetQueue', 'FleetTeams'],
     'the only new globals may be the one namespace each file publishes')
   // Every namespace has to survive its own file's boot wiring. app.js and control.js
   // publish partway down rather than as the value their wrapper returns, precisely so
@@ -150,6 +150,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
     ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'session', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
     ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight']],
     ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
+    ['FleetConnections', ['open']],
   ]) for (const k of keys) assert.equal(typeof context[name][k], 'function', `${name}.${k} must stay part of the published surface`)
   // The one member that is a bag of functions rather than a function.
   for (const k of ['get', 'set', 'clear']) assert.equal(typeof context.Fleet.store[k], 'function', `Fleet.store.${k} must stay part of the published surface`)
@@ -184,7 +185,7 @@ test('every handler the browser scripts wire can reach the names it uses', () =>
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
@@ -815,7 +816,7 @@ test('the initiative board button can reach the names it uses', () => {
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }

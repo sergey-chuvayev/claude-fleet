@@ -5,6 +5,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomBytes, timingSafeEqual } = require('node:crypto')
 const { collect, transcriptFor } = require('./fleet.js')
+const { Connections } = require('./connections')
 const { ManagedSessions } = require('./managed.js')
 const { readTheme, themeCss } = require('./theme.js')
 const { collect: collectCatalog } = require('./catalog.js')
@@ -26,6 +27,7 @@ const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
 function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null} = {}) {
+  const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
   let eventTimer=null, storageError=null
@@ -133,6 +135,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         // Only the two endpoints that carry a message accept image-sized bodies.
         const carriesMessage=url.pathname==='/api/managed' || /^\/api\/managed\/[\w-]+\/messages$/.test(url.pathname)
         const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : url.pathname==='/api/teams' ? 256000 : 65536)
+        if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
@@ -213,7 +216,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return json(res,200,{session})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/work-queue.js':'work-queue.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))
@@ -222,7 +225,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   })
   server.requestTimeout=15000
   server.headersTimeout=10000
-  async function close(){clearTimeout(eventTimer);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
+  async function close(){connections.close();clearTimeout(eventTimer);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
   return {server,manager,search,archive,updater,close,getSnapshot}
 }
 
