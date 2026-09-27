@@ -631,3 +631,26 @@ check does not refresh other sessions. Fleet's internal task tools cannot be dis
 
 Server credentials and raw transport errors are never returned to the panel.
 Diagnostic connections expire after two minutes without a check.
+
+## Automatic model selection with Jev
+
+Choose **Auto · Jev** in the model picker to let Jev route a new session to Haiku,
+Sonnet, or Opus 5.5. Fleet sends the original/current text brief to Vercel AI Gateway
+and evaluates complexity, ambiguity, risk and whether the work is read-only. It does
+not send repository files, tool transcripts, referenced conversations or images.
+
+Configure `AI_GATEWAY_API_KEY` in the environment of the Fleet server and restart it
+before creating an Auto session. This is a separate Gateway evaluation charge, not
+part of your Claude subscription or Fleet's SDK-reported usage cap. The session shows
+the evaluation cost when Gateway reports it. Keys stay on the server.
+
+The selected model (including a fallback) is saved for the session and survives
+follow-ups and restarts. Manual model choices bypass Jev; switching back to Auto reuses
+its saved decision. Start a new session to get a fresh evaluation. Existing resumed
+conversations, images/references, oversized briefs, missing credentials, uncertain
+signals and failed requests use the normal Fleet preset. Team routing affects the
+owner/manager only; worker and reviewer models keep their configured settings.
+
+Routing thresholds are an initial policy, not measured accuracy guarantees. Validate
+selection quality and completed-task costs on your own tasks before making Auto your
+normal workflow. Model calls and permissions still run through the Claude Agent SDK.

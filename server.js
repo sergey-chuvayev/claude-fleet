@@ -5,6 +5,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomBytes, timingSafeEqual } = require('node:crypto')
 const { collect, transcriptFor } = require('./fleet.js')
+const { AUTO_OPTION } = require('./routing')
 const { Connections } = require('./connections')
 const { ManagedSessions } = require('./managed.js')
 const { readTheme, themeCss } = require('./theme.js')
@@ -186,7 +187,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         res.writeHead(200,{'content-type':TYPES['.css'],'cache-control':'no-cache'})
         return res.end(themeCss(currentTheme()))
       }
-      if(url.pathname==='/api/models') return json(res,200,{models:manager.models || MODEL_FALLBACK})
+      if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}

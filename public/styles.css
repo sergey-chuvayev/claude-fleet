@@ -2881,3 +2881,5 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .connections-help summary,.connection-tools summary{cursor:pointer}
 .connections-help a{color:var(--term-green)}
 @media(max-width:650px){.modal-connections .modal-body{padding:0 20px 20px}.connections-form{grid-template-columns:1fr}.connection-heading{align-items:flex-start}.modal-connections{width:calc(100vw - 16px)}}
+
+.model-routing{font-size:12px;color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere}
