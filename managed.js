@@ -11,6 +11,7 @@ const { getTeam, compile, boundedModel } = require('./teams')
 const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
 const { Dispatcher } = require('./dispatch')
+const routing = require('./routing')
 const tasks = require('./tasks')
 const ownerReview = require('./owner-review')
 const worktrees = require('./worktree')
@@ -57,10 +58,11 @@ function requestId(value) {
 }
 
 class ManagedSessions extends EventEmitter {
-  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue } = {}) {
+  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue, modelRouter = routing.route } = {}) {
     super()
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
+    this.modelRouter = modelRouter
     this.externalSessions = externalSessions
     this.sessions = new Map()
     this.runs = new Map()
@@ -380,7 +382,9 @@ class ManagedSessions extends EventEmitter {
         stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
         ...(s.sessionId ? {resume:s.sessionId} : {}),
       }
-      options.model = boundedModel(s.selectedModel)
+      const automatic=s.selectedModel===routing.AUTO_MODEL
+      const selectedModel=automatic ? '' : s.selectedModel
+      options.model = boundedModel(selectedModel)
       options.effort = 'medium'
       // `agent` puts the manager on the main thread, so the operator's messages reach it and
       // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
@@ -389,7 +393,7 @@ class ManagedSessions extends EventEmitter {
       if (team) {
         Object.assign(options, compile(team))
         const manager=options.agents[team.manager]
-        options.model=boundedModel(s.selectedModel || manager.model,'opus')
+        options.model=boundedModel(selectedModel || manager.model,'opus')
         manager.model=options.model
         options.effort=manager.effort
         options.maxTurns=manager.maxTurns
@@ -453,6 +457,18 @@ class ManagedSessions extends EventEmitter {
           options.hooks.PostToolUse=[{hooks:[check]}]
           options.hooks.PostToolUseFailure=[{hooks:[check]}]
         }
+      }
+      if (automatic) {
+        if (!s.modelRouting) {
+          const original=s.messages.find(m=>m.role==='user')
+          const decision=await this.modelRouter({original:original?.text,current:typeof entry==='string' ? entry:entry.text,
+            fallback:options.model,hasExtraContext:!!(s.sessionId || original?.attachments?.length || original?.references?.length || entry?.attachments?.length || entry?.references?.length),signal:run.controller.signal})
+          if (run.stopping || run.controller.signal.aborted) return
+          s.modelRouting=decision
+          this.changed(s,true)
+        }
+        options.model=s.modelRouting.model
+        if (team) options.agents[team.manager].model=options.model
       }
       if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
       run.query = await this.queryFactory({prompt,options})
