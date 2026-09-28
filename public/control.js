@@ -70,6 +70,7 @@ function openLaunch(source=null) {
   $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
   if(source){$('launch-cwd').value=source.cwd || '';form.elements.name.value=source.title || source.name || ''}
   loadLaunchTeams()
+  fillLaunchModels()
   $('launch-cwd').readOnly=!!source
   openModal('launch-backdrop', '[name=prompt]')
 }
@@ -319,15 +320,48 @@ async function sendMessage(event) {
   }catch(error){if(controlId===id){$('send-error').hidden=false;$('send-error').textContent=error.message}}
   finally{inFlight.delete(id);renderControl()}
 }
-// The model list comes from the running Claude runtime once one has reported it.
-let modelList=null
-async function fillModels(select) {
-  try{ modelList ||= (await api('/api/models')).models || [] }catch{ modelList=[] }
-  if(!select.isConnected) return
-  const current=controlSession?.selectedModel || ''
-  select.innerHTML=modelList.map(m=>`<option value="${esc(m.value)}" title="${esc(m.description || '')}">${esc(m.displayName || m.value || 'Default')}</option>`).join('')
+// The model list comes from the runtime. Keep standard choices usable even when
+// the initial request fails, and retry each time the launch dialog opens.
+const STANDARD_MODELS=[
+  {value:'',displayName:'Fleet default'},
+  {value:'opus',displayName:'Opus'},
+  {value:'sonnet',displayName:'Sonnet'},
+  {value:'haiku',displayName:'Haiku'},
+  {value:'auto-jev',displayName:'Auto · Jev'},
+]
+let modelList=null,modelsLoading=null,modelsFailed=false
+function populateModels(select,list,current=select?.value || '') {
+  if(!select?.isConnected)return
+  const choices=list.some(m=>m.value===current) ? list:[...list,{value:current,displayName:current}]
+  select.innerHTML=choices.map(m=>`<option value="${esc(m.value)}" title="${esc(m.description || '')}">${esc(m.displayName || m.value || 'Default')}</option>`).join('')
   select.value=current
-  if($('launch-model')) $('launch-model').innerHTML=select.innerHTML
+}
+async function loadModels(refresh=false) {
+  if(modelsLoading)return modelsLoading
+  if(modelList && !refresh)return modelList
+  modelsLoading=(async()=>{
+    try {
+      const data=await api('/api/models')
+      if(!Array.isArray(data.models) || !data.models.length || data.models.some(m=>!m || typeof m.value!=='string'))throw Error('Invalid model list')
+      modelList=data.models;modelsFailed=false
+    }catch{modelsFailed=true}
+    return modelList || STANDARD_MODELS
+  })()
+  try{return await modelsLoading}finally{modelsLoading=null}
+}
+async function fillModels(select) {
+  populateModels(select,modelList || STANDARD_MODELS,controlSession?.selectedModel || '')
+  const list=await loadModels()
+  populateModels(select,list,select?.value)
+}
+async function fillLaunchModels() {
+  const select=$('launch-model'),status=$('launch-model-status')
+  populateModels(select,modelList || STANDARD_MODELS)
+  if(status){status.hidden=false;status.textContent='Refreshing available models…'}
+  const list=await loadModels(true)
+  // Read the choice now, not before the request: the operator may have changed it.
+  populateModels(select,list)
+  if(status){status.hidden=!modelsFailed;status.textContent=modelsFailed ? 'Could not refresh models. The model choices remain available; reopen this dialog to retry.':''}
 }
 async function changeModel(event) {
   const id=controlId, model=event.target.value
@@ -366,7 +400,7 @@ window.addEventListener('fleet-libs-ready',()=>{
   if(log) for(const block of log.children) delete block.dataset.sig
   renderControl()
 })
-;(async()=>{ try{ modelList=(await api('/api/models')).models || []; if($('launch-model')) $('launch-model').innerHTML=modelList.map(m=>`<option value="${esc(m.value)}">${esc(m.displayName || m.value || 'Default')}</option>`).join('') }catch{} })()
+fillLaunchModels()
 initializeControls().catch(error=>toast(error.message))
 const events=new EventSource('/api/events')
 events.addEventListener('sessions',event=>{try{if(JSON.parse(event.data).includes(controlId))refreshControl()}catch{}})
