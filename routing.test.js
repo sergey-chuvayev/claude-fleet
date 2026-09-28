@@ -82,3 +82,19 @@ test('team routing changes only the manager and missing-key fallback preserves t
     assert.equal(s.teamSnapshot.roles.owner.model,'claude-opus-5-5')
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
+test('new sessions read key changes immediately without leaking credentials to session storage',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-route-keys-')),keys=[]
+  const manager=new ManagedSessions({directory,queryFactory:async()=>done(),modelRouter:async(input,options)=>{keys.push(options.apiKey);return {model:input.fallback,reason:'selected'}}})
+  manager.gatewaySettings.env={}
+  try{
+    for(const key of ['first-secret','second-secret','']){
+      if(key)manager.gatewaySettings.save(key);else manager.gatewaySettings.remove()
+      const s=manager.create({cwd:directory,prompt:'Task',model:AUTO_MODEL,requestId:randomUUID()});await idle(manager,s)
+      assert.doesNotMatch(JSON.stringify(manager.detail(s.id)),/first-secret|second-secret/)
+    }
+    fs.writeFileSync(manager.gatewaySettings.file,'invalid json')
+    const recovered=manager.create({cwd:directory,prompt:'Task',model:AUTO_MODEL,requestId:randomUUID()});await idle(manager,recovered)
+    assert.deepEqual(keys,['first-secret','second-secret','',''])
+    assert.doesNotMatch(fs.readFileSync(path.join(directory,'sessions.json'),'utf8'),/first-secret|second-secret/)
+  }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
