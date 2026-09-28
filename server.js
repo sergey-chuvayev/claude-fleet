@@ -136,6 +136,13 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         // Only the two endpoints that carry a message accept image-sized bodies.
         const carriesMessage=url.pathname==='/api/managed' || /^\/api\/managed\/[\w-]+\/messages$/.test(url.pathname)
         const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : url.pathname==='/api/teams' ? 256000 : 65536)
+        if(url.pathname==='/api/settings/gateway'){
+          const settings=manager.gatewaySettings
+          if(data.action==='save')return json(res,200,{gateway:settings.save(data.apiKey)})
+          if(data.action==='remove')return json(res,200,{gateway:settings.remove()})
+          if(data.action==='test')return json(res,200,{gateway:settings.status(),test:await settings.test()})
+          return json(res,400,{error:'Unknown settings action.'})
+        }
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
@@ -187,6 +194,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         res.writeHead(200,{'content-type':TYPES['.css'],'cache-control':'no-cache'})
         return res.end(themeCss(currentTheme()))
       }
+      if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
@@ -217,7 +225,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return json(res,200,{session})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))

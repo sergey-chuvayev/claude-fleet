@@ -5,7 +5,7 @@ const POLICY='jev-routing-v1'
 const MODELS={simple:'haiku',routine:'sonnet',complex:'claude-opus-5-5'}
 const REASONS={
   selected:'Selected from the task’s routing signals.',
-  missing_key:'AI_GATEWAY_API_KEY is not configured; using the Fleet preset.',
+  missing_key:'Add an AI Gateway key in Settings; using the Fleet preset.',
   context:'This task needs context beyond its text brief; using the Fleet preset.',
   uncertain:'Routing signals are uncertain; using the Fleet preset.',
   unavailable:'Jev could not be reached; using the Fleet preset.',

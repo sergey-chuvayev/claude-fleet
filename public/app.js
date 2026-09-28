@@ -498,7 +498,10 @@ function openModal(id, focusSelector) {
 function closeModal() {
   if (!openModalId) return
   const backdrop = $(openModalId)
-  if (backdrop) backdrop.hidden = true
+  if (backdrop) {
+    backdrop.querySelectorAll('input[type="password"]').forEach(input=>{input.value=''})
+    backdrop.hidden = true
+  }
   document.querySelector(`[aria-controls="${openModalId}"]`)?.setAttribute('aria-expanded', 'false')
   openModalId = null
   document.body.removeAttribute('data-modal')

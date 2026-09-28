@@ -63,6 +63,7 @@ class ManagedSessions extends EventEmitter {
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
     this.modelRouter = modelRouter
+    this.gatewaySettings = new (require('./settings').GatewaySettings)({directory})
     this.externalSessions = externalSessions
     this.sessions = new Map()
     this.runs = new Map()
@@ -461,8 +462,10 @@ class ManagedSessions extends EventEmitter {
       if (automatic) {
         if (!s.modelRouting) {
           const original=s.messages.find(m=>m.role==='user')
+          let apiKey=''
+          try{apiKey=this.gatewaySettings.key()}catch{} // Unreadable credentials retain the preset.
           const decision=await this.modelRouter({original:original?.text,current:typeof entry==='string' ? entry:entry.text,
-            fallback:options.model,hasExtraContext:!!(s.sessionId || original?.attachments?.length || original?.references?.length || entry?.attachments?.length || entry?.references?.length),signal:run.controller.signal})
+            fallback:options.model,hasExtraContext:!!(s.sessionId || original?.attachments?.length || original?.references?.length || entry?.attachments?.length || entry?.references?.length),signal:run.controller.signal},{apiKey})
           if (run.stopping || run.controller.signal.aborted) return
           s.modelRouting=decision
           this.changed(s,true)

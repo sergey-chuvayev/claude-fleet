@@ -639,7 +639,12 @@ Sonnet, or Opus 5.5. Fleet sends the original/current text brief to Vercel AI Ga
 and evaluates complexity, ambiguity, risk and whether the work is read-only. It does
 not send repository files, tool transcripts, referenced conversations or images.
 
-Configure `AI_GATEWAY_API_KEY` in the environment of the Fleet server and restart it
+Open **Settings → AI Gateway**, paste your Vercel AI Gateway key, and choose **Save key**.
+Use **Test connection** to check access with a small, separately billed sample evaluation.
+The saved key is stored in `~/.claude-fleet/gateway-key.json` (owner-only permissions;
+`CLAUDE_FLEET_HOME` overrides the directory) and applies immediately, including Dock launches.
+Saved keys override `AI_GATEWAY_API_KEY`; removing a saved key restores that environment fallback.
+Alternatively, configure `AI_GATEWAY_API_KEY` in the Fleet server environment and restart it
 before creating an Auto session. This is a separate Gateway evaluation charge, not
 part of your Claude subscription or Fleet's SDK-reported usage cap. The session shows
 the evaluation cost when Gateway reports it. Keys stay on the server.

@@ -39,6 +39,7 @@
     "routing.js",
     "search.js",
     "server.js",
+    "settings.js",
     "teams.js",
     "theme.js",
     "update.js",
