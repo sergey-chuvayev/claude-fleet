@@ -330,11 +330,14 @@ function render() {
   // filter but their own, and the transcript behind them is untouched.
   const archived = sessions.filter(s => s.archived)
   const live = sessions.filter(s => !s.archived)
-  const background = live.filter(s => s.background)
+  // A Day is not one of your agents: it lives in the Today tab, never in these lists.
+  const days = live.filter(s => s.kind === 'day')
+  const agents = live.filter(s => s.kind !== 'day')
+  const background = agents.filter(s => s.background)
   // How many spawned sessions each visible session is running, for its row badge.
   const spawnCounts = new Map()
   for (const s of background) if (s.spawnedByPid) spawnCounts.set(s.spawnedByPid, (spawnCounts.get(s.spawnedByPid) || 0) + 1)
-  const foreground = live.filter(s => !s.background)
+  const foreground = agents.filter(s => !s.background)
   const visibleCounts = { busy:0, idle:0, stale:0, dead:0 }
   for (const s of foreground) visibleCounts[s.state] = (visibleCounts[s.state] || 0) + 1
   // Restoring the last archived session should not strand you on an empty filter.
@@ -342,7 +345,9 @@ function render() {
   const pool = filter === 'archived' ? archived : filter === 'background' ? background : foreground
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
-  const shown = window.FleetQueue?.active() ? window.FleetQueue.visible(live) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
+  // The Today tab shows exactly one conversation, today's Day, or none before it starts.
+  const today = window.FleetDay?.active() ? window.FleetDay.current(days) : undefined
+  const shown = today !== undefined ? (today ? [today] : []) : window.FleetQueue?.active() ? window.FleetQueue.visible(agents) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
@@ -378,6 +383,7 @@ function render() {
   }
   syncDetails()
   window.FleetQueue?.render(snapshot,selected)
+  window.FleetDay?.render(days)
 }
 // ── The archive ──────────────────────────────────────────────────────────────
 // Putting a session away hides its row and nothing else: the transcript stays in
@@ -844,16 +850,12 @@ function watchConversation(element) {
   if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true })
   let board = null, disposeBoard = null
   const syncBoard = () => {
-    const next = $('initiative-board') || $('day-board')
+    const next = $('initiative-board')
     if (next === board) return
     disposeBoard?.()
     board = next
     if (board) {
-      // On a Day the board is the work and the conversation is the side channel, so it
-      // starts tall and remembers its own height apart from the team overview's.
-      disposeBoard = board.id === 'day-board'
-        ? addPanel(board, { key: 'fleet:day-height', label: 'Resize Day board', min: 120, initial: 520 })
-        : addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
+      disposeBoard = addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
     }
   }
   const mutation = new MutationObserver(syncBoard)
@@ -870,6 +872,8 @@ const DETAILS_KEY = 'fleet:minimal-details-open'
 function syncDetails() {
   const toggle = $('details-toggle'), content = $('detail-content'), hasConsole = !!$('composer')
   if (!toggle || !content) return
+  // Today is two panels, the board and the console; the inspector has nothing to add.
+  if (window.FleetDay?.active()) { toggle.hidden = true; content.hidden = true; return }
   toggle.hidden = !hasConsole
   const preference = store.get(DETAILS_KEY)
   const open = !hasConsole || (preference === null ? matchMedia('(min-width:1200px)').matches : preference === '1')
