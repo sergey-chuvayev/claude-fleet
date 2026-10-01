@@ -179,3 +179,83 @@ test('a Day keeps its scouts in the foreground so their tool calls outlive no st
     assert.match(calls[0].prompt,/Granola at \d{4}-\d\d-\d\dT/)
   } finally { await manager.close() }
 })
+
+test('a Day totals its tokens across every model, scouts included',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-day-'))
+  let turns=0
+  const manager=new ManagedSessions({directory,queryFactory:async()=>(turns++,{close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:'main',model:'claude-sonnet'}
+    yield {type:'result',result:'Done',is_error:false,modelUsage:{'claude-sonnet':{inputTokens:1000,outputTokens:200,cacheReadInputTokens:5000,cacheCreationInputTokens:300},'claude-haiku':{inputTokens:400,outputTokens:100,cacheReadInputTokens:0,cacheCreationInputTokens:0}}}
+  }})})
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    manager.send(s.id,{message:'again',requestId:randomUUID()})
+    await until(()=>s.status==='idle' && turns===2)
+    assert.deepEqual(s.tokenUsage,{input:2800,output:600,cacheRead:10000,cacheCreation:600})
+    assert.deepEqual(manager.summaries().find(x=>x.managedId===s.id).tokenUsage,s.tokenUsage)
+  } finally { await manager.close() }
+})
+
+test('approving a launch makes Fleet start that session, once, and the Day can follow it',async()=>{
+  const {directory,manager,calls}=setup()
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const item=day.act(s,{action:'add',title:'Fix TECH-7166 retry',source:'linear'},'operator').item
+    assert.throws(()=>day.act(s,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Fix it',cwd:'relative/path'}),/absolute path/)
+    assert.throws(()=>day.act(s,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Fix it',cwd:directory,teamId:'nope'},'agent',{teams:()=>manager.teams.list()}),/Unknown team/)
+    const need=day.act(s,{action:'ask',itemId:item.id,kind:'launch',question:'Launch a quick fix?',draft:'Fix the retry in TECH-7166.',cwd:directory,name:'TECH-7166 retry'})
+    manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:need.id,answer:'Fix the retry in TECH-7166, and add a test.'})
+    const launched=manager.sessions.get(need.launched)
+    assert.ok(launched,'a session was started')
+    assert.equal(launched.kind,'agent')
+    assert.equal(launched.name,'TECH-7166 retry')
+    assert.equal(launched.messages[0].text,'Fix the retry in TECH-7166, and add a test.','the operator\'s edited brief is what starts')
+    assert.deepEqual(item.launched,[launched.id])
+    assert.equal(item.status,'in_progress')
+    assert.throws(()=>manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:need.id,answer:'approve'}),/already answered/)
+    await until(()=>launched.status==='idle')
+    const seen=day.act(s,{action:'list'},'agent',{launched:id=>manager.launchedStatus(id)}).items.find(i=>i.id===item.id).launched[0]
+    assert.equal(seen.status,'idle')
+    assert.equal(seen.name,'TECH-7166 retry')
+    assert.ok(calls.some(c=>c.options.cwd===fs.realpathSync(directory) && !c.options.agents?.['slack-scout']),'the launched session is a normal agent, not a Day')
+  } finally { await manager.close() }
+})
+
+test('a launch that cannot start rolls the answer back so it can be retried',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const item=day.act(s,{action:'add',title:'Work',source:'me'},'operator').item
+    const need=day.act(s,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Do the work.',cwd:'/definitely/not/here'})
+    assert.throws(()=>manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:need.id,answer:'approve'}),/does not exist/)
+    assert.equal(s.dayBoard.items[0].needs[0].answer,undefined,'still open')
+    assert.equal(s.dayBoard.items[0].launched,undefined)
+  } finally { await manager.close() }
+})
+
+test('a Day records each subagent with its assignment, steps and report',async()=>{
+  const {directory,manager}=setup(async()=>{})
+  manager.queryFactory=async()=>({close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:'main',model:'claude-sonnet'}
+    yield {type:'assistant',message:{content:[{type:'tool_use',id:'agent-1',name:'Agent',input:{subagent_type:'slack-scout',description:'Slack intake',prompt:'Cursor: none'}}]}}
+    yield {type:'assistant',parent_tool_use_id:'agent-1',message:{id:'m1',model:'claude-haiku',content:[{type:'text',text:'Searching mentions'},{type:'tool_use',id:'step-1',name:'mcp__claude_ai_Slack__slack_search_public_and_private',input:{query:'to:me'}}]}}
+    yield {type:'user',parent_tool_use_id:'agent-1',message:{content:[{type:'tool_result',tool_use_id:'step-1',content:'3 messages'}]}}
+    yield {type:'user',message:{content:[{type:'tool_result',tool_use_id:'agent-1',content:'[{"title":"Reply to Marc"}]'}]}}
+    yield {type:'result',result:'Done',is_error:false}
+  }})
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const [d]=s.subagents
+    assert.equal(d.role,'slack-scout')
+    assert.equal(d.prompt,'Cursor: none')
+    assert.equal(d.status,'completed')
+    assert.equal(d.model,'claude-haiku')
+    assert.equal(d.output,'Searching mentions')
+    assert.deepEqual(d.steps.map(x=>[x.tool,x.status,x.result]),[['mcp__claude_ai_Slack__slack_search_public_and_private','done','3 messages']])
+    assert.match(d.report,/Reply to Marc/)
+  } finally { await manager.close() }
+})

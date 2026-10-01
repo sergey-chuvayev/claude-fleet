@@ -47,6 +47,7 @@
     const workspace=document.querySelector('.workspace')
     workspace.dataset.view=mode
     workspace.setAttribute('aria-label',mode==='queue' ? 'Work queue':mode==='today' ? 'Today':'Sessions')
+    window.Fleet.syncSplit?.()
     window.Fleet.render()
   }
   function reveal() {

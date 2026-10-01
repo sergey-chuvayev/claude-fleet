@@ -652,6 +652,8 @@ window.Fleet = {
   $, esc, update, key, age, tokens, money, status, store,
   // The account's plan windows, rendered from a usage reading.
   usageHtml,
+  // work-queue.js calls this after a view switch: each view keeps its own divider.
+  syncSplit: () => syncSplit(),
   // Current state.
   snapshot: () => snapshot,
   // Actions. Each one renders, so a caller never has to remember to.
@@ -690,31 +692,48 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) tick
 // Layout the operator controls: a draggable split between the session list and the
 // inspector, and resizable session sections. Sizes are remembered per browser; a storage
 // failure (private window, blocked site data) only costs the remembered size.
-const LAYOUT = { split: 'fleet:minimal-split' }
+const LAYOUT = { split: 'fleet:minimal-split', today: 'fleet:today-split' }
 const SPLIT_DEFAULT = 22, LIST_MIN = 240, DETAIL_MIN = 480
+// Today is two working panels, not a list beside a console, so its divider has its own
+// range and its own remembered position: dragging one never moves the other.
+const TODAY_DEFAULT = 56, BOARD_MIN = 420, CONSOLE_MIN = 380
+const todayView = () => document.querySelector('.workspace')?.dataset.view === 'today'
+const splitKey = () => todayView() ? LAYOUT.today : LAYOUT.split
+const splitDefault = () => todayView() ? TODAY_DEFAULT : SPLIT_DEFAULT
+const splitBounds = width => todayView()
+  ? [BOARD_MIN / width * 100, (width - CONSOLE_MIN) / width * 100]
+  : [LIST_MIN / width * 100, Math.min(width <= 1199 ? 300 : 380, width - DETAIL_MIN) / width * 100]
 
 function applySplit(percent, { save = true } = {}) {
   const width = document.querySelector('.workspace')?.getBoundingClientRect().width || 0
   const value = Math.round(clampSplit(percent, width) * 10) / 10
-  document.documentElement.style.setProperty('--split', `${value}%`)
+  document.documentElement.style.setProperty(todayView() ? '--today-split' : '--split', `${value}%`)
   $('splitter')?.setAttribute('aria-valuenow', String(Math.round(value)))
   if (width > 720) {
-    $('splitter')?.setAttribute('aria-valuemin', String(Math.round(LIST_MIN / width * 100)))
-    $('splitter')?.setAttribute('aria-valuemax', String(Math.round(Math.min(width <= 1199 ? 300 : 380, width - DETAIL_MIN) / width * 100)))
+    const [min, max] = splitBounds(width)
+    $('splitter')?.setAttribute('aria-valuemin', String(Math.round(min)))
+    $('splitter')?.setAttribute('aria-valuemax', String(Math.round(max)))
   }
-  if (save) store.set(LAYOUT.split, String(value))
+  if (save) store.set(splitKey(), String(value))
 }
 // Clamp in pixels so neither pane can be squeezed past the point of being usable.
 function clampSplit(percent, width) {
   if (width <= 720) return percent
-  const max = Math.min(width <= 1199 ? 300 : 380, width - DETAIL_MIN)
-  return Math.min(Math.max(percent, LIST_MIN / width * 100), max / width * 100)
+  const [min, max] = splitBounds(width)
+  return Math.min(Math.max(percent, min), max)
+}
+// Put the divider where this view last left it. Called on load and on every view switch.
+function syncSplit() {
+  const saved = Number(store.get(splitKey()))
+  applySplit(Number.isFinite(saved) && saved > 0 ? saved : splitDefault(), { save: false })
 }
 function initSplitter() {
   const splitter = $('splitter'), workspace = document.querySelector('.workspace')
   if (!splitter || !workspace) return
-  const saved = Number(store.get(LAYOUT.split))
-  applySplit(Number.isFinite(saved) && saved > 0 ? saved : SPLIT_DEFAULT, { save: false })
+  // The list view's position is applied too, so leaving Today never shows a stale one.
+  const savedList = Number(store.get(LAYOUT.split))
+  document.documentElement.style.setProperty('--split', `${Number.isFinite(savedList) && savedList > 0 ? savedList : SPLIT_DEFAULT}%`)
+  syncSplit()
 
   const move = event => {
     const rect = workspace.getBoundingClientRect()
@@ -739,24 +758,24 @@ function initSplitter() {
     addEventListener('pointerup', stop)
     addEventListener('pointercancel', stop)
   })
-  splitter.addEventListener('dblclick', () => { store.clear(LAYOUT.split); applySplit(SPLIT_DEFAULT, { save: false }) })
+  splitter.addEventListener('dblclick', () => { store.clear(splitKey()); applySplit(splitDefault(), { save: false }) })
   splitter.addEventListener('keydown', event => {
     const step = { ArrowLeft: -2, ArrowRight: 2, Home: -100, End: 100 }[event.key]
     if (step === undefined) {
       if (event.key !== 'Enter' && event.key !== ' ') return
       event.preventDefault()
-      store.clear(LAYOUT.split)
-      return applySplit(SPLIT_DEFAULT, { save: false })
+      store.clear(splitKey())
+      return applySplit(splitDefault(), { save: false })
     }
     event.preventDefault()
     const width = workspace.getBoundingClientRect().width
-    const current = Number(splitter.getAttribute('aria-valuenow')) || SPLIT_DEFAULT
+    const current = Number(splitter.getAttribute('aria-valuenow')) || splitDefault()
     applySplit(clampSplit(current + step, width), { save: true })
   })
   // A window resize can leave a stored split too narrow for one of the panes.
   addEventListener('resize', () => {
     const width = workspace.getBoundingClientRect().width
-    const current = Number(splitter.getAttribute('aria-valuenow')) || SPLIT_DEFAULT
+    const current = Number(splitter.getAttribute('aria-valuenow')) || splitDefault()
     const clamped = clampSplit(current, width)
     applySplit(clamped, { save: false })
   })

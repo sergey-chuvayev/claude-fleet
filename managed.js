@@ -36,6 +36,8 @@ const DAY_HOURS = [8, 20]
 // Answers and triage come in bursts. Waiting this long after the last one turns ten
 // clicks into one run instead of ten.
 const DAY_RESUME_DELAY_MS = 20000
+const DAY_ANSWER_DELAY_MS = 4000
+const MAX_DAY_SUBAGENTS = 40
 const DAY_MAX_FAILURES = 3
 // Pasted images: a handful per message, bounded in size, only the formats the API
 // accepts, and sniffed by magic bytes because the client's declared type is a claim.
@@ -118,6 +120,7 @@ class ManagedSessions extends EventEmitter {
           // turn that nothing will ever hand it.
           if (s.status === 'queued') { s.status = 'stopped'; s.error = 'Fleet restarted while this was waiting for a free agent. Send a message to start it.' }
           tasks.interrupt(s)
+          interruptSubagents(s)
           s.approvals = []
           s.currentTool = null
           for (const m of s.messages) if (m.role === 'tool' && m.status === 'running') m.status = 'interrupted'
@@ -199,7 +202,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
       // line" rather than the bare "queued" that tells the operator nothing.
@@ -300,16 +303,41 @@ class ManagedSessions extends EventEmitter {
     let result
     try {
       if (body.op === 'add') result = day.act(s,{...body.item,action:'add'},'operator')
-      else if (body.op === 'answer') result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer)
+      else if (body.op === 'answer') {
+        result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer,body.decision)
+        if (result.need.kind === 'launch' && ['approve','edit'].includes(result.need.decision)) this.launchFromDay(s,result,body)
+      }
       else if (body.op === 'triage') result = day.triage(s,text(body.itemId,'Item',100),body)
       else if (body.op === 'sweep') { this.dayRun(s,'sweep'); return {queued:true} }
       else fail('Unknown Day action.')
       this.changed(s,true)
     } catch (error) { s.dayBoard = before; throw error }
-    this.scheduleDayResume(s)
+    // An answer is someone waiting for a response; triage is a burst of clicks.
+    this.scheduleDayResume(s, body.op === 'answer' ? DAY_ANSWER_DELAY_MS : DAY_RESUME_DELAY_MS)
     return result
   }
-  scheduleDayResume(s) {
+  // "Agent does it", carried out by Fleet rather than by the Day: the Day cannot edit
+  // files or start sessions, so an approved brief becomes an ordinary Fleet session, the
+  // same as one launched from the Work queue. The question's id is the request id, so a
+  // double click cannot launch twice.
+  launchFromDay(s, {item, need}, body) {
+    const plan = need.launch
+    const prompt = need.decision === 'edit' ? need.answer : need.draft
+    const cwd = typeof body.cwd === 'string' && body.cwd.trim() ? body.cwd.trim() : plan.cwd
+    const teamId = body.teamId !== undefined ? body.teamId || null : plan.teamId || null
+    const launched = this.create({cwd,prompt,name:plan.name || item.title.slice(0,100),...(teamId ? {teamId} : {}),...(plan.model ? {model:plan.model} : {}),approvalMode:s.approvalMode,requestId:need.id})
+    need.launched = launched.id
+    item.launched = [...(item.launched || []), launched.id].slice(-5)
+    item.status = 'in_progress'
+    day.act(s,{action:'update',itemId:item.id,note:`Launched ${teamId ? `${launched.teamName || teamId} initiative` : 'an agent'} in ${cwd.replace(os.homedir(),'~')}.`},'operator')
+  }
+  // What the Day sees of the sessions it launched: enough to follow them, not their transcripts.
+  launchedStatus(id) {
+    const x = this.sessions.get(id)
+    if (!x) return {id,status:'closed'}
+    return {id,name:x.name,status:x.status,kind:x.kind,progress:tasks.progress(x),branch:x.worktree?.branch || null,links:linksFromMessages(x.messages).slice(-3).map(l=>l.url),error:x.error ? String(x.error).slice(0,300) : null}
+  }
+  scheduleDayResume(s, delay = DAY_RESUME_DELAY_MS) {
     clearTimeout(this.dayTimers.get(s.id))
     const timer = setTimeout(() => {
       this.dayTimers.delete(s.id)
@@ -318,7 +346,7 @@ class ManagedSessions extends EventEmitter {
       // behind it would only repeat that work.
       if (this.runs.has(s.id) || s.queue.some(q => q.background)) return
       try { this.dayRun(s,'resume') } catch (error) { this.emit('storage-error',error) }
-    }, DAY_RESUME_DELAY_MS)
+    }, delay)
     timer.unref?.()
     this.dayTimers.set(s.id, timer)
   }
@@ -489,7 +517,7 @@ class ManagedSessions extends EventEmitter {
         options.model = boundedModel(selectedModel,'sonnet')
         // Code is changed by initiatives the operator launches, never by the Day itself.
         options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true))}
+        options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true),{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description}))})}
         // Scouts run in the foreground. A background subagent outlives the turn that
         // launched it, and once that turn's result arrives the SDK closes its input:
         // every permission check and every call to the in-process day tool after that
@@ -594,6 +622,7 @@ class ManagedSessions extends EventEmitter {
       // would misreport a race as a stop.
       if (s.taskBoard) for (const d of s.taskBoard.delegations) if (d.status === 'running') for (const step of d.steps || []) if (step.status === 'running') step.status = 'interrupted'
       tasks.interrupt(s)
+      interruptSubagents(s)
       ownerReview.refresh(s)
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
@@ -622,8 +651,8 @@ class ManagedSessions extends EventEmitter {
     if (event.session_id && !event.parent_tool_use_id && !run.background) s.sessionId=event.session_id
     // Account-wide, so it is recorded whoever emitted it, sub-agent turns included.
     if (event.type==='rate_limit_event') this.usage.recordEvent(event.rate_limit_info)
-    if (s.taskBoard && event.parent_tool_use_id) {
-      const d=s.taskBoard.delegations.find(d=>d.id===event.parent_tool_use_id)
+    if (event.parent_tool_use_id && (s.taskBoard || s.subagents)) {
+      const d=delegationFor(s,event.parent_tool_use_id)
       if (d && event.type==='assistant') {
         const content=event.message.content || []
         d.activity=content.filter(b=>b.type==='tool_use').map(b=>b.name).join(', ') || d.activity
@@ -641,8 +670,8 @@ class ManagedSessions extends EventEmitter {
         for (const block of event.message?.content || []) if (block.type==='tool_result') this.stepFinished(d,block)
       }
     }
-    if (s.taskBoard && event.type==='system' && ['task_progress','task_notification'].includes(event.subtype)) {
-      const d=s.taskBoard.delegations.find(d=>d.id===event.tool_use_id)
+    if ((s.taskBoard || s.subagents) && event.type==='system' && ['task_progress','task_notification'].includes(event.subtype)) {
+      const d=delegationFor(s,event.tool_use_id)
       if (d && event.usage) {
         d.runtimeUsage ||= {}
         for (const key of ['total_tokens','tool_uses','duration_ms']) {
@@ -686,6 +715,7 @@ class ManagedSessions extends EventEmitter {
       if (event.is_error) { s.status='error'; s.error=event.errors?.join('\n') || event.result || 'Claude could not finish this turn.' }
       else if (event.result && !s.messages.some(m=>m.role==='assistant' && m.text===event.result.slice(-24000))) s.messages.push({id:randomUUID(),role:'assistant',text:event.result.slice(-24000),at:Date.now()})
       s.costUsd=(s.costUsd||0)+(event.total_cost_usd||0)
+      addTokens(s,event)
       s.messages=s.messages.slice(-MAX_MESSAGES)
       this.captureUsage(run)
     }
@@ -712,6 +742,11 @@ class ManagedSessions extends EventEmitter {
       approval:askReason(block.name, block.input, s.approvalMode) ? 'asked' : 'auto',
     }
     run.tools.set(block.id,entry)
+    // A Day's subagents get the same record an initiative's delegations do, so the
+    // Today console can show each one's assignment, steps and report.
+    if (s.kind === 'day' && ['Agent','Task'].includes(block.name)) {
+      s.subagents = [...(s.subagents || []), {id:block.id,role:block.input?.subagent_type || 'general-purpose',description:String(block.input?.description || '').slice(0,200),prompt:String(block.input?.prompt || '').slice(0,24000),status:'running',startedAt:Date.now(),finishedAt:null,steps:[],output:'',report:''}].slice(-MAX_DAY_SUBAGENTS)
+    }
     s.messages.push(entry)
     s.messages=s.messages.slice(-MAX_MESSAGES)
   }
@@ -729,6 +764,11 @@ class ManagedSessions extends EventEmitter {
       // finished delegation, so it gets its own terminal label instead.
       const d=s.taskBoard.delegations.find(d=>d.id===block.tool_use_id)
       if (d && d.status!=='running') for (const step of d.steps || []) if (step.status==='running') step.status='unreported'
+    }
+    const sub = s.subagents?.find(d => d.id === block.tool_use_id)
+    if (sub && sub.status === 'running') {
+      sub.status = block.is_error ? 'failed' : 'completed'; sub.finishedAt = Date.now(); sub.report = result.slice(0,24000)
+      for (const step of sub.steps) if (step.status === 'running') step.status = 'unreported'
     }
     entry.truncated = result.length > MAX_TOOL_RESULT
     entry.result = block.is_error || !QUIET_RESULT.has(entry.tool) ? result.slice(0,MAX_TOOL_RESULT) : null
@@ -897,6 +937,27 @@ class ManagedSessions extends EventEmitter {
 // subagent's request with an agentID but not with the role name, so the name is recovered
 // from the delegation that is in flight. With two delegations running at once that is
 // ambiguous, and an honest null beats a confident guess at the wrong role.
+// Where a sub-agent's events land: an initiative's delegation, or a Day's subagent.
+function delegationFor(s,id) {
+  return s.taskBoard?.delegations.find(d=>d.id===id) || s.subagents?.find(d=>d.id===id) || null
+}
+function interruptSubagents(s) {
+  for (const d of s.subagents || []) if (d.status === 'running') {
+    d.status = 'interrupted'; d.finishedAt = Date.now()
+    for (const step of d.steps) if (step.status === 'running') step.status = 'interrupted'
+  }
+}
+// Tokens this session has used, summed across every model in each turn (a Day's Haiku
+// scouts included), from the totals the SDK reports once a turn ends.
+function addTokens(s,event) {
+  const models=Object.values(event.modelUsage || {})
+  if (!models.length) return
+  const total=s.tokenUsage ||= {input:0,output:0,cacheRead:0,cacheCreation:0}
+  for (const m of models) for (const [key,field] of [['input','inputTokens'],['output','outputTokens'],['cacheRead','cacheReadInputTokens'],['cacheCreation','cacheCreationInputTokens']]) {
+    const value=m[field]
+    if (Number.isFinite(value) && value>0) total[key]+=value
+  }
+}
 function roleAsking(s,context) {
   const team = s.teamSnapshot || getTeam(s.teamId)
   if (!team) return null

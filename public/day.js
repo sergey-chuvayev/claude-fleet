@@ -11,6 +11,12 @@ window.FleetDay=(()=>{
   const PRIORITY={must:'Must',should:'Should',could:'Could'}
   const STATUS={today:'today',in_progress:'in progress',waiting_on_you:'waiting on you',done:'done',later:'later',dropped:'dropped',proposed:'proposed'}
   const open=item=>item.needs.filter(n=>n.answer===undefined)
+  // Teams for a launch card. Fetched once; the launch dialog may have them already.
+  let teams=null
+  const teamList=()=>{
+    if(!teams){teams=control().launchTeams?.() || [];api('/api/teams').then(data=>{teams=data.teams;const p=document.getElementById('day-board');if(p)p.fleetSignature=null;control().refresh()}).catch(()=>{})}
+    return teams
+  }
   const minutes=list=>list.reduce((sum,i)=>sum+(i.estimateMin || 0),0)
   const duration=n=>n>=60 ? `${Math.floor(n/60)}h${n%60 ? ` ${n%60}m`:''}` : `${n}m`
   const options=(map,value)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===value ? 'selected':''}>${v}</option>`).join('')
@@ -26,10 +32,17 @@ window.FleetDay=(()=>{
   // field that holds the operator's words is keyed, read back before a render and put
   // back after, so a poll never eats a half-written reply.
   const keep=(key,value='',rows)=>rows ? `<textarea data-keep="${escape(key)}" rows="${rows}" maxlength="16000">${escape(value)}</textarea>` : `<input data-keep="${escape(key)}" value="${escape(value)}" maxlength="2000">`
+  // Every question can also be answered in words: "not yet", "ask Thomas instead",
+  // "shorten it". A reply goes to the agent as a message and never approves a send.
+  const replyHtml=(id,data)=>`<div class="day-reply">${keep(`reply:${id}`)}<button type="button" class="button" data-answer="reply" ${data}>Reply</button></div>`
   function needHtml(item,n) {
     const id=`${item.id}:${n.id}`,data=`data-item="${escape(item.id)}" data-need="${escape(n.id)}"`
-    if(n.kind==='approve') return `<div class="day-need" data-kind="approve"><p>${escape(n.question)}</p>${keep(`draft:${id}`,n.draft,Math.min(8,Math.max(3,String(n.draft).split('\n').length+1)))}<div class="day-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Approve</button><button type="button" class="button" data-answer="reject" ${data}>Reject</button><span class="note">Edit the text above to approve your version instead.</span></div></div>`
-    if(n.kind==='choose') return `<div class="day-need" data-kind="choose"><p>${escape(n.question)}</p><div class="day-actions">${(n.options || []).map(o=>`<button type="button" class="button" data-answer-value="${escape(o)}" ${data}>${escape(o)}</button>`).join('')}</div></div>`
+    if(n.kind==='approve') return `<div class="day-need" data-kind="approve"><p>${escape(n.question)}</p>${keep(`draft:${id}`,n.draft,Math.min(8,Math.max(3,String(n.draft).split('\n').length+1)))}<div class="day-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Approve</button><button type="button" class="button" data-answer="reject" ${data}>Reject</button><span class="note">Edit the text to approve your version, or reply to discuss it.</span></div>${replyHtml(id,data)}</div>`
+    if(n.kind==='choose') return `<div class="day-need" data-kind="choose"><p>${escape(n.question)}</p><div class="day-actions">${(n.options || []).map(o=>`<button type="button" class="button" data-answer-value="${escape(o)}" ${data}>${escape(o)}</button>`).join('')}</div>${replyHtml(id,data)}</div>`
+    if(n.kind==='launch'){
+      const plan=n.launch || {},teams=teamList()
+      return `<div class="day-need" data-kind="launch"><p>${escape(n.question)}</p><label class="day-field">Brief the new session starts from${keep(`draft:${id}`,n.draft,Math.min(10,Math.max(4,String(n.draft).split('\n').length+1)))}</label><div class="day-launch-fields"><label class="day-field">Repository<input data-launch="cwd" value="${escape(plan.cwd || '')}" maxlength="4096"></label><label class="day-field">Who<select data-launch="teamId"><option value="">Single agent</option>${teams.map(t=>`<option value="${escape(t.id)}" ${t.id===plan.teamId ? 'selected':''}>${escape(t.name)}</option>`).join('')}${plan.teamId && !teams.some(t=>t.id===plan.teamId) ? `<option value="${escape(plan.teamId)}" selected>${escape(plan.teamId)}</option>`:''}</select></label></div><div class="day-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Launch ↗</button><button type="button" class="button" data-answer="reject" ${data}>Not now</button><span class="note">Starts a Fleet session like the Work queue does. It shows up in Sessions.</span></div>${replyHtml(id,data)}</div>`
+    }
     return `<div class="day-need" data-kind="info"><p>${escape(n.question)}</p><div class="day-actions day-inline">${keep(`info:${id}`)}<button type="button" class="button resume" data-answer="info" ${data}>Answer</button></div></div>`
   }
   function waitingHtml(items) {
@@ -44,11 +57,23 @@ window.FleetDay=(()=>{
     proposed.sort((a,b)=>order[a.priority]-order[b.priority])
     return `<section class="day-section"><h4>To triage <span>${proposed.length}</span><button type="button" class="button day-small" data-triage-all="must">Take all Must</button></h4>${proposed.map(item=>`<article class="day-card" data-card="${escape(item.id)}" data-proposed><div class="day-card-head">${head(item)}</div>${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}<div class="day-actions"><select data-field="priority" aria-label="Priority">${options(PRIORITY,item.priority)}</select><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button resume" data-triage="today">Today</button><button type="button" class="button" data-triage="later">Later</button><button type="button" class="button" data-triage="dropped">Drop</button></div></article>`).join('')}</section>`
   }
+  // Sessions an item launched, with their live state from the session list.
+  const LAUNCH_STATE={starting:'starting',running:'working',approval:'needs you',stopping:'stopping',stopped:'stopped',error:'failed',idle:'ready',queued:'queued'}
+  function launchedHtml(item) {
+    if(!item.launched?.length)return ''
+    const sessions=window.Fleet.snapshot()?.sessions || []
+    return `<div class="day-launched">${item.launched.map(id=>{
+      const x=sessions.find(x=>x.managedId===id)
+      if(!x)return `<span class="day-launch-chip" data-state="closed">Session closed</span>`
+      const p=x.taskProgress
+      return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape(x.teamName || 'Agent')} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} ↗</button>`
+    }).join('')}</div>`
+  }
   function todayHtml(items,opened) {
     const today=items.filter(i=>['today','in_progress','waiting_on_you'].includes(i.status))
     const order={must:0,should:1,could:2}
     today.sort((a,b)=>order[a.priority]-order[b.priority] || a.createdAt-b.createdAt)
-    const row=item=>`<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="task-state" data-state="${escape(item.status)}">${escape(STATUS[item.status])}</span><span class="day-priority" data-priority="${escape(item.priority)}">${PRIORITY[item.priority]}</span>${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></summary>${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
+    const row=item=>`<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="task-state" data-state="${escape(item.status)}">${escape(STATUS[item.status])}</span><span class="day-priority" data-priority="${escape(item.priority)}">${PRIORITY[item.priority]}</span>${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></summary>${launchedHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
     return `<section class="day-section"><h4>Today <span>${today.length}${minutes(today) ? ` · ${duration(minutes(today))} estimated`:''}</span></h4>${today.length ? `<ol class="initiative-tasks day-list">${today.map(row).join('')}</ol>` : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
   }
   function restHtml(items) {
@@ -67,18 +92,25 @@ window.FleetDay=(()=>{
     // Bound once for the panel's life; the session it shows is read from the dataset at
     // click time, for the same reason as the initiative board.
     panel.addEventListener('click',event=>act(panel.dataset.sessionId,event))
+    // Enter sends a one-line reply or answer, as in the composer.
+    panel.addEventListener('keydown',event=>{
+      if(event.key!=='Enter' || event.shiftKey || event.isComposing || !event.target.matches('input[data-keep^="reply:"],input[data-keep^="info:"]'))return
+      event.preventDefault();event.target.parentElement.querySelector('button')?.click()
+    })
     // On a proposal the choices travel with Today/Later/Drop; on a triaged item a new
     // mode is the instruction, so it goes at once.
     panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])');if(card && event.target.dataset.field==='mode')triage(panel.dataset.sessionId,card.dataset.card,{mode:event.target.value},'Updated')})
   }
   function board(s) {
+    agents(s)
     let panel=document.getElementById('day-board')
     if(s.kind!=='day' || !pane()){panel?.remove();return}
     pane().querySelector('.today-empty')?.remove()
     if(!panel){panel=document.createElement('section');panel.id='day-board';panel.setAttribute('aria-label','Day board');pane().append(panel);bindPanel(panel)}
     panel.dataset.sessionId=s.id
     const b=s.dayBoard || {items:[],cursors:{}}
-    const signature=JSON.stringify([s.id,b,s.status])
+    const launchedState=b.items.flatMap(i=>i.launched || []).map(id=>(window.Fleet.snapshot()?.sessions || []).find(x=>x.managedId===id)).map(x=>x ? [x.managedStatus,x.taskProgress] : null)
+    const signature=JSON.stringify([s.id,b,s.status,launchedState])
     if(panel.fleetSignature===signature)return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
@@ -91,17 +123,38 @@ window.FleetDay=(()=>{
     const waiting=items.reduce((n,i)=>n+open(i).length,0)
     const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})
     const gathering=!items.length && control().isWorking(s) ? '<p class="note today-gathering">Gathering your day from Slack, Linear, Granola, GitHub and your calendar…</p>':''
-    panel.innerHTML=`<header class="today-head"><div><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
+    panel.innerHTML=`<header class="today-head"><div><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-usage" id="today-usage">${usageHtml(s)}</div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
     for(const el of panel.querySelectorAll('details[data-evidence]'))if(opened.has(el.dataset.evidence))el.open=true
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
+    for(const el of panel.querySelectorAll('[data-keep^="reply:"]'))el.placeholder='Reply to your day agent…'
     panel.querySelector('.today-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-keep="${CSS.escape(focused)}"]`)?.focus({preventScroll:true})
     const composer=document.getElementById('message-input');if(composer)composer.placeholder='Ask your day agent…'
   }
+  // What today has used: this Day's own tokens and context, then the account's plan
+  // windows, which every session on the machine draws from, the Day included.
+  const compactTokens=n=>n>=1e6 ? `${(n/1e6).toFixed(1)}M` : n>=1e3 ? `${Math.round(n/1e3)}k` : String(n)
+  const WINDOW={five_hour:'Current session',seven_day:'Weekly',seven_day_opus:'Weekly Opus',seven_day_sonnet:'Weekly Sonnet'}
+  function usageHtml(s) {
+    const t=s.tokenUsage,parts=[]
+    if(t){
+      const total=t.input+t.output+t.cacheRead+t.cacheCreation
+      parts.push(`<span class="today-meter" title="${escape(`Input ${t.input.toLocaleString()} · output ${t.output.toLocaleString()} · cache read ${t.cacheRead.toLocaleString()} · cache write ${t.cacheCreation.toLocaleString()}. All models, scouts included.`)}"><b>This Day</b>${compactTokens(total)} tokens</span>`)
+    }
+    if(s.contextTokens){const share=Math.round(s.contextTokens/(s.contextLimit || 200000)*100);parts.push(`<span class="today-meter ${share>=90 ? 'hot':share>=75 ? 'warn':''}" title="${s.contextTokens.toLocaleString()} tokens in the Day's conversation"><b>Context</b>${share}%</span>`)}
+    const usage=window.Fleet.snapshot()?.usage
+    if(usage?.available && usage.known)for(const w of usage.windows.filter(w=>WINDOW[w.name])){
+      const reset=w.resetsAt ? ` · resets ${new Date(w.resetsAt).toLocaleString([],w.name==='five_hour' ? {hour:'2-digit',minute:'2-digit'}:{weekday:'short',hour:'2-digit',minute:'2-digit'})}`:''
+      parts.push(`<span class="today-meter ${w.utilization>=90 ? 'hot':w.utilization>=75 ? 'warn':''}"><b>${WINDOW[w.name]}</b><span class="mini-bar"><i style="width:${w.utilization}%"></i></span>${w.utilization}%<small>${reset}</small></span>`)
+    }
+    else parts.push('<span class="today-meter note">Plan limits appear after the next run</span>')
+    return parts.join('')
+  }
   // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
   function render(days) {
     const day=current(days),badge=document.getElementById('today-count')
+    if(day && document.getElementById('today-usage'))window.Fleet.update('today-usage',usageHtml(day))
     const waiting=day?.dayProgress?.waiting || 0,proposed=day?.dayProgress?.proposed || 0
     if(badge){badge.textContent=waiting || proposed || '';badge.dataset.alert=String(!!waiting);badge.title=waiting ? `${waiting} waiting on you` : proposed ? `${proposed} to triage` : ''}
     if(!pane())return
@@ -111,6 +164,40 @@ window.FleetDay=(()=>{
     pane().insertAdjacentHTML('beforeend',`<div class="today-empty"><span class="modal-eyebrow">TODAY</span><h2>Good morning.</h2><p class="note">One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
     document.getElementById('start-day').addEventListener('click',start)
   }
+  // The Day's subagents, as tabs above its console. "Day agent" is the conversation;
+  // a subagent tab swaps it for that subagent's assignment, steps and report. Read-only:
+  // a subagent answers to the Day, not to you.
+  let shownAgent=null
+  const AGENT_STATE={running:'busy',completed:'idle',failed:'hot',interrupted:'stale'}
+  const elapsed=ms=>ms<60000 ? `${Math.max(1,Math.round(ms/1000))}s` : `${Math.floor(ms/60000)}m ${String(Math.round(ms%60000/1000)).padStart(2,'0')}s`
+  function agents(s) {
+    const conversation=document.getElementById('conversation')
+    let strip=document.getElementById('day-agents'),view=document.getElementById('day-agent-view')
+    if(s.kind!=='day' || !conversation){strip?.remove();view?.remove();if(conversation)conversation.hidden=false;return}
+    const list=s.subagents || []
+    if(shownAgent && !list.some(d=>d.id===shownAgent))shownAgent=null
+    if(!strip){
+      strip=document.createElement('nav');strip.id='day-agents';strip.setAttribute('aria-label','Day agent and its subagents')
+      conversation.before(strip)
+      strip.addEventListener('click',event=>{const tab=event.target.closest('[data-agent]');if(!tab)return;shownAgent=tab.dataset.agent || null;strip.fleetSignature=null;agents(control().session())})
+    }
+    if(!view){view=document.createElement('section');view.id='day-agent-view';view.className='day-agent-view';conversation.after(view)}
+    const running=list.filter(d=>d.status==='running').length
+    const signature=JSON.stringify([s.id,shownAgent,list.map(d=>[d.id,d.status,d.steps.length,d.report?.length,d.output?.length])])
+    if(strip.fleetSignature!==signature){
+      strip.fleetSignature=signature
+      // Newest first after the Day itself; the last 12 is what a morning produces.
+      const recent=list.slice(-12).reverse()
+      strip.innerHTML=`<button type="button" class="day-agent-tab" data-agent="" aria-pressed="${!shownAgent}">Day agent</button>${recent.map(d=>`<button type="button" class="day-agent-tab" data-agent="${escape(d.id)}" aria-pressed="${shownAgent===d.id}" title="${escape(d.description || d.role)}"><span class="dot ${AGENT_STATE[d.status] || ''}"></span>${escape(d.role)}</button>`).join('')}${list.length>12 ? `<span class="note">+${list.length-12} earlier</span>`:''}${running ? `<span class="note day-agents-running">${running} running</span>`:''}`
+    }
+    conversation.hidden=!!shownAgent;view.hidden=!shownAgent
+    if(!shownAgent)return
+    const d=list.find(d=>d.id===shownAgent)
+    const opened=new Set([...view.querySelectorAll('details[open][data-step]')].map(el=>el.dataset.step))
+    const steps=d.steps.length ? `<ol class="child-steps">${d.steps.map(step=>`<li class="child-step" data-status="${escape(step.status)}"><span class="child-step-tool">${escape(step.tool.replace(/^mcp__[^_]+(?:_[^_]+)*?__/,''))}</span>${step.target ? `<span class="child-step-target">${escape(step.target)}</span>`:''}<span class="child-step-state">${escape(step.status)}</span><span class="child-step-time">${step.ms!=null ? elapsed(step.ms) : step.status==='running' ? 'running…':''}</span><details class="child-step-detail" data-step="${escape(step.id)}" ${opened.has(step.id) ? 'open':''}><summary>Input and output</summary><h4>Input</h4><pre>${escape(typeof step.input==='string' ? step.input : JSON.stringify(step.input,null,2))}</pre><h4>Output${step.truncated ? ' · truncated':''}</h4><pre>${escape(step.result ?? 'No result yet.')}</pre></details></li>`).join('')}</ol>` : '<p class="note">No tool steps yet.</p>'
+    const html=`<header class="day-agent-head"><span class="badge ${AGENT_STATE[d.status] || ''}"><span class="dot"></span>${escape(d.status)}</span><h3>${escape(d.role)}</h3><span class="note">${escape(d.model ? d.model.replace('claude-','') : '')}${d.startedAt ? ` · ${elapsed((d.finishedAt || Date.now())-d.startedAt)}`:''}${d.description ? ` · ${escape(d.description)}`:''}</span></header><section class="detail-section"><h3>Assignment</h3><div class="response">${escape(d.prompt || 'Not recorded.')}</div></section><section class="detail-section"><h3>Steps</h3>${steps}</section>${d.output && d.status==='running' ? `<section class="detail-section"><h3>Latest output</h3><div class="response">${escape(d.output)}</div></section>`:''}<section class="detail-section"><h3>Report to the Day</h3><div class="response ${d.report ? '':'missing'}">${escape(d.report || (d.status==='running' ? 'Still working…' : 'No report.'))}</div></section>`
+    if(view.fleetHtml!==html){const top=view.scrollTop;view.innerHTML=html;view.fleetHtml=html;view.scrollTop=top}
+  }
   async function post(id,body,done) {
     try{await api(`/api/managed/${id}/day`,body);if(done)toast(done);control().refresh()}
     catch(error){toast(error.message)}
@@ -119,6 +206,8 @@ window.FleetDay=(()=>{
   function act(id,event) {
     const panel=document.getElementById('day-board'),target=event.target
     if(target.closest('[data-sweep]')){event.preventDefault();return post(id,{op:'sweep'},'Checking your sources')}
+    const opener=target.closest('[data-open-session]')
+    if(opener){event.preventDefault();window.FleetQueue?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const answer=target.closest('[data-answer],[data-answer-value]')
     if(answer){
       const {item,need}=answer.dataset,key=`${item}:${need}`
@@ -130,8 +219,12 @@ window.FleetDay=(()=>{
         value=field && field.value.trim() && field.value!==original ? field.value : 'approve'
       }
       if(answer.dataset.answer==='info'){value=panel.querySelector(`[data-keep="${CSS.escape(`info:${key}`)}"]`)?.value.trim();if(!value)return toast('Type an answer first.')}
+      const reply=answer.dataset.answer==='reply'
+      if(reply){value=panel.querySelector(`[data-keep="${CSS.escape(`reply:${key}`)}"]`)?.value.trim();if(!value)return toast('Type a reply first.')}
       answer.disabled=true
-      return post(id,{op:'answer',itemId:item,needId:need,answer:value},value==='reject' ? 'Rejected' : 'Answered')
+      const launch=answer.closest('[data-kind="launch"]')
+      const plan=launch && !reply && value!=='reject' ? {cwd:launch.querySelector('[data-launch="cwd"]').value.trim(),teamId:launch.querySelector('[data-launch="teamId"]').value} : {}
+      return post(id,{op:'answer',itemId:item,needId:need,answer:value,...plan,...(reply ? {decision:'reply'}:{})},launch && plan.cwd ? 'Launched. It is in Sessions now.' : reply ? 'Sent to your day agent' : value==='reject' ? 'Rejected' : 'Answered')
     }
     const all=target.closest('[data-triage-all]')
     if(all){
