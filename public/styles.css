@@ -3256,3 +3256,11 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .block-lines { margin:0; padding:4px 0 4px 18px; color:var(--muted); font-size:var(--text-sm); line-height:1.7 }
 .block-lines li.is-error { color:var(--hot) }
 #day-agents[hidden] { display:none }
+/* Item threads: ask from the item, follow it from a tab. */
+.day-ask { display:flex; gap:6px; margin:8px 0 0 18px }
+.day-ask input { flex:1 1 auto; min-width:0; box-sizing:border-box; padding:7px 9px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.4 var(--mono) }
+.day-ask input:focus { outline:0; border-color:var(--accent) }
+.day-thread-gist { display:flex; align-items:baseline; gap:8px; margin:6px 0 2px; color:var(--muted); font-size:var(--text-sm); line-height:1.6 }
+.day-thread-gist .day-launch-chip { flex:none }
+.day-agent-tab.is-thread { border-color:var(--line) }
+.day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }

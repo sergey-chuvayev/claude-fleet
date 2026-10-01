@@ -260,3 +260,71 @@ test('a Day records each subagent with its assignment, steps and report',async()
     assert.match(d.report,/Reply to Marc/)
   } finally { await manager.close() }
 })
+
+test('asking about an item starts its own thread in the item\'s repository, then continues it',async()=>{
+  const {directory,manager,calls}=setup()
+  try{
+    fs.mkdirSync(path.join(directory,'desktop-allo'))
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const item=day.act(s,{action:'add',title:'Review desktop #2951: CSV import',source:'github',links:['https://github.com/acme/desktop-allo/pull/2951'],context:'Christoph requested your review.'},'operator').item
+    s.subagents=[{id:'sub-1',role:'general-purpose',prompt:'Run /red-flags on https://github.com/acme/desktop-allo/pull/2951',report:'6 red flags. (2) pollers lost on branch switch.',status:'completed',steps:[]}]
+    const {threadId}=manager.dayAction(s.id,{op:'thread',itemId:item.id,message:'Why is (2) a problem?'})
+    const t=manager.sessions.get(threadId)
+    await until(()=>t.status==='idle')
+    assert.equal(t.kind,'thread')
+    assert.equal(t.cwd,fs.realpathSync(path.join(directory,'desktop-allo')))
+    assert.equal(t.messages[0].text,'Why is (2) a problem?','the console shows the question, not the context dump')
+    const first=calls.at(-1)
+    assert.match(first.prompt,/Christoph requested your review[\s\S]*pollers lost on branch switch[\s\S]*You are in its repository[\s\S]*Why is \(2\) a problem\?/)
+    assert.match(first.options.systemPrompt.append,/ONE item/)
+    assert.deepEqual(first.options.disallowedTools,['Edit','Write','NotebookEdit'])
+    assert.equal(first.options.agents,undefined,'a thread is not a Day: no scouts')
+    assert.equal(item.thread.summary,'Done','the item carries the gist of the last turn')
+    assert.equal(day.act(s,{action:'list'}).items[0].thread,'Done','and the Day reads it')
+    const again=manager.dayAction(s.id,{op:'thread',itemId:item.id,message:'Drop comment 4.'})
+    assert.equal(again.threadId,threadId)
+    await until(()=>calls.length===3 && t.status==='idle')
+    assert.equal(calls.at(-1).prompt,'Drop comment 4.')
+    assert.equal(calls.at(-1).options.resume,t.sessionId)
+    const row=manager.summaries().find(x=>x.managedId===threadId)
+    assert.equal(row.threadOpen,true)
+    manager.dayAction(s.id,{op:'triage',itemId:item.id,status:'done'})
+    assert.ok(item.thread.closed,'a settled item closes its thread')
+    assert.equal(manager.summaries().find(x=>x.managedId===threadId).threadOpen,false)
+    assert.throws(()=>manager.dayAction(s.id,{op:'thread',itemId:day.act(s,{action:'add',title:'x',source:'me'},'operator').item.id,message:''}),/Message/)
+  } finally { await manager.close() }
+})
+
+test('a thread reaches only its own item, and its sends need an approval on the Day\'s board',async()=>{
+  const decisions=[]
+  let ready=false
+  const {directory,manager}=setup(async({options})=>{
+    if (!ready || !options.systemPrompt.append.includes('ONE item')) return
+    const signal=options.abortController.signal
+    decisions.push(await options.canUseTool('mcp__github__add_issue_comment',{body:'Pollers are lost on branch switch; lift them into a store.'},{signal}))
+  })
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const a=day.act(s,{action:'add',title:'Review #2951',source:'github'},'operator').item
+    const b=day.act(s,{action:'add',title:'Other',source:'me'},'operator').item
+    const need=day.threadAct(s,a.id,{action:'ask',kind:'approve',question:'Post this comment?',draft:'Pollers are lost on branch switch; lift them into a store.'})
+    assert.equal(a.needs.length,1)
+    assert.equal(b.needs.length,0,'nothing leaks to other items')
+    assert.throws(()=>day.threadAct(s,a.id,{action:'add',title:'x',source:'me'}),/only inspect, note, ask, withdraw/)
+    day.threadAct(s,a.id,{action:'note',note:'Explained the poller issue.'})
+    assert.match(a.log.at(-1).text,/^Thread: Explained/)
+    manager.dayAction(s.id,{op:'answer',itemId:a.id,needId:need.id,answer:'approve'})
+    ready=true
+    const {threadId}=manager.dayAction(s.id,{op:'thread',itemId:a.id,message:'Post it.'})
+    await until(()=>decisions.length===1)
+    assert.equal(decisions[0].behavior,'allow','the approved text on the Day\'s board licenses the thread\'s send')
+    assert.ok(need.spent)
+    const second=day.threadAct(s,a.id,{action:'ask',kind:'approve',question:'Also this?',draft:'Second comment text here.'})
+    day.threadAct(s,a.id,{action:'withdraw',needId:second.id})
+    assert.equal(second.decision,'withdrawn')
+    assert.equal(day.approvedFor(s,{body:'Second comment text here.'}),null,'a withdrawn question licenses nothing')
+    assert.ok(manager.sessions.get(threadId))
+  } finally { await manager.close() }
+})

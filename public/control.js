@@ -196,17 +196,18 @@ function renderControl() {
   const s=controlSession;if(!s || s.id!==controlId || !$('composer'))return
   window.FleetTeams?.board(s)
   window.FleetDay?.board(s)
-  const day=s.kind==='day'
-  $('conversation-title').textContent=day ? 'Day agent' : s.aiTitle || s.name
+  // A thread is held to the Day's outward gate too, so it reads the same way.
+  const day=s.kind==='day',thread=s.kind==='thread',gated=day || thread
+  $('conversation-title').textContent=day ? 'Day agent' : thread ? `About: ${s.name}` : s.aiTitle || s.name
   const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
   const tool=s.currentTool && (window.FleetBlocks?.toolLabel(s.currentTool) || s.currentTool)
   $('agent-state').textContent=(tool && s.status==='running' ? (day && tool==='Board' ? 'Updating the board…' : `Using ${tool}`) : managedLabels[s.status])+queueNote
   // In a Day the outward gate decides what needs you, whatever this is set to, so the
   // picker would only suggest a choice that is not really there.
-  $('approval-mode').closest('.mode-picker').hidden=day
+  $('approval-mode').closest('.mode-picker').hidden=gated
   let gate=$('day-gate-note')
-  if(day && !gate){gate=document.createElement('span');gate.id='day-gate-note';gate.className='subtle day-gate-note';gate.textContent='Sends need your approval';gate.title='Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.';$('approval-mode').closest('.mode-picker').after(gate)}
-  if(gate)gate.hidden=!day
+  if(gated && !gate){gate=document.createElement('span');gate.id='day-gate-note';gate.className='subtle day-gate-note';gate.textContent='Sends need your approval';gate.title='Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.';$('approval-mode').closest('.mode-picker').after(gate)}
+  if(gate)gate.hidden=!gated
   const routing=$('model-routing'),decision=s.modelRouting
   routing.hidden=s.selectedModel!=='auto-jev'
   routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
@@ -228,7 +229,7 @@ function renderControl() {
     if(!log.querySelector('.note')) log.innerHTML='<p class="note">Send your first instruction below.</p>'
   }else if(window.FleetBlocks){
     log.querySelector('.note')?.remove()
-    window.FleetBlocks.renderBlocks(log,day && window.FleetDay?.messages ? window.FleetDay.messages(s.messages) : s.messages,{streamingId,onCopy:toast})
+    window.FleetBlocks.renderBlocks(log,gated && window.FleetDay?.messages ? window.FleetDay.messages(s.messages) : s.messages,{streamingId,onCopy:toast})
   }else{
     // Console assets unavailable — usually a page loaded from an older running server.
     update('conversation',s.messages.map(m=>`<article class="block" data-role="${esc(m.role)}"><div class="block-head"><span class="block-tool">${m.role==='tool' ? esc(m.tool) : m.role==='user' ? 'YOU' : 'CLAUDE'}</span><span class="block-meta">${new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><pre class="block-plain">${esc(m.role==='tool' ? [m.target,m.result].filter(Boolean).join('\n\n') : m.text)}</pre></article>`).join(''))

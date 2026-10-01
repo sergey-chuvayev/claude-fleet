@@ -332,7 +332,9 @@ function render() {
   const live = sessions.filter(s => !s.archived)
   // A Day is not one of your agents: it lives in the Today tab, never in these lists.
   const days = live.filter(s => s.kind === 'day')
-  const agents = live.filter(s => s.kind !== 'day')
+  // An item's thread belongs to Today while its item is open; once settled it is an
+  // ordinary past conversation and shows up here, resumable like any other.
+  const agents = live.filter(s => s.kind !== 'day' && !(s.kind === 'thread' && s.threadOpen))
   const background = agents.filter(s => s.background)
   // How many spawned sessions each visible session is running, for its row badge.
   const spawnCounts = new Map()
@@ -346,7 +348,7 @@ function render() {
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
   // The Today tab shows exactly one conversation, today's Day, or none before it starts.
-  const today = window.FleetDay?.active() ? window.FleetDay.current(days) : undefined
+  const today = window.FleetDay?.active() ? window.FleetDay.current(days, live) : undefined
   const shown = today !== undefined ? (today ? [today] : []) : window.FleetQueue?.active() ? window.FleetQueue.visible(agents) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length

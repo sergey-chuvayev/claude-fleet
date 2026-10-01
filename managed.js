@@ -202,7 +202,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, tokenUsage:s.tokenUsage || null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
       // line" rather than the bare "queued" that tells the operator nothing.
@@ -310,10 +310,12 @@ class ManagedSessions extends EventEmitter {
       }
       else if (body.op === 'triage') result = day.triage(s,text(body.itemId,'Item',100),body)
       else if (body.op === 'sweep') { this.dayRun(s,'sweep'); return {queued:true} }
+      else if (body.op === 'thread') { const t = this.threadFor(s,body); this.changed(s,true); return {threadId:t.id} }
       else fail('Unknown Day action.')
       this.changed(s,true)
     } catch (error) { s.dayBoard = before; throw error }
     // An answer is someone waiting for a response; triage is a burst of clicks.
+    this.syncThreads(s)
     this.scheduleDayResume(s, body.op === 'answer' ? DAY_ANSWER_DELAY_MS : DAY_RESUME_DELAY_MS)
     return result
   }
@@ -332,6 +334,57 @@ class ManagedSessions extends EventEmitter {
     item.status = 'in_progress'
     day.act(s,{action:'update',itemId:item.id,note:`Launched ${teamId ? `${launched.teamName || teamId} initiative` : 'an agent'} in ${cwd.replace(os.homedir(),'~')}.`},'operator')
   }
+  // A conversation about one item: started on the first question, continued after that.
+  // It is its own session so a long discussion of one PR never fills the Day's context
+  // or waits behind its checks.
+  threadFor(dayS, body) {
+    const item = day.itemFor(dayS, text(body.itemId,'Item',100))
+    const message = text(body.message,'Message',16000)
+    const rid = requestId(body.requestId || randomUUID())
+    const existing = item.thread && this.sessions.get(item.thread.sessionId)
+    if (existing) { this.send(existing.id,{message,requestId:rid}); return existing }
+    if (['done','dropped'].includes(item.status)) fail('This item is settled. Move it back to Today to discuss it.',409)
+    this.checkCapacity()
+    const {cwd, known} = this.repoFor(dayS, item)
+    const id = randomUUID()
+    const t = {id,sessionId:null,name:item.title.slice(0,100),cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:dayS.approvalMode,selectedModel:'',messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'thread',parentDayId:dayS.id,itemId:item.id,teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,worktree:null}
+    this.sessions.set(id,t)
+    item.thread = {sessionId:id,at:Date.now()}
+    try { this.send(id,{message,runPrompt:dayAgent.threadPrompt(dayS,item,message,{cwd:cwd.replace(os.homedir(),'~'),repoKnown:known}),requestId:rid}) }
+    catch (error) { this.sessions.delete(id); delete item.thread; throw error }
+    return t
+  }
+  // The repository an item is about, from a GitHub link and a folder of that name beside
+  // the Day's directory (~/projects/desktop-allo for desktop-allo#2951). Otherwise the
+  // Day's own directory, and the thread is told it is guessing.
+  repoFor(dayS, item) {
+    for (const url of item.links) {
+      const repo = /github\.com\/[^/]+\/([\w.-]+)/.exec(url)?.[1]
+      if (!repo) continue
+      for (const base of [dayS.cwd, path.dirname(dayS.cwd)]) {
+        const candidate = path.join(base, repo)
+        try { if (fs.statSync(candidate).isDirectory()) return {cwd:fs.realpathSync(candidate), known:true} } catch {}
+      }
+    }
+    return {cwd:dayS.cwd, known:false}
+  }
+  // A settled item closes its thread: a running one stops, and it stays on disk.
+  syncThreads(dayS) {
+    for (const item of dayS.dayBoard?.items || []) {
+      if (!item.thread || item.thread.closed || !['done','dropped'].includes(item.status)) continue
+      item.thread.closed = Date.now()
+      if (this.runs.has(item.thread.sessionId)) { try { this.stop(item.thread.sessionId) } catch {} }
+    }
+  }
+  // After each thread turn the item carries the gist of it, which is all the Day reads.
+  threadSummary(t) {
+    const owner = this.dayFor(t), item = owner?.dayBoard?.items.find(i => i.id === t.itemId)
+    const last = [...t.messages].reverse().find(m => m.role === 'assistant')?.text
+    if (!item?.thread || !last) return
+    item.thread.summary = last.replace(/\s+/g,' ').slice(0,400); item.thread.at = Date.now()
+    try { this.changed(owner) } catch (error) { this.emit('storage-error',error) }
+  }
+  dayFor(t) { return t.kind === 'thread' ? this.sessions.get(t.parentDayId) || null : t.kind === 'day' ? t : null }
   // What the Day sees of the sessions it launched: enough to follow them, not their transcripts.
   launchedStatus(id) {
     const x = this.sessions.get(id)
@@ -414,7 +467,7 @@ class ManagedSessions extends EventEmitter {
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
-    const queued = {message,attachments,references,...(s.kind === 'day' && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
+    const queued = {message,attachments,references,...(['day','thread'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
     // Mid-turn, the SDK session can't take a second prompt yet: hold this one and let
     // the run's own completion (see the `finally` in run()) start it the moment the
     // agent is free, instead of making the operator retry once it's idle.
@@ -514,13 +567,25 @@ class ManagedSessions extends EventEmitter {
         options.effort=manager.effort
         options.maxTurns=manager.maxTurns
       }
+      if (s.kind === 'thread') {
+        const owner = this.dayFor(s)
+        if (!owner) throw new Error('The Day this conversation belongs to was closed.')
+        options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.THREAD_SYSTEM}
+        options.model = boundedModel(selectedModel,'sonnet')
+        options.disallowedTools = ['Edit','Write','NotebookEdit']
+        options.mcpServers = {fleet:await day.threadServer(owner,s.itemId,()=>this.changed(owner,true))}
+        options.hooks = {PreToolUse:[{hooks:[async input=>{
+          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+        }]}]}
+      }
       if (s.kind === 'day') {
         options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.SYSTEM}
         options.agents = dayAgent.AGENTS
         options.model = boundedModel(selectedModel,'sonnet')
         // Code is changed by initiatives the operator launches, never by the Day itself.
         options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true),{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description}))})}
+        options.mcpServers={fleet:await day.sdkServer(s,()=>{this.syncThreads(s);this.changed(s,true)},{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description}))})}
         // Scouts run in the foreground. A background subagent outlives the turn that
         // launched it, and once that turn's result arrives the SDK closes its input:
         // every permission check and every call to the in-process day tool after that
@@ -631,6 +696,7 @@ class ManagedSessions extends EventEmitter {
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
       if (s.kind === 'day') s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0
+      if (s.kind === 'thread' && s.status === 'idle') this.threadSummary(s)
       s.currentTool=null
       this.runs.delete(s.id)
       // A clean finish with something waiting picks it straight back up. A stop already
@@ -842,9 +908,10 @@ class ManagedSessions extends EventEmitter {
     let reason=askReason(tool,input,s.approvalMode)
     // A Day reaches other people on the operator's behalf. Whatever the approval mode,
     // that happens only for content they approved on the board, or approve right here.
-    if (s.kind === 'day' && day.outward(tool)) {
-      const approved=day.approvedFor(s,input)
-      if (approved) { day.act(s,{action:'update',itemId:approved.item.id,note:`Sent with ${tool}.`},'agent'); this.changed(s,true); return Promise.resolve({behavior:'allow',updatedInput:input}) }
+    const owner=this.dayFor(s)
+    if (owner && day.outward(tool)) {
+      const approved=day.approvedFor(owner,input)
+      if (approved) { day.act(owner,{action:'update',itemId:approved.item.id,note:`Sent with ${tool}.`},'agent'); this.changed(owner,true); return Promise.resolve({behavior:'allow',updatedInput:input}) }
       reason='Reaches other people and has no approved draft on the Day board'
     }
     if (!reason) return Promise.resolve({behavior:'allow',updatedInput:input})

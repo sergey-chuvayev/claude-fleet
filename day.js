@@ -45,7 +45,7 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=(item,ctx={})=>({...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
+const compact=(item,ctx={})=>({...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
   const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
@@ -202,11 +202,49 @@ function outward(tool) {
 function approvedFor(s,input) {
   const payload=JSON.stringify(input || {})
   for (const item of s.dayBoard?.items || []) for (const n of item.needs) {
-    if (n.kind!=='approve' || n.spent || n.answer===undefined || n.answer==='reject' || n.decision==='reply') continue
+    if (n.kind!=='approve' || n.spent || n.answer===undefined || n.answer==='reject') continue
+    // Only an approval or the operator's own edit licenses a send; a reply or a question
+    // the agent withdrew never does, whatever its text.
+    if (n.decision!==undefined && !['approve','edit'].includes(n.decision)) continue
     const text=n.answer==='approve' ? n.draft : n.answer
     if (text && text.trim().length>=8 && payload.includes(JSON.stringify(text.trim()).slice(1,-1))) {n.spent=Date.now();return {item,need:n}}
   }
   return null
+}
+// A thread is a conversation about one item. Its tool reaches that item and nothing
+// else: it can read it, log what it found, ask the operator, or take back a question of
+// its own that the conversation made moot. Status and triage stay with the operator and
+// the Day.
+const THREAD_ACTIONS=['inspect','note','ask','withdraw']
+function threadAct(s,itemId,input) {
+  if (!THREAD_ACTIONS.includes(input.action)) fail(`A thread can only ${THREAD_ACTIONS.join(', ')} its own item.`)
+  const item=itemFor(s,itemId)
+  if (input.action==='inspect') return item
+  if (input.action==='note') {
+    if (input.links!==undefined) item.links=[...new Set([...item.links,...links(input.links)])].slice(0,MAX_LINKS)
+    log(item,`Thread: ${str(input.note,'Note',2000)}`)
+    return item
+  }
+  if (input.action==='withdraw') {
+    const need=item.needs.find(n=>n.id===input.needId)
+    if (!need || need.answer!==undefined) fail('No open question with that id on this item.')
+    need.answer='withdrawn';need.decision='withdrawn';need.answeredAt=Date.now();need.seen=true
+    if (!open(item).length && item.status==='waiting_on_you') item.status='in_progress'
+    log(item,`Thread withdrew: ${need.question.slice(0,200)}`)
+    return {withdrawn:need.id}
+  }
+  return ask(s,{...input,itemId})
+}
+async function threadServer(s,itemId,changed) {
+  const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
+  const {z}=require('zod/v4')
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('item','The Day board item this conversation is about, and only that item. inspect: its full card, log and questions. note: log a short finding (and optionally add links). ask: put a question to the operator on this item (approve needs the exact draft; choose needs options); anything that reaches other people goes out only after they approve that exact text. withdraw: take back one of this item\'s open questions by needId when the conversation made it moot.',{
+    action:z.enum(THREAD_ACTIONS),note:z.string().optional(),links:z.array(z.string()).optional(),kind:z.enum(NEED_KINDS.filter(k=>k!=='launch')).optional(),question:z.string().optional(),options:z.array(z.string()).optional(),draft:z.string().optional(),needId:z.string().optional(),
+  },async input=>{
+    const before=structuredClone(s.dayBoard)
+    try {const result=threadAct(s,itemId,input);changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}
+    catch(error){s.dayBoard=before;return {isError:true,content:[{type:'text',text:error.message}]}}
+  })]})
 }
 async function sdkServer(s,changed,ctx={}) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
@@ -221,4 +259,4 @@ async function sdkServer(s,changed,ctx={}) {
     catch(error){s.dayBoard=before;return {isError:true,content:[{type:'text',text:error.message}]}}
   })]})
 }
-module.exports={SOURCES,PRIORITIES,STATUSES,MODES,dateOf,ledger,act,answer,triage,waiting,progress,carryOver,outward,approvedFor,sdkServer}
+module.exports={threadAct,threadServer,itemFor,SOURCES,PRIORITIES,STATUSES,MODES,dateOf,ledger,act,answer,triage,waiting,progress,carryOver,outward,approvedFor,sdkServer}
