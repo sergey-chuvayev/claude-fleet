@@ -439,7 +439,7 @@ Through the day Fleet runs a short check every 45 minutes between 8:00 and 20:00
 your answers up 20 seconds after your last click. Those runs start from the board, not from the
 conversation, so talking to the agent stays cheap however long the day gets. A failed check is
 retried; three in a row wait for you. Starting tomorrow's Day carries over what is unfinished,
-with its open questions. Each Day has a $15 usage cap (API-rate equivalent), adjustable.
+with its open questions. A Day has no usage cap: it runs on your Claude subscription.
 
 The Day's directory decides which project-scoped connectors it can reach. It reuses the
 previous Day's, or set `CLAUDE_FLEET_DAY_CWD`.

@@ -29,9 +29,6 @@ const FALLBACK_MODELS = [
   { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
 ]
 const MAX_MESSAGES = 200
-// A Day agent runs all day on Sonnet. The cap is what one day may spend before it stops
-// and asks for more, not a target.
-const DAY_BUDGET_USD = 15
 // Sweeps run only inside working hours: an empty office does not need checking every
 // 45 minutes, and the operator is not there to answer what a sweep would find.
 const DAY_SWEEP_MINUTES = Math.max(10, Number(process.env.CLAUDE_FLEET_DAY_SWEEP_MIN) || 45)
@@ -492,9 +489,6 @@ class ManagedSessions extends EventEmitter {
         options.model = boundedModel(s.selectedModel,'sonnet')
         // Code is changed by initiatives the operator launches, never by the Day itself.
         options.disallowedTools = ['Edit','Write','NotebookEdit']
-        const remaining=(s.limits?.budgetUsd ?? DAY_BUDGET_USD)-(s.costUsd || 0)
-        if (remaining<=0) throw new Error('This Day reached its usage cap. Raise it explicitly before continuing.')
-        options.maxBudgetUsd=remaining
         options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true))}
       }
       if (team?.workflow) {
@@ -768,7 +762,7 @@ class ManagedSessions extends EventEmitter {
   }
   setLimits(id,body) {
     const s=this.get(id)
-    if (!s.teamSnapshot?.workflow && s.kind !== 'day') fail('This initiative does not have configurable limits.')
+    if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
     if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
     const {maxAttempts}=body
     if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')

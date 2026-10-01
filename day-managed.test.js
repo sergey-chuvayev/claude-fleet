@@ -38,7 +38,7 @@ test('a Day starts with an intake run on Sonnet, scouts, the day tool and no fil
     assert.ok(Object.values(options.agents).every(a=>a.model==='haiku'))
     assert.deepEqual(options.disallowedTools,['Edit','Write','NotebookEdit'])
     assert.ok(options.mcpServers.fleet)
-    assert.ok(options.maxBudgetUsd>0 && options.maxBudgetUsd<=15)
+    assert.equal(options.maxBudgetUsd,undefined,'a Day runs on the subscription with no usage cap')
     assert.equal(s.messages[0].text,'Start my day','the conversation shows a label, not the whole intake prompt')
     assert.match(calls[0].prompt,/Morning intake[\s\S]*renew the domain/)
     assert.throws(()=>startDay(manager,directory),/already has a Day/)

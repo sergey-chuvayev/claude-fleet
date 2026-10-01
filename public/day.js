@@ -73,7 +73,7 @@ window.FleetDay=(()=>{
     }
     panel.dataset.sessionId=s.id
     const b=s.dayBoard || {items:[],cursors:{}}
-    const signature=JSON.stringify([s.id,b,s.status,s.costUsd,s.limits])
+    const signature=JSON.stringify([s.id,b,s.status])
     if(panel.fleetSignature===signature)return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
@@ -85,7 +85,7 @@ window.FleetDay=(()=>{
     const done=items.filter(i=>i.status==='done').length,triaged=items.filter(i=>i.status!=='proposed').length
     const waiting=items.reduce((n,i)=>n+open(i).length,0)
     const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'})
-    panel.innerHTML=`<summary><strong>${escape(when)}</strong>${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><span title="API-rate equivalent the SDK reports. Not billed on a Claude subscription; the Day still stops here.">$${(s.costUsd || 0).toFixed(2)} / $${s.limits?.budgetUsd ?? 15}</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></summary><div class="initiative-body">${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
+    panel.innerHTML=`<summary><strong>${escape(when)}</strong>${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></summary><div class="initiative-body">${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
     for(const el of panel.querySelectorAll('details[data-evidence]'))if(opened.has(el.dataset.evidence))el.open=true
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
