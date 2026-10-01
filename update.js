@@ -47,9 +47,14 @@ async function fetchLatest(name) {
   return data.version
 }
 
+// The version on offer comes straight from the registry, but npm resolves the install
+// from its own metadata cache, which can lag a fresh publish by minutes. Without
+// --prefer-online the update button offers a version npm then says does not exist.
+const installArgs = spec => ['install', '--global', '--prefer-online', '--no-fund', '--no-audit', spec]
+
 function npmInstall(spec) {
   return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['install', '--global', '--no-fund', '--no-audit', spec], {
+    const child = spawn('npm', installArgs(spec), {
       stdio: ['ignore', 'pipe', 'pipe'],
       // npm resolves its own prefix; inheriting a project's .npmrc here would be surprising.
       env: { ...process.env, npm_config_yes: 'true' },
@@ -180,4 +185,4 @@ class Updater {
   }
 }
 
-module.exports = { Updater, isNewer, detectChannel, CHECK_EVERY }
+module.exports = { installArgs, Updater, isNewer, detectChannel, CHECK_EVERY }

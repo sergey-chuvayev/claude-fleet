@@ -4,7 +4,7 @@ const assert = require('node:assert')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { Updater, isNewer, detectChannel, CHECK_EVERY } = require('./update')
+const { Updater, isNewer, detectChannel, CHECK_EVERY, installArgs } = require('./update')
 
 const temp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-update-'))
 // A clock the test moves, so nothing sleeps to prove a cache expired.
@@ -246,4 +246,10 @@ test('the update pill reports progress and never invites a second click', () => 
   assert.match(pill.textContent, /Installing/)
   context.window.FleetControl.renderUpdate({ ...update, state: 'installed' }, true)
   assert.match(pill.textContent, /Restarting/)
+})
+
+test('an update installs past npm\'s metadata cache, which lags a fresh publish', () => {
+  const args = installArgs('@sergeychuvayev/claude-fleet@0.22.0')
+  assert.ok(args.includes('--prefer-online'))
+  assert.strictEqual(args.at(-1), '@sergeychuvayev/claude-fleet@0.22.0')
 })
