@@ -36,6 +36,7 @@ const DAY_HOURS = [8, 20]
 // Answers and triage come in bursts. Waiting this long after the last one turns ten
 // clicks into one run instead of ten.
 const DAY_RESUME_DELAY_MS = 20000
+const DAY_ANSWER_DELAY_MS = 4000
 const DAY_MAX_FAILURES = 3
 // Pasted images: a handful per message, bounded in size, only the formats the API
 // accepts, and sniffed by magic bytes because the client's declared type is a claim.
@@ -199,7 +200,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
       // line" rather than the bare "queued" that tells the operator nothing.
@@ -300,16 +301,17 @@ class ManagedSessions extends EventEmitter {
     let result
     try {
       if (body.op === 'add') result = day.act(s,{...body.item,action:'add'},'operator')
-      else if (body.op === 'answer') result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer)
+      else if (body.op === 'answer') result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer,body.decision)
       else if (body.op === 'triage') result = day.triage(s,text(body.itemId,'Item',100),body)
       else if (body.op === 'sweep') { this.dayRun(s,'sweep'); return {queued:true} }
       else fail('Unknown Day action.')
       this.changed(s,true)
     } catch (error) { s.dayBoard = before; throw error }
-    this.scheduleDayResume(s)
+    // An answer is someone waiting for a response; triage is a burst of clicks.
+    this.scheduleDayResume(s, body.op === 'answer' ? DAY_ANSWER_DELAY_MS : DAY_RESUME_DELAY_MS)
     return result
   }
-  scheduleDayResume(s) {
+  scheduleDayResume(s, delay = DAY_RESUME_DELAY_MS) {
     clearTimeout(this.dayTimers.get(s.id))
     const timer = setTimeout(() => {
       this.dayTimers.delete(s.id)
@@ -318,7 +320,7 @@ class ManagedSessions extends EventEmitter {
       // behind it would only repeat that work.
       if (this.runs.has(s.id) || s.queue.some(q => q.background)) return
       try { this.dayRun(s,'resume') } catch (error) { this.emit('storage-error',error) }
-    }, DAY_RESUME_DELAY_MS)
+    }, delay)
     timer.unref?.()
     this.dayTimers.set(s.id, timer)
   }
@@ -686,6 +688,7 @@ class ManagedSessions extends EventEmitter {
       if (event.is_error) { s.status='error'; s.error=event.errors?.join('\n') || event.result || 'Claude could not finish this turn.' }
       else if (event.result && !s.messages.some(m=>m.role==='assistant' && m.text===event.result.slice(-24000))) s.messages.push({id:randomUUID(),role:'assistant',text:event.result.slice(-24000),at:Date.now()})
       s.costUsd=(s.costUsd||0)+(event.total_cost_usd||0)
+      addTokens(s,event)
       s.messages=s.messages.slice(-MAX_MESSAGES)
       this.captureUsage(run)
     }
@@ -897,6 +900,17 @@ class ManagedSessions extends EventEmitter {
 // subagent's request with an agentID but not with the role name, so the name is recovered
 // from the delegation that is in flight. With two delegations running at once that is
 // ambiguous, and an honest null beats a confident guess at the wrong role.
+// Tokens this session has used, summed across every model in each turn (a Day's Haiku
+// scouts included), from the totals the SDK reports once a turn ends.
+function addTokens(s,event) {
+  const models=Object.values(event.modelUsage || {})
+  if (!models.length) return
+  const total=s.tokenUsage ||= {input:0,output:0,cacheRead:0,cacheCreation:0}
+  for (const m of models) for (const [key,field] of [['input','inputTokens'],['output','outputTokens'],['cacheRead','cacheReadInputTokens'],['cacheCreation','cacheCreationInputTokens']]) {
+    const value=m[field]
+    if (Number.isFinite(value) && value>0) total[key]+=value
+  }
+}
 function roleAsking(s,context) {
   const team = s.teamSnapshot || getTeam(s.teamId)
   if (!team) return null

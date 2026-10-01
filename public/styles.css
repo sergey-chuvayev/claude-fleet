@@ -3131,8 +3131,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
    Two panels: the Day board, and the Day's console in the ordinary control panel.
    The inspector stays out of the way; syncDetails hides it in this view. */
 .work-tabs #today-count[data-alert=true] { color:var(--stale); font-weight:600 }
-.workspace[data-view=today] { grid-template-columns:minmax(0,1.3fr) 1px minmax(380px,1fr) }
-.workspace[data-view=today] #splitter { pointer-events:none }
+.workspace[data-view=today] { grid-template-columns:var(--today-split,56%) 1px minmax(380px,1fr) }
 .today-pane { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding:0 }
 .today-pane[hidden] { display:none }
 #day-board { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; font-size:var(--text-sm) }
@@ -3158,3 +3157,14 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .today-pane { max-height:none; overflow:visible }
   .today-body { overflow:visible }
 }
+.today-head { align-items:flex-end }
+.today-usage { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; flex:1 1 320px; justify-content:flex-end; color:var(--muted); font-size:var(--text-xs); font-variant-numeric:tabular-nums }
+.today-meter { display:inline-flex; align-items:center; gap:6px; white-space:nowrap }
+.today-meter b { color:var(--faint); font-weight:500; text-transform:uppercase; letter-spacing:.06em }
+.today-meter small { color:var(--faint) }
+.today-meter .mini-bar { width:54px; height:4px; margin:0 }
+.today-meter.warn, .today-meter.warn b { color:var(--stale) }
+.today-meter.hot, .today-meter.hot b { color:var(--hot) }
+.today-meter.note { font-style:italic }
+.day-reply { display:flex; gap:6px; margin-top:8px }
+.day-reply input { flex:1 1 auto; width:auto }

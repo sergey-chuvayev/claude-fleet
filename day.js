@@ -15,6 +15,9 @@ const PRIORITIES=['must','should','could']
 const STATUSES=['proposed','today','in_progress','waiting_on_you','done','later','dropped']
 const MODES=['me','draft','agent','ask']
 const NEED_KINDS=['approve','choose','info']
+// How the operator settled a question. A reply is a message about the item and never
+// licenses sending anything; only approve and edit do.
+const DECISIONS=['approve','reject','edit','reply','choose','info']
 const MAX_ITEMS=200,MAX_NEEDS=20,MAX_LOG=50,MAX_LINKS=20
 const dateOf=(at=Date.now())=>{const d=new Date(at);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function ledger(s) {return s.dayBoard ||= {date:dateOf(),items:[],cursors:{}}}
@@ -41,7 +44,7 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=item=>({id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,answer:n.answer}))})
+const compact=item=>({id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
   const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
@@ -92,15 +95,21 @@ function ask(s,input) {
   item.needs.push(need);item.status='waiting_on_you'
   return need
 }
-// The operator's side. `answer` is a string: the chosen option, the info asked for, or
-// for an approval 'approve', 'reject', or an edited draft to send instead.
-function answer(s,itemId,needId,value) {
+// The operator's side. `value` is the chosen option, the info asked for, an approval's
+// 'approve' or 'reject' or edited draft, or, with decision 'reply', a message about the
+// item for any kind of question: "not yet, ask Thomas first".
+function answer(s,itemId,needId,value,decision) {
   const item=itemFor(s,itemId),need=item.needs.find(n=>n.id===needId)
   if (!need) fail('Question not found.')
   if (need.answer!==undefined) fail('This question is already answered.')
   const text=str(value,'Answer',16000)
-  if (need.kind==='choose' && !need.options.includes(text)) fail('Choose one of the offered options.')
-  need.answer=text;need.answeredAt=Date.now()
+  if (decision!==undefined) oneOf(decision,DECISIONS,'Decision')
+  const settled=decision==='reply' ? 'reply'
+    : need.kind==='approve' ? (text==='approve' ? 'approve' : text==='reject' ? 'reject' : 'edit')
+    : need.kind
+  if (settled==='choose' && !need.options.includes(text)) fail('Choose one of the offered options, or reply instead.')
+  need.answer=text;need.decision=settled;need.answeredAt=Date.now()
+  if (settled==='reply') log(item,`You: ${text}`)
   if (!open(item).length && item.status==='waiting_on_you') item.status='in_progress'
   return {item,need}
 }
@@ -172,7 +181,7 @@ function outward(tool) {
 function approvedFor(s,input) {
   const payload=JSON.stringify(input || {})
   for (const item of s.dayBoard?.items || []) for (const n of item.needs) {
-    if (n.kind!=='approve' || n.spent || n.answer===undefined || n.answer==='reject') continue
+    if (n.kind!=='approve' || n.spent || n.answer===undefined || n.answer==='reject' || n.decision==='reply') continue
     const text=n.answer==='approve' ? n.draft : n.answer
     if (text && text.trim().length>=8 && payload.includes(JSON.stringify(text.trim()).slice(1,-1))) {n.spent=Date.now();return {item,need:n}}
   }

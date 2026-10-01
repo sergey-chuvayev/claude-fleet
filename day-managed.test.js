@@ -179,3 +179,20 @@ test('a Day keeps its scouts in the foreground so their tool calls outlive no st
     assert.match(calls[0].prompt,/Granola at \d{4}-\d\d-\d\dT/)
   } finally { await manager.close() }
 })
+
+test('a Day totals its tokens across every model, scouts included',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-day-'))
+  let turns=0
+  const manager=new ManagedSessions({directory,queryFactory:async()=>(turns++,{close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:'main',model:'claude-sonnet'}
+    yield {type:'result',result:'Done',is_error:false,modelUsage:{'claude-sonnet':{inputTokens:1000,outputTokens:200,cacheReadInputTokens:5000,cacheCreationInputTokens:300},'claude-haiku':{inputTokens:400,outputTokens:100,cacheReadInputTokens:0,cacheCreationInputTokens:0}}}
+  }})})
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    manager.send(s.id,{message:'again',requestId:randomUUID()})
+    await until(()=>s.status==='idle' && turns===2)
+    assert.deepEqual(s.tokenUsage,{input:2800,output:600,cacheRead:10000,cacheCreation:600})
+    assert.deepEqual(manager.summaries().find(x=>x.managedId===s.id).tokenUsage,s.tokenUsage)
+  } finally { await manager.close() }
+})

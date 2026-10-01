@@ -93,3 +93,21 @@ test('progress counts triaged work and what is waiting on the operator',()=>{
   assert.deepEqual(day.progress(s),{total:1,done:0,proposed:1,waiting:1})
   assert.equal(day.progress({}),null)
 })
+test('a reply talks to the agent about any question and never licenses a send',()=>{
+  const s={},item=add(s,{},'operator')
+  const approval=day.act(s,{action:'ask',itemId:item.id,kind:'approve',question:'Send this DM to Alexandre?',draft:'Hey Alexandre, could you review the copy this week?'})
+  const choice=day.act(s,{action:'ask',itemId:item.id,kind:'choose',question:'Who reviews?',options:['Thomas','Anna']})
+  day.answer(s,item.id,approval.id,'Hey Alexandre, could you review the copy this week?','reply')
+  assert.equal(approval.decision,'reply')
+  assert.equal(day.approvedFor(s,{message:'Hey Alexandre, could you review the copy this week?'}),null,'a reply that quotes the draft is still not an approval')
+  day.answer(s,item.id,choice.id,'Neither, ask Camille','reply')
+  assert.match(item.log.at(-1).text,/^You: Neither, ask Camille/)
+  assert.deepEqual(day.act(s,{action:'list'}).items[0].answered.map(a=>a.decision),['reply','reply'])
+  assert.throws(()=>day.answer(s,item.id,day.act(s,{action:'ask',itemId:item.id,kind:'info',question:'?'}).id,'x','maybe'),/Decision/)
+})
+test('approving, rejecting and editing are told apart',()=>{
+  const s={},item=add(s,{},'operator'),ask=draft=>day.act(s,{action:'ask',itemId:item.id,kind:'approve',question:'Send?',draft})
+  const [a,b,c]=[ask('first draft text'),ask('second draft text'),ask('third draft text')]
+  day.answer(s,item.id,a.id,'approve');day.answer(s,item.id,b.id,'reject');day.answer(s,item.id,c.id,'third draft, edited')
+  assert.deepEqual([a.decision,b.decision,c.decision],['approve','reject','edit'])
+})
