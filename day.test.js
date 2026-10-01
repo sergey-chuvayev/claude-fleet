@@ -81,11 +81,13 @@ test('a new day carries unfinished work and its open questions, and drops what w
   day.act(s,{action:'cursor',source:'linear',value:'2026-09-30T18:00:00Z'})
   const next=day.carryOver(s.dayBoard,'2026-10-02')
   assert.equal(next.date,'2026-10-02')
-  assert.deepEqual(next.items.map(i=>i.id),[keep.id])
+  assert.deepEqual(next.items.map(i=>i.id),[keep.id,proposed.id],'unfinished work and untriaged proposals carry; settled work does not')
   assert.equal(next.items[0].status,'waiting_on_you')
   assert.equal(next.items[0].carriedFrom,s.dayBoard.date)
+  assert.equal(next.items[1].status,'proposed','a proposal stays a proposal: the scouts will not find it again')
   assert.equal(next.cursors.linear,'2026-09-30T18:00:00Z')
-  assert.ok(!next.items.some(i=>i.id===proposed.id))
+  const later=day.carryOver(next,'2026-10-03')
+  assert.equal(later.items[0].carriedFrom,s.dayBoard.date,'an item keeps the day it first came from')
 })
 test('progress counts triaged work and what is waiting on the operator',()=>{
   const s={},a=add(s,{},'operator');add(s)
@@ -116,4 +118,12 @@ test('free time from the calendar is recorded and bounded',()=>{
   assert.deepEqual(Object.keys(day.act(s,{action:'capacity',freeMinutes:270})),['freeMinutes','at'])
   assert.equal(s.dayBoard.capacity.freeMinutes,270)
   assert.throws(()=>day.act(s,{action:'capacity',freeMinutes:-5}),/0-960/)
+})
+test('a carried item leaves its thread behind and keeps only the gist of it',()=>{
+  const s={},item=add(s,{},'operator')
+  item.thread={sessionId:'t-1',summary:'Agreed to drop comment 4.',at:5}
+  const next=day.carryOver(s.dayBoard,'2026-10-02')
+  assert.equal(next.items[0].thread,undefined,'the next question starts a fresh thread on the new board')
+  assert.deepEqual(next.items[0].previousThread,{summary:'Agreed to drop comment 4.',at:5,sessionId:'t-1'})
+  assert.equal(day.act({dayBoard:next},{action:'list'}).items[0].carriedFrom,s.dayBoard.date,'the agent sees what carried over')
 })

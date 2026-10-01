@@ -290,6 +290,16 @@ class ManagedSessions extends EventEmitter {
     const s = {id,sessionId:null,name:body.name?.trim() ? text(body.name,'Session name',100) : `Day ${date}`,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'day',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,dayBoard:days[0]?.dayBoard ? day.carryOver(days[0].dayBoard,date) : {date,items:[],cursors:{}},worktree:null}
     this.sessions.set(s.id,s)
     const note = (body.prompt || '').trim() ? `\n\nThe operator adds: ${text(body.prompt,'Message',8000)}` : ''
+    // Yesterday's threads stay with yesterday's board: close the ones on carried items so
+    // nothing they do lands on a board that is no longer in use, and so they show up in
+    // Sessions as finished conversations.
+    if (days[0]?.dayBoard) {
+      for (const item of days[0].dayBoard.items) if (item.thread && !item.thread.closed) {
+        item.thread.closed = Date.now()
+        if (this.runs.has(item.thread.sessionId)) { try { this.stop(item.thread.sessionId) } catch {} }
+      }
+      this.changed(days[0])
+    }
     s.dayChecks = {lastAt:Date.now(),everyMin:DAY_SWEEP_MINUTES,hours:DAY_HOURS}
     try { this.send(s.id,{message:'Start my day',runPrompt:dayAgent.promptFor('intake')+note,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); throw error }

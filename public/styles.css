@@ -3264,3 +3264,4 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-thread-gist .day-launch-chip { flex:none }
 .day-agent-tab.is-thread { border-color:var(--line) }
 .day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }
+.day-carried { flex:none; padding:1px 6px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); white-space:nowrap }

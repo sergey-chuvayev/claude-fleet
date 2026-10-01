@@ -328,3 +328,29 @@ test('a thread reaches only its own item, and its sends need an approval on the 
     assert.ok(manager.sessions.get(threadId))
   } finally { await manager.close() }
 })
+
+test('the next Day closes yesterday\'s threads, and a new thread starts from the earlier gist',async()=>{
+  const {directory,manager,calls}=setup()
+  try{
+    const old=startDay(manager,directory)
+    await until(()=>old.status==='idle')
+    const item=day.act(old,{action:'add',title:'Review #2951',source:'github'},'operator').item
+    const {threadId}=manager.dayAction(old.id,{op:'thread',itemId:item.id,message:'Why (2)?'})
+    await until(()=>manager.sessions.get(threadId).status==='idle')
+    item.thread.summary='Agreed to drop comment 4 and keep the rest.'
+    old.dayBoard.date='2026-01-01'
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    assert.ok(item.thread.closed,'yesterday\'s thread is closed on yesterday\'s board')
+    assert.equal(manager.summaries().find(x=>x.managedId===threadId).threadOpen,false,'so it shows in Sessions')
+    const carried=s.dayBoard.items[0]
+    assert.equal(carried.thread,undefined)
+    assert.match(calls.find(c=>/Morning intake/.test(c.prompt) && c!==calls[0]).prompt,/carriedFrom/)
+    const next=manager.dayAction(s.id,{op:'thread',itemId:carried.id,message:'Where were we?'})
+    assert.notEqual(next.threadId,threadId,'a fresh thread, on today\'s board')
+    const t=manager.sessions.get(next.threadId)
+    assert.equal(t.parentDayId,s.id)
+    await until(()=>t.status==='idle')
+    assert.match(calls.at(-1).prompt,/carried over from 2026-01-01[\s\S]*Agreed to drop comment 4/)
+  } finally { await manager.close() }
+})
