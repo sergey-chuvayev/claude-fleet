@@ -268,6 +268,10 @@ function rowTags(s, spawnCounts) {
 }
 // A team session says which team is running it and how far through its tasks it is.
 function initiativeTag(s) {
+  if (s.kind === 'day') {
+    const p = s.dayProgress
+    return `<span class="initiative-tag day-tag">Day${p ? ` · ${p.done}/${p.total} done${p.waiting ? ` · ${p.waiting} waiting on you` : ''}${p.proposed ? ` · ${p.proposed} to triage` : ''}` : ''}</span>`
+  }
   if (s.kind !== 'initiative') return ''
   const p = s.taskProgress
   const progress = p ? ` · ${p.verified}/${p.total} verified${p.blocked ? ` · ${p.blocked} need attention` : ''}` : ''
@@ -840,12 +844,16 @@ function watchConversation(element) {
   if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true })
   let board = null, disposeBoard = null
   const syncBoard = () => {
-    const next = $('initiative-board')
+    const next = $('initiative-board') || $('day-board')
     if (next === board) return
     disposeBoard?.()
     board = next
     if (board) {
-      disposeBoard = addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
+      // On a Day the board is the work and the conversation is the side channel, so it
+      // starts tall and remembers its own height apart from the team overview's.
+      disposeBoard = board.id === 'day-board'
+        ? addPanel(board, { key: 'fleet:day-height', label: 'Resize Day board', min: 120, initial: 520 })
+        : addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
     }
   }
   const mutation = new MutationObserver(syncBoard)

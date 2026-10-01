@@ -2381,7 +2381,7 @@ body[data-modal] { overflow:hidden }
   margin-bottom:20px;
   margin:20px 0 0;
 }
-#initiative-board {
+#initiative-board, #day-board {
   flex:none;
   border:1px solid var(--line);
   border-radius:var(--radius-lg);
@@ -2389,15 +2389,15 @@ body[data-modal] { overflow:hidden }
   font-size:var(--text-sm);
   overflow:hidden;
 }
-#initiative-board>summary {
+#initiative-board>summary, #day-board>summary {
   display:flex;
   gap:12px;
   padding:12px;
   cursor:pointer;
   background:var(--panel);
 }
-#initiative-board>summary strong { margin-right:auto }
-#initiative-board>summary span { color:var(--muted); font-variant-numeric:tabular-nums }
+#initiative-board>summary strong, #day-board>summary strong { margin-right:auto }
+#initiative-board>summary span, #day-board>summary span { color:var(--muted); font-variant-numeric:tabular-nums }
 .initiative-body {
   max-height:38vh;
   overflow:auto;
@@ -2776,11 +2776,11 @@ body[data-modal] { overflow:hidden }
 .conversation .block-head { border:0; background:var(--panel) }
 .conversation .block[data-status="running"] .block-icon { color:var(--term-yellow) }
 .conversation .block[data-status="error"] .block-icon { color:var(--term-red) }
-#initiative-board {
+#initiative-board, #day-board {
   border:0; border-radius:0; margin:0; background:transparent;
   min-height:0; flex:0 1 auto;
 }
-#initiative-board[open] { display:flex; flex-direction:column }
+#initiative-board[open], #day-board[open] { display:flex; flex-direction:column }
 /* A `details` does not lay its content out as a direct child any more: Chrome puts an
    anonymous `::details-content` box between the element and everything after `summary`.
    That box, not `.initiative-body`, is the flex item here, so with no rule of its own it
@@ -2790,9 +2790,9 @@ body[data-modal] { overflow:hidden }
    the constraint down to the body, which is what actually scrolls. Browsers without the
    pseudo-element ignore this and shrink `.initiative-body` directly instead, which the
    `flex` below makes work the same way. */
-#initiative-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
-#initiative-board>summary { flex:none; background:transparent; padding:10px 0 }
-#initiative-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
+#initiative-board[open]::details-content, #day-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
+#initiative-board>summary, #day-board>summary { flex:none; background:transparent; padding:10px 0; align-items:center }
+#initiative-board .initiative-body, #day-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
 #initiative-board .initiative-handoff { border-radius:0; background:transparent; border-left:1px solid var(--line) }
 .detail:has(#composer) .composer {
   display:flex; flex-direction:column; min-height:130px; flex:0 1 auto;
@@ -3065,3 +3065,65 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 @media(max-width:1500px) { .brand-sub { display:none } }
 @media(max-width:1100px) { .app-version { display:none }.topbar { gap:8px }.topbar .refresh-info .button { padding:7px 10px } }
 @media(max-width:720px) { .topbar .refresh-info { flex-basis:100%; justify-content:flex-start }.work-tabs { order:3; margin:0 } }
+
+/* ── Day ─────────────────────────────────────────────────────────────────────
+   The Day board reuses the initiative board's frame; these are its own parts. */
+#day-board>summary .day-alert { color:var(--stale); font-weight:600 }
+.day-small { padding:3px 8px; font-size:var(--text-xs) }
+.day-section { padding:4px 0 14px }
+.day-section>h4 {
+  display:flex; align-items:center; gap:8px; margin:0 0 8px;
+  font-size:var(--text-xs); letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+}
+.day-section>h4>span { color:var(--faint); font-variant-numeric:tabular-nums; margin-right:auto }
+.day-card {
+  padding:10px 12px; margin-bottom:8px;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md);
+}
+.day-waiting .day-card { border-color:var(--warn-line); background:var(--warn-surface) }
+.day-card-head, .day-list summary, .day-rest li { display:flex; align-items:baseline; gap:8px; min-width:0 }
+.day-card-head strong, .day-list summary strong, .day-rest li strong { flex:1 1 auto; min-width:0; overflow-wrap:anywhere }
+.day-card-head small, .day-list summary small, .day-rest li small { color:var(--muted); font-variant-numeric:tabular-nums; flex:none }
+.day-list summary { line-height:1.6 }
+.day-list summary small.day-mode { color:var(--faint) }
+.day-source {
+  flex:none; padding:1px 5px; border:1px solid var(--line); border-radius:var(--radius-sm);
+  color:var(--muted); font-size:var(--text-xs);
+}
+.day-source[data-source=me] { color:var(--accent); border-color:color-mix(in oklab,var(--accent) 40%,var(--line)) }
+.day-priority { flex:none; font-size:var(--text-xs); color:var(--faint) }
+.day-priority[data-priority=must] { color:var(--hot); font-weight:600 }
+.task-state[data-state=waiting_on_you] { color:var(--stale) }
+.task-state[data-state=in_progress] { color:var(--accent) }
+.task-state[data-state=done] { color:var(--busy) }
+.day-context { margin:6px 0 0; color:var(--muted); line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere }
+.day-links { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px }
+.day-links a { color:var(--idle); font-size:var(--text-xs); text-decoration:none }
+.day-links a:hover { text-decoration:underline }
+.day-need { margin-top:8px }
+.day-need>p { margin:0 0 6px; line-height:1.6 }
+.day-need textarea, .day-need input, .day-add input, .day-add textarea {
+  width:100%; box-sizing:border-box; padding:8px;
+  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md);
+  font:var(--code)/1.6 var(--mono); resize:vertical;
+}
+.day-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px }
+.day-actions .note { font-size:var(--text-xs); margin:0 }
+.day-actions select {
+  padding:4px 6px; background:var(--bg); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-sm);
+}
+.day-inline input { flex:1 1 200px; width:auto }
+.day-log { list-style:none; margin:8px 0 0; padding:0 0 0 10px; border-left:1px solid var(--line); color:var(--muted); font-size:var(--text-xs); line-height:1.8 }
+.day-log time { color:var(--faint); font-variant-numeric:tabular-nums }
+.day-add { margin:0 0 14px }
+.day-add>summary, .day-rest>summary { cursor:pointer; color:var(--muted); padding:4px 0 }
+.day-rest>summary span { color:var(--faint) }
+.day-add-fields { display:grid; gap:6px; margin-top:6px }
+.day-rest ul { list-style:none; margin:4px 0 0; padding:0 }
+.day-rest li { padding:5px 0; border-bottom:1px solid var(--line) }
+.day-tag { color:var(--accent) }
+@media(max-width:720px) {
+  #day-board .initiative-body { max-height:50vh }
+  .day-actions .button { flex:1 1 auto }
+}

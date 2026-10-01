@@ -88,6 +88,8 @@ window.FleetControl = {
   // never as a live binding, so a caller cannot hold one and read a stale session after
   // the next refresh. teams.js needs it to know which initiative a board action is for.
   session: () => controlSession,
+  // day.js redraws its board after an answer without waiting for the next poll.
+  refresh: () => refreshControl(),
   launchTeams: () => launchTeams,
   setLaunchTeams(teams) { launchTeams = teams },
   setLaunchRequestId(id) { launchRequestId = id },
@@ -193,6 +195,7 @@ async function refreshControl() {
 function renderControl() {
   const s=controlSession;if(!s || s.id!==controlId || !$('composer'))return
   window.FleetTeams?.board(s)
+  window.FleetDay?.board(s)
   $('conversation-title').textContent=s.aiTitle || s.name
   const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
   $('agent-state').textContent=(s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status])+queueNote

@@ -6,7 +6,7 @@ const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget, transcriptFor } = require('./fleet')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
-const { stateDir } = require('./paths')
+const { stateDir, defaultCwd } = require('./paths')
 const { getTeam, compile, boundedModel } = require('./teams')
 const { TeamStore } = require('./team-store')
 const { UsageTracker } = require('./usage')
@@ -39,6 +39,7 @@ const DAY_HOURS = [8, 20]
 // Answers and triage come in bursts. Waiting this long after the last one turns ten
 // clicks into one run instead of ten.
 const DAY_RESUME_DELAY_MS = 20000
+const DAY_MAX_FAILURES = 3
 // Pasted images: a handful per message, bounded in size, only the formats the API
 // accepts, and sniffed by magic bytes because the client's declared type is a claim.
 const MAX_IMAGES = 6
@@ -239,6 +240,9 @@ class ManagedSessions extends EventEmitter {
     if (previous) return previous
     if (this.closed) fail('Fleet is shutting down.',503)
     if (this.sessions.size >= 100) fail('Fleet has reached its 100-session limit.',409)
+    // A Day is not about a project, but its directory decides which project-scoped
+    // connectors it can reach, so it stays where the operator's last Day ran.
+    if (body.kind === 'day' && !body.cwd) body = {...body,cwd:process.env.CLAUDE_FLEET_DAY_CWD || [...this.sessions.values()].filter(s => s.kind === 'day').sort((a,b) => b.createdAt-a.createdAt)[0]?.cwd || defaultCwd()}
     let cwd = text(body.cwd,'Project directory',4096)
     if (cwd === '~' || cwd.startsWith('~/')) cwd = path.join(os.homedir(), cwd.slice(1))
     if (!path.isAbsolute(cwd)) fail('Use an absolute project path or ~/path.')
@@ -333,8 +337,10 @@ class ManagedSessions extends EventEmitter {
     const date = day.dateOf(now.getTime())
     for (const s of this.sessions.values()) {
       if (s.kind !== 'day' || s.dayBoard?.date !== date) continue
-      // A stopped or failed Day stays stopped until the operator restarts it.
-      if (s.status !== 'idle' || this.runs.has(s.id) || s.queue.length) continue
+      // One failed sweep (a dropped connection, a connector timing out) should not end
+      // the day's checks, so an error is retried. Three in a row is not a blip: the Day
+      // waits for the operator. A deliberate stop always does.
+      if (!['idle','error'].includes(s.status) || (s.dayFailures || 0) >= DAY_MAX_FAILURES || this.runs.has(s.id) || s.queue.length) continue
       try { this.dayRun(s,'sweep') } catch (error) { this.emit('storage-error',error) }
     }
   }
@@ -589,6 +595,7 @@ class ManagedSessions extends EventEmitter {
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
+      if (s.kind === 'day') s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0
       s.currentTool=null
       this.runs.delete(s.id)
       // A clean finish with something waiting picks it straight back up. A stop already

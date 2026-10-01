@@ -410,6 +410,40 @@ directory; task history and team snapshots live with the initiative in `sessions
 
 </details>
 
+### A Day is one agent that runs your whole day
+
+Press **☀ Today** in the top bar. Fleet starts a *Day*: one Sonnet agent that keeps a board of
+what you should care about today and works through it with you until the evening.
+
+It begins with a morning intake. Read-only Haiku scouts check Slack (DMs, mentions, threads you
+are in), Linear (notifications, assigned issues), Granola (your action items from recent
+meetings), GitHub (review requests, comments and red checks on your PRs) and Google Calendar
+(meetings and free time). What they find lands on the board as **proposals**. Items that share a
+link (the Slack thread about a PR, the PR itself, the Linear issue it closes) merge into one.
+
+You triage: **Today**, **Later** or **Drop**, a priority, and how it gets done: *I do it*,
+*Draft for me*, *Find out*, or *Agent does it*. Add your own items with whatever context you
+have; links in it are picked up.
+
+Each item has its own list of what it is waiting on you for. When the agent needs a decision,
+missing information or an approval, it asks on that item and moves on to the next one, so one
+open question never stalls the day. Everything waiting on you sits at the top of the board.
+
+Nothing reaches other people without you. A Slack reply, a Linear comment or status change, or
+a GitHub review goes out only when you approved that exact text on the board; edit the draft
+before approving and only your version can be sent. Any other outward connector call stops for
+approval, whatever the approval mode. Read-only calls run freely. A Day cannot edit files: code
+work becomes an *Agent does it* item whose brief you approve and launch as an initiative.
+
+Through the day Fleet runs a short check every 45 minutes between 8:00 and 20:00, and picks
+your answers up 20 seconds after your last click. Those runs start from the board, not from the
+conversation, so talking to the agent stays cheap however long the day gets. A failed check is
+retried; three in a row wait for you. Starting tomorrow's Day carries over what is unfinished,
+with its open questions. Each Day has a $15 usage cap (API-rate equivalent), adjustable.
+
+The Day's directory decides which project-scoped connectors it can reach. It reuses the
+previous Day's, or set `CLAUDE_FLEET_DAY_CWD`.
+
 ### Inspect individual agents
 
 Select a subagent row beneath a managed initiative to see its assignment, actual model,
@@ -545,6 +579,8 @@ for the app itself.
 | [`teams.js`](teams.js) | The roles an initiative runs, and how they compile into SDK options |
 | [`team-store.js`](team-store.js) | Custom team definitions, saved and edited outside the built-in presets |
 | [`tasks.js`](tasks.js) | The task board: tasks, delegations, and the initiative's verification ledger |
+| [`day.js`](day.js) | The Day board: items, the questions each waits on, dedupe, cursors, carry-over, and the outward-call gate |
+| [`day-agent.js`](day-agent.js) | The Day agent's instructions, its read-only scouts, and the prompt each kind of run starts from |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
@@ -580,6 +616,8 @@ run and left in place.
 | `CLAUDE_FLEET_CONCURRENCY` | How many agents may run at once, 1 to 8, default 4 |
 | `CLAUDE_FLEET_SEARCH_DAYS` | How far back Ask indexes transcripts, default 60 |
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |
+| `CLAUDE_FLEET_DAY_CWD` | Directory a Day runs in, which decides its project-scoped connectors |
+| `CLAUDE_FLEET_DAY_SWEEP_MIN` | Minutes between a Day's checks, minimum 10, default 45 |
 
 The SDK ships its own Claude runtime, which can lag the CLI you actually use and
 so offer an older set of models. The `claude-fleet` command therefore prefers the

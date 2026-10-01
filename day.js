@@ -21,7 +21,7 @@ function ledger(s) {return s.dayBoard ||= {date:dateOf(),items:[],cursors:{}}}
 function itemFor(s,id) {const item=ledger(s).items.find(i=>i.id===id);if(!item)fail('Item not found. Read the Day board.');return item}
 const str=(value,name,max,optional=false)=>{
   if (value===undefined && optional) return undefined
-  if (typeof value!=='string' || !value.trim() || value.length>max) fail(`${name} must contain 1–${max} characters.`)
+  if (typeof value!=='string' || !value.trim() || value.length>max) fail(`${name} must contain 1-${max} characters.`)
   return value.trim()
 }
 const oneOf=(value,list,name,optional=false)=>{
@@ -62,7 +62,7 @@ function add(s,input,by) {
 function minutes(value) {
   if (value===undefined || value===null) return null
   const n=Math.trunc(Number(value))
-  if (!Number.isFinite(n) || n<1 || n>600) fail('Estimate must be 1–600 minutes.')
+  if (!Number.isFinite(n) || n<1 || n>600) fail('Estimate must be 1-600 minutes.')
   return n
 }
 function update(s,input,by) {
@@ -85,7 +85,7 @@ function ask(s,input) {
   const item=itemFor(s,input.itemId),kind=oneOf(input.kind,NEED_KINDS,'Kind')
   if (open(item).length>=MAX_NEEDS) fail('This item already has too many open questions. Wait for answers.')
   const options=input.options===undefined ? undefined : input.options
-  if (kind==='choose' && (!Array.isArray(options) || options.length<2 || options.length>6 || options.some(o=>typeof o!=='string' || !o.trim() || o.length>200))) fail('A choice needs 2–6 options.')
+  if (kind==='choose' && (!Array.isArray(options) || options.length<2 || options.length>6 || options.some(o=>typeof o!=='string' || !o.trim() || o.length>200))) fail('A choice needs 2-6 options.')
   // An approval is only meaningful if the operator sees exactly what will go out.
   if (kind==='approve' && typeof input.draft!=='string') fail('An approval needs the exact draft that will be sent or applied.')
   const need={id:randomUUID(),kind,question:str(input.question,'Question',1000),...(kind==='choose' ? {options} : {}),...(input.draft!==undefined ? {draft:String(input.draft).slice(0,16000)} : {}),at:Date.now()}
@@ -107,7 +107,13 @@ function answer(s,itemId,needId,value) {
 // The operator's triage of proposed items, in one call from the UI.
 function triage(s,itemId,{status,priority,mode}={}) {
   const item=itemFor(s,itemId)
-  if (status!==undefined) {oneOf(status,['today','later','dropped','proposed'],'Triage');item.status=status}
+  if (status!==undefined) {
+    oneOf(status,['today','later','dropped','proposed','done'],'Triage')
+    // Done by hand still respects an approval the agent is waiting on: closing the item
+    // would leave a draft approved for nothing, or a question nobody will read.
+    if (status==='done' && open(item).length) fail('Answer the open questions on this item first.')
+    item.status=status
+  }
   if (priority!==undefined) item.priority=oneOf(priority,PRIORITIES,'Priority')
   if (mode!==undefined) item.mode=oneOf(mode,MODES,'Mode')
   return item

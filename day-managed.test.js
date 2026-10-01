@@ -134,10 +134,33 @@ test('operator changes are validated, rolled back on error and schedule one resu
     const {item}=manager.dayAction(s.id,{op:'add',item:{title:'Renew the domain',source:'me'}})
     assert.equal(item.status,'today')
     assert.ok(manager.dayTimers.has(s.id))
-    assert.throws(()=>manager.dayAction(s.id,{op:'triage',itemId:item.id,status:'done'}),/Triage/)
+    assert.throws(()=>manager.dayAction(s.id,{op:'triage',itemId:item.id,status:'waiting_on_you'}),/Triage/)
     assert.equal(s.dayBoard.items[0].status,'today')
     assert.throws(()=>manager.dayAction(s.id,{op:'nope'}),/Unknown Day action/)
     const agent=manager.create({cwd:directory,prompt:'hi',requestId:randomUUID()})
     assert.throws(()=>manager.dayAction(agent.id,{op:'sweep'}),/not a Day/)
+  } finally { await manager.close() }
+})
+
+test('a failed sweep is retried, but three failures in a row wait for the operator',async()=>{
+  let fail=false
+  const {directory,manager,calls}=setup(async()=>{if(fail)throw new Error('connector timed out')})
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    fail=true
+    const noon=new Date();noon.setHours(12,0,0,0)
+    for (let i=1;i<=3;i++) {
+      manager.sweepDays(noon)
+      await until(()=>calls.length===1+i && s.status==='error')
+      assert.equal(s.dayFailures,i)
+    }
+    manager.sweepDays(noon)
+    await delay(20)
+    assert.equal(calls.length,4,'the fourth sweep does not start')
+    fail=false
+    manager.send(s.id,{message:'Try again',requestId:randomUUID()})
+    await until(()=>calls.length===5 && s.status==='idle')
+    assert.equal(s.dayFailures,0,'a good run resets the count')
   } finally { await manager.close() }
 })
