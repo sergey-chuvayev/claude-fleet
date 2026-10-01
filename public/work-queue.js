@@ -13,7 +13,7 @@
   }
   function visible(sessions,filter='all',search='') {
     const query=search.trim().toLowerCase()
-    return sessions.filter(s=>s.managed && !s.archived && !s.background && s.kind!=='day' && (filter==='all' || state(s)===filter) &&
+    return sessions.filter(s=>s.managed && !s.archived && !s.background && s.kind!=='day' && !(s.kind==='thread' && s.threadOpen) && (filter==='all' || state(s)===filter) &&
       [s.title,s.name,s.cwd,s.teamName,s.worktreeBranch].filter(Boolean).join(' ').toLowerCase().includes(query))
       .sort((a,b)=>groups.findIndex(([id])=>id===state(a))-groups.findIndex(([id])=>id===state(b)) ||
         (state(a)==='queued' ? (a.queuePosition || 0)-(b.queuePosition || 0) : (b.lastActivity || 0)-(a.lastActivity || 0)))

@@ -78,12 +78,17 @@ window.FleetDay=(()=>{
     const over=planned>free,share=free ? Math.min(100,Math.round(planned/free*100)) : 100
     return `<span class="day-capacity ${over ? 'is-over':''}" title="Estimated time of today's open items against focus time left on your calendar"><span class="mini-bar"><i style="width:${share}%"></i></span>${duration(planned)} planned · ${duration(free)} free${over ? ' · over by '+duration(planned-free):''}</span>`
   }
+  // The gist of the item's thread, and the way back into it.
+  function threadHtml(item) {
+    if(!item.thread || item.thread.closed)return ''
+    return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-thread="${escape(item.thread.sessionId)}" title="Open your conversation about this item"><span class="dot"></span>Thread ↗</button>${item.thread.summary ? escape(item.thread.summary) : 'Starting…'}</p>`
+  }
   function todayHtml(items,opened,b) {
     const today=items.filter(i=>['today','in_progress','waiting_on_you'].includes(i.status))
     today.sort((a,b)=>a.createdAt-b.createdAt)
     const row=item=>{
       const icon=STATE_ICON[item.status],latest=item.log.at(-1)?.text
-      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${latest ? `<span class="day-latest">${escape(latest)}</span>`:''}</summary>${launchedHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
+      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${latest ? `<span class="day-latest">${escape(latest)}</span>`:''}</summary>${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
     return `<section class="day-section"><h4>Today <span>${today.length}</span>${capacityHtml(minutes(today),b)}</h4>${today.length ? groups.map(([p,list])=>`<div class="day-group" data-priority="${p}"><h5>${PRIORITY[p]} <span>${list.length}${minutes(list) ? ` · ${duration(minutes(list))}`:''}</span></h5><ol class="day-list">${list.map(row).join('')}</ol></div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
@@ -99,14 +104,25 @@ window.FleetDay=(()=>{
   // is the ordinary control panel, so talking to the Day works like any agent.
   const pane=()=>document.getElementById('today-pane')
   const active=()=>window.FleetQueue?.view?.()==='today' && !!pane()
-  const current=days=>days.find(s=>s.dayDate===today()) || null
+  // The console shows the Day agent, or one item's thread. The board always shows the Day,
+  // so while a thread is open the Day's own detail is fetched beside it.
+  let shownThread=null,dayDetail=null,dayFetchAt=0
+  function current(days,live=[]) {
+    const day=days.find(s=>s.dayDate===today()) || null
+    if(shownThread){
+      const t=live.find(x=>x.managedId===shownThread && x.threadOpen)
+      if(t && day && t.parentDayId===day.managedId)return t
+      shownThread=null
+    }
+    return day
+  }
   function bindPanel(panel) {
     // Bound once for the panel's life; the session it shows is read from the dataset at
     // click time, for the same reason as the initiative board.
     panel.addEventListener('click',event=>act(panel.dataset.sessionId,event))
     // Enter sends a one-line reply or answer, as in the composer.
     panel.addEventListener('keydown',event=>{
-      if(event.key!=='Enter' || event.shiftKey || event.isComposing || !event.target.matches('input[data-keep^="reply:"],input[data-keep^="info:"]'))return
+      if(event.key!=='Enter' || event.shiftKey || event.isComposing || !event.target.matches('input[data-keep^="reply:"],input[data-keep^="info:"],input[data-keep^="ask:"]'))return
       event.preventDefault();event.target.parentElement.querySelector('button')?.click()
     })
     // On a proposal the choices travel with Today/Later/Drop; on a triaged item a new
@@ -114,9 +130,18 @@ window.FleetDay=(()=>{
     panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])');if(card && event.target.dataset.field==='mode')triage(panel.dataset.sessionId,card.dataset.card,{mode:event.target.value},'Updated')})
   }
   function board(s) {
+    if(s.kind==='day')dayDetail=s
+    // Set on every render: the board may be unchanged while the console switched sessions.
+    const composer=document.getElementById('message-input')
+    if(composer && ['day','thread'].includes(s.kind))composer.placeholder=s.kind==='thread' ? 'Ask about this item…' : 'Ask your day agent…'
     agents(s)
+    const d=s.kind==='day' ? s : s.kind==='thread' && dayDetail?.id===s.parentDayId ? dayDetail : null
+    if(!d){if(s.kind!=='thread')document.getElementById('day-board')?.remove();return}
+    renderBoard(d)
+  }
+  function renderBoard(s) {
     let panel=document.getElementById('day-board')
-    if(s.kind!=='day' || !pane()){panel?.remove();return}
+    if(!pane()){panel?.remove();return}
     pane().querySelector('.today-empty')?.remove()
     if(!panel){panel=document.createElement('section');panel.id='day-board';panel.setAttribute('aria-label','Day board');pane().append(panel);bindPanel(panel)}
     panel.dataset.sessionId=s.id
@@ -140,9 +165,9 @@ window.FleetDay=(()=>{
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
     for(const el of panel.querySelectorAll('[data-keep^="reply:"]'))el.placeholder='Reply to your day agent…'
+    for(const el of panel.querySelectorAll('[data-keep^="ask:"]'))el.placeholder='Ask about this item: why, what if, change the plan…'
     panel.querySelector('.today-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-keep="${CSS.escape(focused)}"]`)?.focus({preventScroll:true})
-    const composer=document.getElementById('message-input');if(composer)composer.placeholder='Ask your day agent…'
   }
   // When the Day last looked at your sources and when it will next, so a greyed-out
   // button is never the only clue that something is (or is not) happening.
@@ -181,7 +206,11 @@ window.FleetDay=(()=>{
   }
   // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
   function render(days) {
-    const day=current(days),badge=document.getElementById('today-count')
+    const day=days.find(s=>s.dayDate===today()) || null,badge=document.getElementById('today-count')
+    if(active() && day && control().session()?.kind==='thread' && Date.now()-dayFetchAt>2000){
+      dayFetchAt=Date.now()
+      api(`/api/managed/${day.managedId}`).then(data=>{dayDetail=data.session;renderBoard(dayDetail);const t=control().session();if(t?.kind==='thread')agents(t)}).catch(()=>{})
+    }
     if(day && document.getElementById('today-usage'))window.Fleet.update('today-usage',usageHtml(day))
     const waiting=day?.dayProgress?.waiting || 0,proposed=day?.dayProgress?.proposed || 0
     if(badge){badge.textContent=waiting || proposed || '';badge.dataset.alert=String(!!waiting);badge.title=waiting ? `${waiting} waiting on you` : proposed ? `${proposed} to triage` : ''}
@@ -201,7 +230,7 @@ window.FleetDay=(()=>{
     const out=[],groups=[]
     let group=null
     for(const m of list){
-      if(m.role==='user' && m.runPrompt){out.push({id:m.id,role:'event',text:AUTO_RUN[m.text] || m.text,at:m.at});group=null;continue}
+      if(m.role==='user' && m.runPrompt && (m.background || AUTO_RUN[m.text])){out.push({id:m.id,role:'event',text:AUTO_RUN[m.text] || m.text,at:m.at});group=null;continue}
       if(m.role==='tool' && m.tool==='mcp__fleet__day'){
         if(!group){group={id:`${m.id}~board`,role:'tool',tool:m.tool,label:'Board',approval:'auto',at:m.at,calls:[]};out.push(group);groups.push(group)}
         group.calls.push(m);continue
@@ -228,30 +257,46 @@ window.FleetDay=(()=>{
   let shownAgent=null
   const AGENT_STATE={running:'busy',completed:'idle',failed:'hot',interrupted:'stale'}
   const elapsed=ms=>ms<60000 ? `${Math.max(1,Math.round(ms/1000))}s` : `${Math.floor(ms/60000)}m ${String(Math.round(ms%60000/1000)).padStart(2,'0')}s`
+  // Switching to a thread changes which session the console holds, so it goes through
+  // the app's selection; switching between the Day and its subagents does not.
+  function showThread(id) {shownThread=id || null;shownAgent=null;window.Fleet.render()}
   function agents(s) {
     const conversation=document.getElementById('conversation')
     let strip=document.getElementById('day-agents'),view=document.getElementById('day-agent-view')
-    if(s.kind!=='day' || !conversation){strip?.remove();view?.remove();if(conversation)conversation.hidden=false;return}
-    const list=s.subagents || []
+    const base=s.kind==='day' ? s : s.kind==='thread' && dayDetail?.id===s.parentDayId ? dayDetail : null
+    if(!base || !conversation){strip?.remove();view?.remove();if(conversation)conversation.hidden=false;return}
+    const list=base.subagents || []
+    const threads=(base.dayBoard?.items || []).filter(i=>i.thread && !i.thread.closed)
     if(shownAgent && !list.some(d=>d.id===shownAgent))shownAgent=null
+    if(s.kind==='thread')shownAgent=null
     if(!strip){
-      strip=document.createElement('nav');strip.id='day-agents';strip.setAttribute('aria-label','Day agent and its subagents')
+      strip=document.createElement('nav');strip.id='day-agents';strip.setAttribute('aria-label','Day agent, item threads and subagents')
       conversation.before(strip)
-      strip.addEventListener('click',event=>{const tab=event.target.closest('[data-agent]');if(!tab)return;shownAgent=tab.dataset.agent || null;strip.fleetSignature=null;agents(control().session())})
+      strip.addEventListener('click',event=>{
+        const thread=event.target.closest('[data-thread]')
+        if(thread)return showThread(thread.dataset.thread)
+        const tab=event.target.closest('[data-agent]');if(!tab)return
+        const next=tab.dataset.agent || null
+        if(control().session()?.kind==='thread'){shownAgent=next;shownThread=null;return window.Fleet.render()}
+        shownAgent=next;strip.fleetSignature=null;agents(control().session())
+      })
     }
     if(!view){view=document.createElement('section');view.id='day-agent-view';view.className='day-agent-view';conversation.after(view)}
     // Tabs earn their row only once there is something to switch to.
-    strip.hidden=!list.length
+    strip.hidden=!list.length && !threads.length
     const running=list.filter(d=>d.status==='running').length
-    const signature=JSON.stringify([s.id,shownAgent,list.map(d=>[d.id,d.status,d.steps.length,d.report?.length,d.output?.length])])
+    const sessions=window.Fleet.snapshot()?.sessions || []
+    const threadState=id=>sessions.find(x=>x.managedId===id)?.managedStatus
+    const signature=JSON.stringify([s.id,shownAgent,list.map(d=>[d.id,d.status,d.steps.length,d.report?.length,d.output?.length]),threads.map(i=>[i.thread.sessionId,threadState(i.thread.sessionId)])])
     if(strip.fleetSignature!==signature){
       strip.fleetSignature=signature
       // Newest first after the Day itself; the last 12 is what a morning produces.
       const recent=list.slice(-12).reverse()
-      strip.innerHTML=`<button type="button" class="day-agent-tab" data-agent="" aria-pressed="${!shownAgent}">Day agent</button>${recent.map(d=>`<button type="button" class="day-agent-tab" data-agent="${escape(d.id)}" aria-pressed="${shownAgent===d.id}" title="${escape(d.description || d.role)}"><span class="dot ${AGENT_STATE[d.status] || ''}"></span>${escape(d.role)}</button>`).join('')}${list.length>12 ? `<span class="note">+${list.length-12} earlier</span>`:''}${running ? `<span class="note day-agents-running">${running} running</span>`:''}`
+      const THREAD_DOT={starting:'busy',running:'busy',approval:'stale',error:'hot'}
+      strip.innerHTML=`<button type="button" class="day-agent-tab" data-agent="" aria-pressed="${s.kind==='day' && !shownAgent}">Day agent</button>${threads.map(i=>`<button type="button" class="day-agent-tab is-thread" data-thread="${escape(i.thread.sessionId)}" aria-pressed="${s.id===i.thread.sessionId}" title="Your conversation about: ${escape(i.title)}"><span class="dot ${THREAD_DOT[threadState(i.thread.sessionId)] || 'idle'}"></span>${escape(i.title.length>28 ? i.title.slice(0,27)+'…' : i.title)}</button>`).join('')}${recent.map(d=>`<button type="button" class="day-agent-tab" data-agent="${escape(d.id)}" aria-pressed="${shownAgent===d.id}" title="${escape(d.description || d.role)}"><span class="dot ${AGENT_STATE[d.status] || ''}"></span>${escape(d.role)}</button>`).join('')}${list.length>12 ? `<span class="note">+${list.length-12} earlier</span>`:''}${running ? `<span class="note day-agents-running">${running} running</span>`:''}`
     }
-    conversation.hidden=!!shownAgent;view.hidden=!shownAgent
-    if(!shownAgent)return
+    conversation.hidden=!!shownAgent && s.kind==='day';view.hidden=!shownAgent || s.kind!=='day'
+    if(!shownAgent || s.kind!=='day')return
     const d=list.find(d=>d.id===shownAgent)
     const opened=new Set([...view.querySelectorAll('details[open][data-step]')].map(el=>el.dataset.step))
     const steps=d.steps.length ? `<ol class="child-steps">${d.steps.map(step=>`<li class="child-step" data-status="${escape(step.status)}"><span class="child-step-tool">${escape(step.tool.replace(/^mcp__[^_]+(?:_[^_]+)*?__/,''))}</span>${step.target ? `<span class="child-step-target">${escape(step.target)}</span>`:''}<span class="child-step-state">${escape(step.status)}</span><span class="child-step-time">${step.ms!=null ? elapsed(step.ms) : step.status==='running' ? 'running…':''}</span><details class="child-step-detail" data-step="${escape(step.id)}" ${opened.has(step.id) ? 'open':''}><summary>Input and output</summary><h4>Input</h4><pre>${escape(typeof step.input==='string' ? step.input : JSON.stringify(step.input,null,2))}</pre><h4>Output${step.truncated ? ' · truncated':''}</h4><pre>${escape(step.result ?? 'No result yet.')}</pre></details></li>`).join('')}</ol>` : '<p class="note">No tool steps yet.</p>'
@@ -266,6 +311,17 @@ window.FleetDay=(()=>{
   function act(id,event) {
     const panel=document.getElementById('day-board'),target=event.target
     if(target.closest('[data-sweep]')){event.preventDefault();return post(id,{op:'sweep'},'Checking your sources')}
+    const openThread=target.closest('[data-open-thread]')
+    if(openThread){event.preventDefault();return showThread(openThread.dataset.openThread)}
+    const askItem=target.closest('[data-ask-item]')
+    if(askItem){
+      const field=panel.querySelector(`[data-keep="${CSS.escape(`ask:${askItem.dataset.askItem}`)}"]`),message=field?.value.trim()
+      if(!message)return toast('Type your question first.')
+      askItem.disabled=true
+      return api(`/api/managed/${id}/day`,{op:'thread',itemId:askItem.dataset.askItem,message,requestId:crypto.randomUUID()})
+        .then(async ({result})=>{field.value='';await window.Fleet.tick();showThread(result.threadId)})
+        .catch(error=>{toast(error.message);askItem.disabled=false})
+    }
     const opener=target.closest('[data-open-session]')
     if(opener){event.preventDefault();window.FleetQueue?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const answer=target.closest('[data-answer],[data-answer-value]')

@@ -17,6 +17,7 @@ How you work:
 - Never block. When you need the operator (a decision, missing information, or approval of anything that leaves this machine), record it with day ask on that item and move on to the next item. An approval must carry the exact text or change in "draft".
 - Anything that reaches other people (sending a Slack message, commenting on or changing a Linear issue, a GitHub review or comment) happens only after the operator approved that exact draft. Then perform it with the draft text unchanged (or the operator's edited version, which is their answer), log it with day update note, and mark the item done if nothing else remains.
 - Every option in a choose question must be a complete answer on its own. If an answer would need more detail ("tell me which"), ask an info question instead; the operator can always reply in words.
+- When the operator discusses an item in its own thread, the item's "thread" field carries the gist of that conversation. Take it into account; do not redo what the thread settled.
 - Answers arrive on items in the "answered" field of day list. Act on each one once. A "reply" decision is the operator talking to you about that item, not an approval: do what it asks, and if something still has to go out, ask again with a revised draft.
 - Keep notes short and factual. Do not paste whole threads into the board; summarise and link.
 - Code changes are never done here, and you cannot start sessions yourself. Code work becomes an "agent" item and a launch question.
@@ -80,4 +81,29 @@ function promptFor(kind) {
   if (!make) throw new Error('Unknown Day run.')
   return make()
 }
-module.exports={SYSTEM,AGENTS,SOURCES,promptFor,since}
+// ── Threads ──────────────────────────────────────────────────────────────────
+// A conversation with the operator about one item on their Day board. It goes deep
+// on that one thing so the Day agent does not have to.
+const THREAD_SYSTEM=`You are talking with the operator about ONE item on their Day board, inside Claude Fleet. They opened this conversation from that item to discuss it, question findings, or shape what happens next.
+
+- Your working directory is the item's repository when Fleet could tell which one; read code there freely. You cannot edit files.
+- The Fleet "item" tool reaches only this item: inspect it, note findings in its log, ask the operator something, or withdraw one of its open questions that this conversation made moot (for example when they drop a review comment).
+- Anything that reaches other people (a Slack message, a GitHub review or comment, a Linear change) goes out only after the operator approves the exact text: put it to them with item ask (kind approve, the exact text in draft), then send it unchanged once approved.
+- Answer what they ask, directly. Do not restart work the Day already did; build on the log and reports you are given.
+- Writing: plain, short, no long dashes.`
+const pick=(item,keys)=>Object.fromEntries(keys.filter(k=>item[k]!==undefined).map(k=>[k,item[k]]))
+// Subagent reports that concern this item: those that mention one of its links, or a
+// "#1234" or "TECH-1234" from its title.
+function related(day,item) {
+  const marks=[...item.links,...(item.title.match(/#\d+|\b[A-Z]{2,}-\d+\b/g) || [])].filter(Boolean)
+  return (day.subagents || []).filter(d=>marks.some(m=>`${d.prompt}\n${d.report}`.includes(m))).slice(-4)
+    .map(d=>`### ${d.role} (${d.status})\nAssignment: ${d.prompt.slice(0,1500)}\nReport: ${(d.report || '').slice(0,6000)}`)
+}
+function threadPrompt(day,item,message,{cwd,repoKnown}={}) {
+  const card=pick(item,['title','source','priority','status','mode','estimateMin','links','context'])
+  const log=item.log.map(l=>`- ${new Date(l.at).toISOString().slice(11,16)} ${l.text}`).join('\n')
+  const questions=item.needs.map(n=>`- [${n.answer===undefined ? 'open' : n.decision || 'answered'}] (${n.kind}, id ${n.id}) ${n.question}${n.draft ? `\n  Draft: ${n.draft.slice(0,3000)}` : ''}${n.answer!==undefined ? `\n  Answer: ${String(n.answer).slice(0,1000)}` : ''}`).join('\n')
+  const reports=related(day,item)
+  return `The item:\n${JSON.stringify(card,null,2)}\n\nIts log:\n${log || '(empty)'}\n\nIts questions:\n${questions || '(none)'}${reports.length ? `\n\nReports from the Day's subagents about it:\n\n${reports.join('\n\n')}` : ''}\n\n${repoKnown ? `You are in its repository: ${cwd}` : `Fleet could not tell which repository this item belongs to; you are in ${cwd}.`}\n\nThe operator asks:\n${message}`
+}
+module.exports={SYSTEM,AGENTS,SOURCES,promptFor,since,THREAD_SYSTEM,threadPrompt}

@@ -439,8 +439,16 @@ and asks to launch it: you see the brief, the repository and the team, edit any 
 press **Launch**. Fleet then starts that session the way the Work queue does, so it shows up in
 Sessions with its own console; the item links to it and shows its live state.
 
-Above the Day's console, tabs show the Day agent and each subagent it ran: the scouts, and any
-helper it used. Select one to read its assignment, every tool step with its input and output,
+To talk about one item in depth, expand it and use **Ask about this**. That starts a thread: a
+separate conversation about that item only, in its repository when Fleet can tell which one
+from its links, with the item's log, questions and the related subagent reports already in
+front of it. It can read code but not edit it, it can only note, ask or withdraw questions on
+its own item, and its sends need the same approval on the board. The item shows the gist of the
+thread, which is all the Day reads of it. Settling the item closes the thread; it then appears
+in Sessions like any past conversation.
+
+Above the Day's console, tabs show the Day agent, each open thread, and each subagent it ran:
+the scouts, and any helper it used. Select one to read its assignment, every tool step with its input and output,
 and the report it returned.
 
 Through the day Fleet runs a short check every 45 minutes between 8:00 and 20:00, and picks
