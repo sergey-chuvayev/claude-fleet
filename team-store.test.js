@@ -57,7 +57,7 @@ test('custom teams survive reload and callers cannot mutate stored instructions'
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
 })
 test('invalid roles, model identifiers, tools and verification rules are rejected',()=>{
-  for(const mutate of [t=>t.manager='missing',t=>t.roles.developer.model='x; echo no',t=>t.roles.developer.tools=['Unknown'],t=>t.workflow.reviewers=[],t=>t.workflow.reviewers=['manager'],t=>t.workflow.reviewers=['missing'],t=>t.workflow.maxAttempts=0,t=>t.workflow.budgetUsd=NaN,t=>t.id='constructor',t=>t.roles=[]]){
+  for(const mutate of [t=>t.manager='missing',t=>t.roles.developer.model='x; echo no',t=>t.roles.developer.tools=['Unknown'],t=>t.workflow.reviewers=[],t=>t.workflow.reviewers=['manager'],t=>t.workflow.reviewers=['missing'],t=>t.workflow.maxAttempts=0,t=>t.id='constructor',t=>t.roles=[]]){
     const team=template();mutate(team);assert.throws(()=>validateTeam(team))
   }
   const team=template();team.roles=JSON.parse('{"__proto__":{}}');assert.throws(()=>validateTeam(team))
@@ -78,4 +78,11 @@ test('corrupt storage and built-in replacement fail without overwriting existing
     assert.throws(()=>new TeamStore(dir),/Cannot read Fleet teams/)
     assert.equal(fs.readFileSync(path.join(dir,'teams.json'),'utf8'),'broken')
   }finally{fs.rmSync(dir,{recursive:true,force:true})}
+})
+
+test('legacy monetary budgets are discarded when a team is saved',()=>{
+  const team=template();team.workflow.budgetUsd=10
+  const saved=validateTeam(team)
+  assert.equal(saved.workflow.budgetUsd,undefined)
+  assert.equal(saved.workflow.maxAttempts,team.workflow.maxAttempts)
 })

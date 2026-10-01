@@ -303,7 +303,7 @@ For a focused coding request, choose **New agent → Owner + review** to try the
 opt-in execution mode. A Sonnet owner investigates, implements, tests, repairs and
 finishes the PR in the same session. Only the independent Sonnet reviewer is
 delegated. Existing presets and launch defaults remain unchanged. **Customize team…**
-can save a copy with different models, tools, effort, turn limits and budget while
+can save a copy with different models, tools, effort and turn limits while
 keeping its two-role workflow.
 
 The owner registers one request task, commits a clean worktree, and submits test
@@ -312,7 +312,7 @@ acceptance criteria, launch base commit, review commit/tree and prior findings t
 the reviewer mandate. A blocking FAIL returns to the same owner for repair; optional
 suggestions do not require another cycle. Defaults allow three submitted
 implementations total (initial plus two repairs), one execution retry across the
-request, and $10 of shared reported SDK usage. Creating follow-up tasks cannot reset
+request. Creating follow-up tasks cannot reset
 these limits. A crash or malformed report appears as **review error**, not a code
 failure. The owner gets 100 turns per run and the reviewer 25, both at medium effort.
 
@@ -322,8 +322,7 @@ administrative commands preserve a pass when the tree stays unchanged. Review is
 checked at tool boundaries, on resume, at stop and when opening the session detail.
 The owner handles PR creation and checks the actual URL, base and head with commands;
 the verified badge records code review, not remote PR delivery. Reviewer shell access
-uses the existing approval mode and is not a read-only security sandbox. Usage is
-reported by the SDK, so the cap remains an execution cutoff with possible overshoot.
+uses the existing approval mode and is not a read-only security sandbox. Fleet uses Claude’s account usage limits; it does not enforce a dollar budget.
 
 The manager-led presets below remain available for work that benefits from several roles.
 
@@ -347,10 +346,9 @@ general-purpose shell governed by the initiative's approval mode, not a read-onl
 failed review sends work back for repair and invalidates the previous attempt's reviews.
 
 In **New agent**, **Software delivery** gives a brief to a Manager backed by Product,
-Developer, Reviewer and QA roles: three implementation attempts per task and $10 in reported
-SDK usage before it stops for you, adjustable while the initiative is idle. **Quick task**
+Developer, Reviewer and QA roles, with three implementation attempts per task. **Quick task**
 trims that to a Sonnet manager, one developer and one independent verifier, for small, clearly
-scoped changes, with two attempts and a $3 cap. **No team · single agent** skips orchestration
+scoped changes, with two attempts. **No team · single agent** skips orchestration
 for a one-line fix. **Customize team…** saves your own roster: rename, add or remove roles,
 write their instructions, pick a model, turn limit, reasoning effort and allowed tools per role, up to eight roles with at
 least one manager and one verifier. Each initiative snapshots its team at launch, so editing a
@@ -384,8 +382,8 @@ Built-in roles use these limits, configurable in copied teams:
 Other custom roles default to 30 turns and medium effort. Delegates are instructed to
 report within 30 lines and return `SPLIT_REQUIRED` before exhausting their turn allowance;
 managers should split remaining work instead of raising the cap. Report length is a prompt
-instruction, not output truncation. Bug fix uses independent QA, three attempts and a $10
-API-equivalent budget; Quick task retains two attempts and $3. Delivery retains three and $10.
+instruction, not output truncation. Bug fix uses independent QA and three attempts;
+Quick task retains two attempts, and Delivery retains three.
 Legacy snapshots get missing role limits when compiled; explicit saved settings remain in
 effect, except extended-context model suffixes are removed.
 
@@ -402,13 +400,47 @@ manager's context; the manager can pull one delegation's full record with the ta
 Delegations run sequentially in the shared worktree. After an interruption, the saved board
 survives and unfinished delegations are marked interrupted, so messaging the manager resumes
 where it left off. "Verified" records the configured verifier's PASS/FAIL for that attempt,
-not a guarantee that the evaluation was correct or that later work cannot regress it. The SDK
-budget is an execution cutoff, not a billing guarantee: usage is reported at turn end, and a
-killed runtime may not report its final spend, and each manager run also has its configured SDK turn limit
-with bounded continuation reminders. Custom teams live in `teams.json` under Fleet's state
+not a guarantee that the evaluation was correct or that later work cannot regress it.
+Each manager run retains its configured SDK turn limit and bounded continuation reminders.
+Legacy dollar budgets are ignored, including in existing sessions. Account usage windows
+and context-token usage remain visible. Custom teams live in `teams.json` under Fleet's state
 directory; task history and team snapshots live with the initiative in `sessions.json`.
 
 </details>
+
+### A Day is one agent that runs your whole day
+
+Press **☀ Today** in the top bar. Fleet starts a *Day*: one Sonnet agent that keeps a board of
+what you should care about today and works through it with you until the evening.
+
+It begins with a morning intake. Read-only Haiku scouts check Slack (DMs, mentions, threads you
+are in), Linear (notifications, assigned issues), Granola (your action items from recent
+meetings), GitHub (review requests, comments and red checks on your PRs) and Google Calendar
+(meetings and free time). What they find lands on the board as **proposals**. Items that share a
+link (the Slack thread about a PR, the PR itself, the Linear issue it closes) merge into one.
+
+You triage: **Today**, **Later** or **Drop**, a priority, and how it gets done: *I do it*,
+*Draft for me*, *Find out*, or *Agent does it*. Add your own items with whatever context you
+have; links in it are picked up.
+
+Each item has its own list of what it is waiting on you for. When the agent needs a decision,
+missing information or an approval, it asks on that item and moves on to the next one, so one
+open question never stalls the day. Everything waiting on you sits at the top of the board.
+
+Nothing reaches other people without you. A Slack reply, a Linear comment or status change, or
+a GitHub review goes out only when you approved that exact text on the board; edit the draft
+before approving and only your version can be sent. Any other outward connector call stops for
+approval, whatever the approval mode. Read-only calls run freely. A Day cannot edit files: code
+work becomes an *Agent does it* item whose brief you approve and launch as an initiative.
+
+Through the day Fleet runs a short check every 45 minutes between 8:00 and 20:00, and picks
+your answers up 20 seconds after your last click. Those runs start from the board, not from the
+conversation, so talking to the agent stays cheap however long the day gets. A failed check is
+retried; three in a row wait for you. Starting tomorrow's Day carries over what is unfinished,
+with its open questions. A Day has no usage cap: it runs on your Claude subscription.
+
+The Day's directory decides which project-scoped connectors it can reach. It reuses the
+previous Day's, or set `CLAUDE_FLEET_DAY_CWD`.
 
 ### Inspect individual agents
 
@@ -545,6 +577,8 @@ for the app itself.
 | [`teams.js`](teams.js) | The roles an initiative runs, and how they compile into SDK options |
 | [`team-store.js`](team-store.js) | Custom team definitions, saved and edited outside the built-in presets |
 | [`tasks.js`](tasks.js) | The task board: tasks, delegations, and the initiative's verification ledger |
+| [`day.js`](day.js) | The Day board: items, the questions each waits on, dedupe, cursors, carry-over, and the outward-call gate |
+| [`day-agent.js`](day-agent.js) | The Day agent's instructions, its read-only scouts, and the prompt each kind of run starts from |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
@@ -580,6 +614,8 @@ run and left in place.
 | `CLAUDE_FLEET_CONCURRENCY` | How many agents may run at once, 1 to 8, default 4 |
 | `CLAUDE_FLEET_SEARCH_DAYS` | How far back Ask indexes transcripts, default 60 |
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |
+| `CLAUDE_FLEET_DAY_CWD` | Directory a Day runs in, which decides its project-scoped connectors |
+| `CLAUDE_FLEET_DAY_SWEEP_MIN` | Minutes between a Day's checks, minimum 10, default 45 |
 
 The SDK ships its own Claude runtime, which can lag the CLI you actually use and
 so offer an older set of models. The `claude-fleet` command therefore prefers the

@@ -160,10 +160,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{update:{...update,restarting:!!restart}})
         }
-        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|approvals\/([\w-]+))$/)
+        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
+        if(action==='day') return json(res,200,{result:manager.dayAction(id,data),session:manager.detail(id)})
         if(action==='messages') manager.send(id,data)
         else if(action==='stop') manager.stop(id)
         else if(action==='mode') manager.setMode(id,data)
@@ -225,7 +226,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return json(res,200,{session})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))

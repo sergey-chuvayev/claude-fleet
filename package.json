@@ -1,6 +1,6 @@
 {
   "name": "@sergeychuvayev/claude-fleet",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
     "claude",
@@ -28,6 +28,8 @@
     "archive.js",
     "catalog.js",
     "connections.js",
+    "day.js",
+    "day-agent.js",
     "dispatch.js",
     "fleet.js",
     "managed.js",

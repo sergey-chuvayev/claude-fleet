@@ -128,7 +128,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
   })
   context.window = context
   const before = new Set(Object.keys(context))
-  const FILES = ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']
+  const FILES = ['app.js', 'blocks.js', 'control.js', 'teams.js', 'day.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']
   for (const file of FILES) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     // A redeclaration is a SyntaxError raised when the script is instantiated, before
@@ -185,7 +185,7 @@ test('every handler the browser scripts wire can reach the names it uses', () =>
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'day.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
@@ -355,7 +355,7 @@ test('a team session renders one nested child row per delegation, with role, mod
   const detail=elements.get('detail-content').innerHTML
   assert.match(detail,/45s · attempt 2/)
   assert.match(detail,/950 input · 320 output · 12k cache read/)
-  assert.match(detail,/Per-agent cost not reported/)
+  assert.doesNotMatch(detail,/Reported cost|Per-agent cost|\$/)
   assert.match(detail,/6 tests passed/)
   assert.match(detail,/&lt;script&gt;unsafe&lt;\/script&gt;/)
   assert.doesNotMatch(detail,/<script>unsafe/)
@@ -765,17 +765,10 @@ test('a waiting session says it is queued, and where it is in the queue', () => 
   assert.match(badge({ managed: true, managedStatus: 'approval', state: 'idle' }), /Needs approval/)
 })
 
-// The handler test above fires what the page wires AT LOAD. This one is wired later, when
-// an initiative board is first rendered, and it went unprotected: `adjustLimits` read a
-// bare `controlSession`, which lives in control.js and was never published, so the button
-// threw a ReferenceError and did nothing at all. Same class of bug as `tick`, one layer
-// further in. So: render a board, press the button, and require it to reach its names.
-test('the initiative board button can reach the names it uses', () => {
+// Render a legacy monetary snapshot: keep review evidence, remove budget controls.
+test('the initiative board preserves review evidence without monetary controls', () => {
   const vm = require('node:vm')
-  // A DOM small enough to read and real enough to run board() and its click handler.
-  // querySelector hands back a persistent stub per selector so the code under test can
-  // find what it just wrote, except '.initiative-limits', which must be absent the first
-  // time or adjustLimits treats the editor as already open and returns.
+  // A minimal DOM for rendering the board and switching the selected initiative.
   const byId = new Map()
   const makeElement = (tag = 'div') => {
     const stubs = new Map()
@@ -816,7 +809,7 @@ test('the initiative board button can reach the names it uses', () => {
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
-  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']) {
+  for (const file of ['app.js', 'blocks.js', 'control.js', 'teams.js', 'day.js', 'ask.js', 'work-queue.js', 'connections.js', 'settings.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
@@ -835,20 +828,10 @@ test('the initiative board button can reach the names it uses', () => {
   const panel = byId.get('initiative-board')
   assert.equal(panel.dataset.sessionId, 'i1', 'the panel records whose board it is showing')
 
-  // The panel outlives the session in it, so the click must read the id from the panel
-  // rather than from whichever session first created it.
+  assert.doesNotMatch(panel.innerHTML,/Adjust limits|data-adjust-limits|Usage cap|API-rate|\$18\.81|\$10/)
   context.fixture = { ...context.fixture, id: 'i2', teamName: 'Second initiative' }
   vm.runInContext('window.FleetTeams.board(fixture)', context)
   assert.equal(panel.dataset.sessionId, 'i2', 'switching initiative updates it')
-
-  const clicks = panel.listeners.click || []
-  assert.ok(clicks.length, 'the board wires a click handler')
-  const unresolved = []
-  for (const handler of clicks) {
-    try { handler({ target: { closest: () => ({ dataset: { adjustLimits: '' } }) } }) }
-    catch (error) { if (error && error.name === 'ReferenceError') unresolved.push(error.message) }
-  }
-  assert.deepEqual(unresolved, [], 'the board action reached for a name no namespace hands it')
 
   context.fixture={...context.fixture,teamName:'Owner + review',teamSnapshot:require('./teams').getTeam('owner-review'),taskBoard:{tasks:[{
     id:'request',title:'Fix redirect',owner:'owner',status:'stale',attempt:2,criteria:['Keep query parameters.'],dependencies:[],reviews:{},snapshot:{commit:'1234567890abcdef',tree:'tree'},reviewErrors:1,

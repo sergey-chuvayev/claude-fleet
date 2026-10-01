@@ -239,11 +239,9 @@ function renderStatusbar(usage, sessions) {
   const managed = sessions.filter(s => s.managed && !s.archived)
   const waiting = managed.filter(s => s.managedStatus === 'approval').length
   const working = sessions.filter(s => !s.archived && isWorkingRow(s)).length
-  const spend = managed.reduce((sum, s) => sum + (s.costUsd || 0), 0)
   update('status-fleet', [
     `<span>${working} working</span>`,
     waiting ? `<span class="warn">${waiting} needs you</span>` : '',
-    money(spend) ? `<span title="Reported for Fleet’s own conversations only. Terminal sessions are not included, and a Claude subscription is not billed for this.">${esc(money(spend))}</span>` : '',
   ].filter(Boolean).join('<span class="status-sep" aria-hidden="true">·</span>'))
   // The same wall, said where it changes a decision: in the dialog that starts agents.
   const banner = $('launch-blocked')
@@ -270,16 +268,19 @@ function rowTags(s, spawnCounts) {
 }
 // A team session says which team is running it and how far through its tasks it is.
 function initiativeTag(s) {
+  if (s.kind === 'day') {
+    const p = s.dayProgress
+    return `<span class="initiative-tag day-tag">Day${p ? ` · ${p.done}/${p.total} done${p.waiting ? ` · ${p.waiting} waiting on you` : ''}${p.proposed ? ` · ${p.proposed} to triage` : ''}` : ''}</span>`
+  }
   if (s.kind !== 'initiative') return ''
   const p = s.taskProgress
   const progress = p ? ` · ${p.verified}/${p.total} verified${p.blocked ? ` · ${p.blocked} need attention` : ''}` : ''
   return `<span class="initiative-tag">Initiative · ${esc(s.teamName || s.teamId || 'Team')}${progress}</span>`
 }
-// Where the work is happening, and what it has cost.
+// Where the work is happening.
 function rowMeta(s) {
   const project = s.cwd?.split('/').filter(Boolean).pop() || 'No project'
-  const spend = money(s.costUsd)
-  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}${spend ? `<span class="session-cost" title="What this conversation has cost so far">${esc(spend)}</span>` : ''}</span>`
+  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}</span>`
 }
 // The right-hand column: how full the context window is, and how long ago the
 // agent last did anything.
@@ -455,7 +456,7 @@ function renderChildDetail(s, delegationId) {
   // answer it, so it just points the operator back to the row that can.
   const approvalNotice = s.managedStatus === 'approval' ? `<p class="note child-approval-notice">${esc(s.name || s.title || 'This session')} needs your approval to continue. Select its row above to respond — this read-only view can’t.</p>` : ''
   const stepsHtml = steps.length ? `<ol class="child-steps">${steps.map(step => `<li class="child-step" data-status="${esc(step.status)}"><span class="child-step-tool">${esc(step.tool)}</span>${step.target ? `<span class="child-step-target">${esc(step.target)}</span>` : ''}<span class="child-step-state">${esc(STEP_LABEL[step.status] || step.status)}</span><span class="child-step-time">${step.ms != null ? elapsed(step.ms) : step.status === 'running' ? 'running…' : ''}</span>${step.input != null || step.result != null ? `<details class="child-step-detail" data-child-step="${esc(step.id)}" ${openedSteps.has(step.id) ? 'open':''}><summary>Input and output</summary><h4>Input</h4><pre>${esc(step.input == null ? 'Not recorded' : typeof step.input === 'string' ? step.input : JSON.stringify(step.input,null,2))}</pre><h4>Output${step.truncated ? ' · truncated':''}</h4><pre>${esc(step.result ?? 'No result reported yet.')}</pre></details>`:''}</li>`).join('')}</ol>` : `<p class="note">${full ? 'No tool steps recorded.' : 'Loading steps…'}</p>`
-  update('detail-content', `<div class="detail-top"><span class="eyebrow">SUB-AGENT · READ ONLY</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span></div>${approvalNotice}<h2>⑂ ${esc(compact.role)}</h2><div class="detail-name">${esc(formatModel(full?.model || compact.model))} · ${esc(duration)}${full?.attempt ? ` · attempt ${full.attempt}` : ''}</div><p class="note">${esc(usageText)}. ${full?.costUsd != null ? `Reported cost: ${esc(money(full.costUsd) || '$0.00')}` : 'Per-agent cost not reported'}.</p><section class="detail-section"><h3>Mandate</h3><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="detail-section"><h3>Steps${full?.stepsTruncated ? ' <span>Showing the most recent 200</span>' : ''}</h3>${stepsHtml}</section><section class="detail-section"><h3>Report to the manager</h3><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p>`)
+  update('detail-content', `<div class="detail-top"><span class="eyebrow">SUB-AGENT · READ ONLY</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span></div>${approvalNotice}<h2>⑂ ${esc(compact.role)}</h2><div class="detail-name">${esc(formatModel(full?.model || compact.model))} · ${esc(duration)}${full?.attempt ? ` · attempt ${full.attempt}` : ''}</div><p class="note">${esc(usageText)}.</p><section class="detail-section"><h3>Mandate</h3><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="detail-section"><h3>Steps${full?.stepsTruncated ? ' <span>Showing the most recent 200</span>' : ''}</h3>${stepsHtml}</section><section class="detail-section"><h3>Report to the manager</h3><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p>`)
   if(focusedStep) document.querySelector(`[data-child-step="${CSS.escape(focusedStep)}"]>summary`)?.focus({preventScroll:true})
 }
 // The list payload only ever carries id/role/model/status for a delegation; its steps,
@@ -843,12 +844,16 @@ function watchConversation(element) {
   if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true })
   let board = null, disposeBoard = null
   const syncBoard = () => {
-    const next = $('initiative-board')
+    const next = $('initiative-board') || $('day-board')
     if (next === board) return
     disposeBoard?.()
     board = next
     if (board) {
-      disposeBoard = addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
+      // On a Day the board is the work and the conversation is the side channel, so it
+      // starts tall and remembers its own height apart from the team overview's.
+      disposeBoard = board.id === 'day-board'
+        ? addPanel(board, { key: 'fleet:day-height', label: 'Resize Day board', min: 120, initial: 520 })
+        : addPanel(board, { key: 'fleet:overview-height', label: 'Resize team overview', min: 90, initial: 220 })
     }
   }
   const mutation = new MutationObserver(syncBoard)

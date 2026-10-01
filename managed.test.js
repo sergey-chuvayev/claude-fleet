@@ -603,7 +603,7 @@ test('owner-review hooks keep implementation in a resumed owner session and bind
     const {options}=calls[0],pre=options.hooks.PreToolUse[0].hooks[0],stop=options.hooks.Stop[0].hooks[0]
     assert.equal(options.agent,'owner');assert.equal(options.model,'claude-opus-5-5')
     assert.ok(options.agents.owner.tools.includes('Edit'))
-    assert.equal(options.maxBudgetUsd,10)
+    assert.equal(options.maxBudgetUsd,undefined,'Fleet must not send a monetary cap to the SDK')
     assert.equal((await stop()).decision,'block','an empty task board must not bypass review')
     const task=tasks.act(s,{action:'create',owner:'owner',title:'Fix login',criteria:['Preserve query strings.']})
     const denied=await pre({tool_name:'Agent',tool_use_id:'dev',tool_input:{subagent_type:'owner',prompt:`Fleet task: ${task.id}`}})
@@ -620,11 +620,14 @@ test('owner-review hooks keep implementation in a resumed owner session and bind
     manager.event(s,run,{type:'assistant',message:{content:[{type:'tool_use',id:'review',name:'Agent',input:{subagent_type:'reviewer'}}]}})
     manager.event(s,run,{type:'user',message:{content:[{type:'tool_result',tool_use_id:'review',content:'FAIL\nBlocking: the login redirect still loses query parameters in the regression case.'}]}})
     assert.equal(task.status,'changes_requested')
+    s.limits={budgetUsd:0.1,maxAttempts:3}
+    s.teamSnapshot.workflow.budgetUsd=0.1
+    s.costUsd=1000
     manager.send(s.id,{message:'Repair the query-string issue.',requestId:randomUUID()})
     await until(()=>calls.length===2 && s.status==='idle')
     assert.equal(calls[1].options.resume,sessionId)
     assert.equal(calls[1].options.agent,'owner')
-    assert.equal(calls[1].options.maxBudgetUsd,9.75,'the owner and all reviews share the session budget')
+    assert.equal(calls[1].options.maxBudgetUsd,undefined,'resumed owner sessions must not inherit a monetary cap')
     fs.writeFileSync(path.join(s.cwd,'README.md'),'fixed redirect')
     execFileSync('git',['add','README.md'],{cwd:s.cwd})
     execFileSync('git',['commit','-qm','fix: keep query strings'],{cwd:s.cwd})
@@ -853,7 +856,7 @@ test('custom team snapshots, task hooks and independent reports survive template
     await until(()=>s.status==='idle' || s.status==='error')
     assert.equal(s.error,null)
     const options=calls[0].options
-    assert.equal(options.maxBudgetUsd,10)
+    assert.equal(options.maxBudgetUsd,undefined,'Fleet must not send a monetary cap to the SDK')
     assert.equal(options.maxTurns,55)
     assert.equal(options.model,'opus')
     assert.equal(options.effort,'medium')
@@ -1028,11 +1031,12 @@ test('initiative limits can be changed explicitly while idle without editing its
   try{
     const s=manager.create({cwd:repo,prompt:'Fix login',requestId:randomUUID(),teamId:'delivery'})
     await until(()=>s.status==='idle')
-    manager.setLimits(s.id,{budgetUsd:20,maxAttempts:5})
-    assert.equal(s.limits.budgetUsd,20);assert.equal(s.teamSnapshot.workflow.budgetUsd,10)
-    assert.throws(()=>manager.setLimits(s.id,{budgetUsd:NaN,maxAttempts:5}))
-    assert.throws(()=>manager.setLimits(s.id,{budgetUsd:20,maxAttempts:11}))
-    s.costUsd=21;assert.throws(()=>manager.setLimits(s.id,{budgetUsd:20,maxAttempts:5}))
+    s.costUsd=1000
+    manager.setLimits(s.id,{budgetUsd:0.1,maxAttempts:5})
+    assert.deepEqual(s.limits,{maxAttempts:5},'legacy dollar caps are ignored')
+    assert.equal(s.teamSnapshot.workflow.maxAttempts,3)
+    assert.throws(()=>manager.setLimits(s.id,{maxAttempts:11}))
+
   }finally{await manager.close();fs.rmSync(directory,{recursive:true,force:true});fs.rmSync(repo,{recursive:true,force:true})}
 })
 

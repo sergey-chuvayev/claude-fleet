@@ -187,7 +187,7 @@ TEAMS.delivery = {
   id:'delivery', name:'Software delivery',
   description:'Thorough workflow: scoped work, implementation, independent code review and QA.',
   manager:'manager',
-  workflow:{reviewers:['reviewer','qa'],maxAttempts:3,budgetUsd:10},
+  workflow:{reviewers:['reviewer','qa'],maxAttempts:3},
   roles:{
     manager:{description:'Owns the goal, plans and delegates work, and talks to you.',prompt:'Read the project instructions and understand the goal. Use the product role when scope needs clarification. Create scoped tasks with testable acceptance criteria. Delegate implementation and independent verification, repair failures, and report evidence. Ask the operator only when a decision changes the scope or work cannot proceed.',model:'opus',tools:READ_TOOLS},
     product:{description:'Defines scope and measurable acceptance criteria.',prompt:'Read the relevant project context. Produce a concise specification with scope, exclusions, acceptance criteria and edge cases. Return questions to the manager when a material product decision is missing. Do not edit files.',model:'opus',tools:READ_TOOLS},
@@ -200,7 +200,7 @@ TEAMS.delivery = {
 TEAMS.quick = {
   id:'quick',name:'Quick task',
   description:'Small, clear changes: one developer and one independent verifier, with focused checks.',
-  manager:'manager',workflow:{reviewers:['qa'],maxAttempts:2,budgetUsd:3},
+  manager:'manager',workflow:{reviewers:['qa'],maxAttempts:2},
   roles:{
     manager:{...TEAMS.delivery.roles.manager,model:'sonnet',prompt:'Coordinate a small, clearly scoped task. Read only relevant instructions and files. Create one task unless the goal has independent deliverables. Give the developer file boundaries, acceptance criteria and exact checks. Use one QA verification. Avoid broad audits, speculative improvements and repeated repository exploration. Pass concise findings and test evidence between roles.'},
     developer:{...TEAMS.delivery.roles.developer,prompt:DEVELOPER+'\nKeep investigation scoped to the acceptance criteria. Run relevant checks once after the final change; repeat only after a failure or further change.'},
@@ -213,7 +213,7 @@ for (const team of [TEAMS.delivery,TEAMS.quick]) {
   team.roles.qa.model='haiku'
   for (const [name,role] of Object.entries(team.roles)) Object.assign(role,roleLimits(name,name===team.manager))
 }
-TEAMS.bugfix.workflow={reviewers:['qa'],maxAttempts:3,budgetUsd:10}
+TEAMS.bugfix.workflow={reviewers:['qa'],maxAttempts:3}
 TEAMS.bugfix.roles={
   manager:{...TEAMS.delivery.roles.manager},
   developer:{...TEAMS.delivery.roles.developer},
@@ -245,7 +245,7 @@ Summarize changed behavior, test results, blocking/optional findings and the act
 TEAMS['owner-review']={
   id:'owner-review',name:'Owner + review',
   description:'One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.',
-  manager:'owner',workflow:{mode:'owner-review',reviewers:['reviewer'],maxAttempts:3,budgetUsd:10},
+  manager:'owner',workflow:{mode:'owner-review',reviewers:['reviewer'],maxAttempts:3},
   roles:{
     owner:{description:'Owns implementation, tests, repairs and PR delivery in one session.',prompt:'Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.',model:'claude-opus-5-5',maxTurns:100,effort:'medium',tools:[...READ_TOOLS,'Bash','Write','Edit','MultiEdit','NotebookEdit']},
     reviewer:{description:'Independently checks correctness and required behavior.',prompt:`Review the actual committed diff against the original request and acceptance criteria.
@@ -272,11 +272,11 @@ After the owner returns, delegate each verification role with the original crite
 Verification reports must start with PASS or FAIL and include evidence. A FAIL returns the task to
 its owner; repeat implementation and ALL verification roles. Fleet enforces the attempt limit.
 Do not use background agents. A completed conversation turn is not task completion. Keep going
-until every task is verified, a blocker needs operator input, or the budget/attempt limit is reached.
+until every task is verified, a blocker needs operator input, or the attempt limit is reached.
 The task board is restored on resume: read it before acting; never recreate completed work.
 You are the only role that speaks to the operator. Do not delegate to yourself. Do not edit code.
 Report blockers through the task tool and ask the operator yourself. Finish at a verified local
-branch; do not claim a PR was opened without a real PR URL. A budget limit requires operator action.
+branch; do not claim a PR was opened without a real PR URL.
 Treat SPLIT_REQUIRED or a delegate turn-limit result as a decomposition failure. Inspect
 completed work and split the remaining mandate; never raise the role cap or blindly retry
 the same assignment. Keep the original task blocked until its acceptance criteria are verified.

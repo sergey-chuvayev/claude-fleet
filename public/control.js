@@ -88,6 +88,8 @@ window.FleetControl = {
   // never as a live binding, so a caller cannot hold one and read a stale session after
   // the next refresh. teams.js needs it to know which initiative a board action is for.
   session: () => controlSession,
+  // day.js redraws its board after an answer without waiting for the next poll.
+  refresh: () => refreshControl(),
   launchTeams: () => launchTeams,
   setLaunchTeams(teams) { launchTeams = teams },
   setLaunchRequestId(id) { launchRequestId = id },
@@ -193,12 +195,13 @@ async function refreshControl() {
 function renderControl() {
   const s=controlSession;if(!s || s.id!==controlId || !$('composer'))return
   window.FleetTeams?.board(s)
+  window.FleetDay?.board(s)
   $('conversation-title').textContent=s.aiTitle || s.name
   const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
   $('agent-state').textContent=(s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status])+queueNote
   const routing=$('model-routing'),decision=s.modelRouting
   routing.hidden=s.selectedModel!=='auto-jev'
-  routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}${decision.costUsd!=null ? ` Gateway evaluation: $${decision.costUsd.toFixed(6)}.`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
+  routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
   $('agent-state').className=`subtle ${s.status==='approval' ? 'stale' : ''}`
   const used=s.contextTokens, limit=s.contextLimit || 200000
   const share=used==null ? null : Math.min(100,Math.round(used/limit*100))

@@ -3,10 +3,10 @@ const {test}=require('node:test')
 const assert=require('node:assert/strict')
 const {TEAMS,getTeam,listTeams,compile}=require('./teams')
 
-test('all presets have bounded roles and a budgeted workflow',()=>{
+test('all presets have bounded roles without monetary budgets',()=>{
   for (const team of Object.values(TEAMS)) {
     const {agents}=compile(team)
-    assert.ok(team.workflow.budgetUsd>0)
+    assert.equal(team.workflow.budgetUsd,undefined)
     assert.ok(team.workflow.maxAttempts>0)
     if (team.workflow.mode==='owner-review') {
       assert.equal(agents.owner.maxTurns,100)
