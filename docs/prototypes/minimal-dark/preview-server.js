@@ -22,6 +22,14 @@ const messages=[
 if(i)messages.splice(0,messages.length,{id:`${id}-1`,role:'assistant',text:['','Following the journey of everyday words.','The welcome screen is ready for a look.','I found two small improvements to review.','A few good things for a slower Sunday.','All the examples are now up to date.'][i],at:now-i*900000});
 manager.sessions.set(id,{id,name:names[i],cwd:directory,status:'idle',createdAt:now-3600000,updatedAt:now-i*900000,messages,approvals:[],queue:[],requestIds:[],model:'claude-sonnet',selectedModel:'sonnet',approvalMode:'auto',contextTokens:24000+i*7000,contextLimit:200000,lastPrompt:'Explore the next idea.',costUsd:0.12,delegations:[]});
 }
+// Include a Day and an owner-review initiative for UI regression checks.
+const day=require('../../../day');
+const today=manager.sessions.get('preview-agent-1');
+today.kind='day';today.name='Today';today.dayBoard={date:day.dateOf(),items:[],cursors:{}};
+day.act(today,{action:'add',title:'Review the onboarding draft',source:'me',priority:'must',mode:'me',estimateMin:20},'operator');
+day.act(today,{action:'add',title:'Follow up on the API review',source:'github',priority:'should',mode:'ask',estimateMin:15},'agent');
+const owner=manager.sessions.get('preview-agent-0');
+owner.kind='initiative';owner.teamName='Owner + review';owner.teamSnapshot=require('../../../teams').getTeam('owner-review');owner.taskBoard={tasks:[],delegations:[]};
 const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()}),search:{start(){throw new Error('Search is unavailable in this synthetic preview.')},get(){throw new Error('No preview search jobs.')},close(){}},updater:{status:()=>({current:'0.14.1',available:false}),close(){}}});
 const port=Number(process.env.FLEET_PREVIEW_PORT || 7788);
 app.server.listen(port,'127.0.0.1',()=>console.log(`Synthetic Fleet preview: http://localhost:${port}`));
