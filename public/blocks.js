@@ -74,6 +74,8 @@ function proseHtml(text, { skipHighlight = false } = {}) {
 
 // What a tool block shows in its body, per tool. Falls back to its JSON input.
 function toolBody(message) {
+  // A grouped block (the Day's board calls) brings its own plain-language lines.
+  if (Array.isArray(message.lines)) return `<ul class="block-lines">${message.lines.map(l => `<li class="${l.error ? 'is-error' : ''}">${escapeHtml(l.text)}</li>`).join('')}</ul>`
   const input = message.input || {}
   const name = message.tool
   if (name === 'Bash' || name === 'BashOutput') return codeHtml(input.command || input.bash_id || '', 'bash', 'is-command')
@@ -115,7 +117,25 @@ function resultHtml(message) {
 }
 const actionsHtml = '<span class="block-actions"><button type="button" class="block-button" data-copy title="Copy block">⧉</button><button type="button" class="block-button" data-collapse title="Collapse block" aria-expanded="true">⌄</button></span>'
 
+// A tool's name as a person would say it. MCP names carry their server and an
+// underscore-joined action ("mcp__claude_ai_Slack__slack_search_public"); Fleet's own
+// Day board tool is just "Board".
+const SERVER_NAMES = { fleet: 'Fleet', 'linear-server': 'Linear', granola: 'Granola', github: 'GitHub' }
+// Built-in tools whose own names describe the mechanism rather than what happened.
+const PLAIN_NAMES = { ToolSearch: 'Loading tools' }
+function toolLabel(name) {
+  if (PLAIN_NAMES[name]) return PLAIN_NAMES[name]
+  const mcp = /^mcp__(.+?)__(.+)$/.exec(String(name || ''))
+  if (!mcp) return String(name || 'Tool')
+  if (mcp[1] === 'fleet' && mcp[2] === 'day') return 'Board'
+  const server = SERVER_NAMES[mcp[1]] || mcp[1].replace(/^claude_ai_/, '').replace(/_/g, ' ')
+  const action = mcp[2].replace(new RegExp(`^${server.toLowerCase()}_`), '').replace(/_/g, ' ')
+  return `${server} · ${action}`
+}
 function blockHtml(message, { streaming = false } = {}) {
+  // A run that started on its own (an intake, a check, picking up answers): a marker
+  // in the timeline, not a message the operator typed.
+  if (message.role === 'event') return `<div class="block-event"><span>${escapeHtml(message.text)}</span><span class="block-meta">${clock(message.at)}</span></div>`
   if (message.role === 'tool') {
     const icon = ICONS[message.tool] || '▸'
     const meta = [duration(message.ms), clock(message.at)].filter(Boolean).join(' · ')
@@ -123,7 +143,7 @@ function blockHtml(message, { streaming = false } = {}) {
     const stateLabel = state === 'is-done' ? isDelegation(message.tool) ? 'done' : '' : state.slice(3)
     const target = message.target ? `<span class="block-target" title="${escapeHtml(message.target)}">${escapeHtml(message.target)}</span>` : ''
     const auto = message.approval === 'auto' ? '<span class="block-auto" title="Fleet approved this automatically">auto</span>' : ''
-    return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.tool)}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
+    return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool" title="${escapeHtml(message.tool)}">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.label || toolLabel(message.tool))}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
   }
   const who = message.role === 'user' ? 'YOU' : 'CLAUDE'
   const icon = message.role === 'user' ? '›' : '✳'
@@ -138,10 +158,10 @@ function blockHtml(message, { streaming = false } = {}) {
 
 // Signature drives the incremental update: an identical signature means an identical block.
 const signature = (message, streaming) => [
-  message.role, message.tool || '', message.status || '', message.ms ?? '', message.approval || '', streaming ? 'S' : '',
+  message.role, message.tool || '', message.label || '', message.target || '', message.status || '', message.ms ?? '', message.approval || '', streaming ? 'S' : '',
   (message.text || '').length, (message.result || '').length, (message.attachments || []).length, (message.references || []).length,
   message.role === 'tool' ? JSON.stringify(message.input || {}).length : 0,
-  (message.text || '').slice(-80), (message.result || '').slice(-80),
+  (message.text || '').slice(-80), (message.result || '').slice(-80), (message.lines || []).length,
 ].join('~|~')
 
 function copyText(message) {
@@ -193,5 +213,5 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
   for (const element of [...container.children]) if (!seen.has(element.dataset?.block)) element.remove()
 }
 
-return { renderBlocks, proseHtml, codeHtml, highlight }
+return { renderBlocks, proseHtml, codeHtml, highlight, toolLabel }
 })()

@@ -290,6 +290,7 @@ class ManagedSessions extends EventEmitter {
     const s = {id,sessionId:null,name:body.name?.trim() ? text(body.name,'Session name',100) : `Day ${date}`,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'day',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,dayBoard:days[0]?.dayBoard ? day.carryOver(days[0].dayBoard,date) : {date,items:[],cursors:{}},worktree:null}
     this.sessions.set(s.id,s)
     const note = (body.prompt || '').trim() ? `\n\nThe operator adds: ${text(body.prompt,'Message',8000)}` : ''
+    s.dayChecks = {lastAt:Date.now(),everyMin:DAY_SWEEP_MINUTES,hours:DAY_HOURS}
     try { this.send(s.id,{message:'Start my day',runPrompt:dayAgent.promptFor('intake')+note,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); throw error }
     return s
@@ -353,6 +354,8 @@ class ManagedSessions extends EventEmitter {
   // Sweeps and resumes start from the board, not from the conversation: they do not
   // resume the session, so the main thread never accumulates a day of scout output.
   dayRun(s, kind) {
+    // What the Today header says about checks: when the last one started, and how often.
+    if (kind === 'sweep') { s.dayChecks = {lastAt:Date.now(),everyMin:DAY_SWEEP_MINUTES,hours:DAY_HOURS}; this.changed(s) }
     return this.send(s.id,{message:kind === 'sweep' ? 'Sweep' : 'Pick up answers',runPrompt:dayAgent.promptFor(kind),background:true,requestId:randomUUID()})
   }
   sweepDays(now = new Date()) {

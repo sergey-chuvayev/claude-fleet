@@ -115,6 +115,7 @@ test('sweeps and resumes start from the board and never replace the main convers
     await until(()=>calls.length===2 && s.status==='idle')
     assert.equal(calls[1].options.resume,undefined)
     assert.match(calls[1].prompt,/Scheduled sweep/)
+    assert.ok(s.dayChecks.lastAt>0 && s.dayChecks.everyMin>=10,'the header can say when the last check ran and the next is due')
     assert.equal(s.sessionId,main)
     const night=new Date();night.setHours(22,0,0,0)
     manager.sweepDays(night)

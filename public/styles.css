@@ -3208,3 +3208,51 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-agent-head .note { margin:0 }
 @media(max-width:720px) { .day-launch-fields { grid-template-columns:1fr } }
 .conversation[hidden] { display:none!important }
+/* ── Today, second pass ─────────────────────────────────────────────────────── */
+.work-tabs #today-count:not(:empty) {
+  display:inline-grid; place-items:center; min-width:16px; height:16px; padding:0 4px; margin-left:4px; box-sizing:border-box;
+  border-radius:999px; background:var(--raised); color:var(--text); font-size:10px; font-weight:600;
+}
+.work-tabs #today-count[data-alert=true] { background:var(--stale); color:var(--bg) }
+.day-section>h4 .day-capacity { margin-left:auto; margin-right:0 }
+.day-section>h4>span:first-of-type { margin-right:0 }
+.day-capacity { display:inline-flex; align-items:center; gap:8px; color:var(--muted); text-transform:none; letter-spacing:0; font-variant-numeric:tabular-nums }
+.day-capacity .mini-bar { width:70px; height:4px; margin:0 }
+.day-capacity.is-over, .day-capacity.is-over .mini-bar i { color:var(--stale) }
+.day-capacity.is-over .mini-bar i { background:var(--stale) }
+.day-group { margin:0 0 10px }
+.day-group>h5 { margin:10px 0 2px; font-size:var(--text-xs); font-weight:600; color:var(--muted) }
+.day-group>h5>span { color:var(--faint); font-weight:400; font-variant-numeric:tabular-nums }
+.day-group[data-priority=must]>h5 { color:var(--hot) }
+.day-list { list-style:none; margin:0; padding:0 }
+.day-list>li { border-bottom:1px solid var(--line) }
+.day-list summary { display:block; cursor:pointer; padding:9px 0 9px 18px; position:relative; list-style:none }
+.day-list summary::-webkit-details-marker { display:none }
+.day-list summary::before { content:"›"; position:absolute; left:2px; top:8px; color:var(--faint); transition:transform .15s }
+.day-list details[open]>summary::before { transform:rotate(90deg) }
+.day-row-main { display:flex; align-items:baseline; gap:8px; min-width:0 }
+.day-row-main strong { flex:1 1 auto; min-width:0; overflow-wrap:anywhere }
+.day-row-main small { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
+.day-latest { display:block; margin-top:3px; color:var(--faint); font-size:var(--text-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.day-state { flex:none; font-size:10px }
+.day-state[data-state=waiting_on_you] { color:var(--stale) }
+.day-state[data-state=in_progress] { color:var(--accent) }
+.day-list details>*:not(summary) { margin-left:18px }
+.day-list details>.day-actions { margin-bottom:10px }
+.day-rest li.is-done strong { color:var(--muted); font-weight:500 }
+.day-check { flex:none; color:var(--busy) }
+.day-check-state { color:var(--faint); font-size:var(--text-xs); display:inline-flex; align-items:center; gap:6px }
+.day-check-state.is-running { color:var(--accent) }
+.day-spinner { width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:day-spin .8s linear infinite }
+@keyframes day-spin { to { transform:rotate(360deg) } }
+@media(prefers-reduced-motion:reduce) { .day-spinner { animation:none } }
+.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
+.day-gate-note[hidden] { display:none }
+/* The Day console: automatic runs as markers, board calls as one plain list. */
+.block[data-role=event] { border:0; background:transparent; margin:6px 0 }
+.block-event { display:flex; align-items:center; gap:10px; color:var(--faint); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em }
+.block-event::before, .block-event::after { content:""; flex:1 1 auto; height:1px; background:var(--line) }
+.block-event .block-meta { order:1; text-transform:none; letter-spacing:0 }
+.block-lines { margin:0; padding:4px 0 4px 18px; color:var(--muted); font-size:var(--text-sm); line-height:1.7 }
+.block-lines li.is-error { color:var(--hot) }
+#day-agents[hidden] { display:none }
