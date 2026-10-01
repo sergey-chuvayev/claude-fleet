@@ -14,6 +14,8 @@ const { Dispatcher } = require('./dispatch')
 const routing = require('./routing')
 const tasks = require('./tasks')
 const ownerReview = require('./owner-review')
+const day = require('./day')
+const dayAgent = require('./day-agent')
 const worktrees = require('./worktree')
 
 const { resolveReferences, referencePrompt } = require('./references')
@@ -27,6 +29,16 @@ const FALLBACK_MODELS = [
   { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
 ]
 const MAX_MESSAGES = 200
+// A Day agent runs all day on Sonnet. The cap is what one day may spend before it stops
+// and asks for more, not a target.
+const DAY_BUDGET_USD = 15
+// Sweeps run only inside working hours: an empty office does not need checking every
+// 45 minutes, and the operator is not there to answer what a sweep would find.
+const DAY_SWEEP_MINUTES = Math.max(10, Number(process.env.CLAUDE_FLEET_DAY_SWEEP_MIN) || 45)
+const DAY_HOURS = [8, 20]
+// Answers and triage come in bursts. Waiting this long after the last one turns ten
+// clicks into one run instead of ten.
+const DAY_RESUME_DELAY_MS = 20000
 // Pasted images: a handful per message, bounded in size, only the formats the API
 // accepts, and sniffed by magic bytes because the client's declared type is a claim.
 const MAX_IMAGES = 6
@@ -80,6 +92,9 @@ class ManagedSessions extends EventEmitter {
     // outlives all of them. It is deliberately not persisted: a utilisation figure from
     // before a restart describes a window that has probably already turned over.
     this.usage = new UsageTracker()
+    this.dayTimers = new Map()
+    this.sweepTimer = setInterval(() => this.sweepDays(), DAY_SWEEP_MINUTES * 60000)
+    this.sweepTimer.unref?.()
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.file = path.join(directory, 'sessions.json')
     this.attachmentsDir = path.join(directory, 'attachments')
@@ -186,7 +201,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s),
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
       // line" rather than the bare "queued" that tells the operator nothing.
@@ -229,6 +244,7 @@ class ManagedSessions extends EventEmitter {
     if (!path.isAbsolute(cwd)) fail('Use an absolute project path or ~/path.')
     try { cwd = fs.realpathSync(cwd); if (!fs.statSync(cwd).isDirectory()) fail('Project path must be a directory.') }
     catch { fail('Project directory does not exist or is not accessible.') }
+    if (body.kind === 'day') return this.createDay(body, {rid, cwd, resume:body.resumeSessionId || null})
     const hasImages = Array.isArray(body.images) && body.images.length > 0
     const prompt = hasImages && !(body.prompt || '').trim() ? '' : text(body.prompt,'Message',16000)
     const name = body.name?.trim() ? text(body.name,'Session name',100) : (prompt || 'Image').slice(0,70)
@@ -256,6 +272,71 @@ class ManagedSessions extends EventEmitter {
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
     return s
+  }
+  // One Day per date. Starting a new one carries yesterday's unfinished items and their
+  // open questions forward; the old session stays as the record of that day.
+  createDay(body, {rid, cwd, resume}) {
+    if (resume) fail('A Day starts fresh; it cannot resume another conversation.',409)
+    if (body.teamId) fail('A Day does not take a team.')
+    const date = day.dateOf()
+    const days = [...this.sessions.values()].filter(s => s.kind === 'day').sort((a,b) => b.createdAt-a.createdAt)
+    if (days.some(s => s.dayBoard?.date === date)) fail('Today already has a Day. Open it from the list.',409)
+    this.checkCapacity()
+    const id = randomUUID()
+    const s = {id,sessionId:null,name:body.name?.trim() ? text(body.name,'Session name',100) : `Day ${date}`,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'day',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,dayBoard:days[0]?.dayBoard ? day.carryOver(days[0].dayBoard,date) : {date,items:[],cursors:{}},worktree:null}
+    this.sessions.set(s.id,s)
+    const note = (body.prompt || '').trim() ? `\n\nThe operator adds: ${text(body.prompt,'Message',8000)}` : ''
+    try { this.send(s.id,{message:'Start my day',runPrompt:dayAgent.promptFor('intake')+note,requestId:rid}) }
+    catch (error) { this.sessions.delete(s.id); throw error }
+    return s
+  }
+  // The operator's side of the board: their own items, triage, and answers. Each change
+  // hands the board back to the agent, debounced, as a run that starts from the board.
+  dayAction(id, body) {
+    const s = this.get(id)
+    if (s.kind !== 'day') fail('This session is not a Day.')
+    const before = structuredClone(s.dayBoard)
+    let result
+    try {
+      if (body.op === 'add') result = day.act(s,{...body.item,action:'add'},'operator')
+      else if (body.op === 'answer') result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer)
+      else if (body.op === 'triage') result = day.triage(s,text(body.itemId,'Item',100),body)
+      else if (body.op === 'sweep') { this.dayRun(s,'sweep'); return {queued:true} }
+      else fail('Unknown Day action.')
+      this.changed(s,true)
+    } catch (error) { s.dayBoard = before; throw error }
+    this.scheduleDayResume(s)
+    return result
+  }
+  scheduleDayResume(s) {
+    clearTimeout(this.dayTimers.get(s.id))
+    const timer = setTimeout(() => {
+      this.dayTimers.delete(s.id)
+      if (!this.sessions.has(s.id)) return
+      // A run already in flight reads the board when it next lists; a queued resume
+      // behind it would only repeat that work.
+      if (this.runs.has(s.id) || s.queue.some(q => q.background)) return
+      try { this.dayRun(s,'resume') } catch (error) { this.emit('storage-error',error) }
+    }, DAY_RESUME_DELAY_MS)
+    timer.unref?.()
+    this.dayTimers.set(s.id, timer)
+  }
+  // Sweeps and resumes start from the board, not from the conversation: they do not
+  // resume the session, so the main thread never accumulates a day of scout output.
+  dayRun(s, kind) {
+    return this.send(s.id,{message:kind === 'sweep' ? 'Sweep' : 'Pick up answers',runPrompt:dayAgent.promptFor(kind),background:true,requestId:randomUUID()})
+  }
+  sweepDays(now = new Date()) {
+    if (this.closed) return
+    const hour = now.getHours()
+    if (hour < DAY_HOURS[0] || hour >= DAY_HOURS[1]) return
+    const date = day.dateOf(now.getTime())
+    for (const s of this.sessions.values()) {
+      if (s.kind !== 'day' || s.dayBoard?.date !== date) continue
+      // A stopped or failed Day stays stopped until the operator restarts it.
+      if (s.status !== 'idle' || this.runs.has(s.id) || s.queue.length) continue
+      try { this.dayRun(s,'sweep') } catch (error) { this.emit('storage-error',error) }
+    }
   }
   checkCapacity() {
     if (this.closed) fail('Fleet is shutting down.',503)
@@ -299,7 +380,7 @@ class ManagedSessions extends EventEmitter {
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
-    const queued = {message,attachments,references}
+    const queued = {message,attachments,references,...(s.kind === 'day' && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
     // Mid-turn, the SDK session can't take a second prompt yet: hold this one and let
     // the run's own completion (see the `finally` in run()) start it the moment the
     // agent is free, instead of making the operator retry once it's idle.
@@ -317,12 +398,12 @@ class ManagedSessions extends EventEmitter {
     this.startTurn(s, queued)
     return s
   }
-  startTurn(s, {message,attachments,references}) {
-    const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {}),...(references.length ? {references} : {})}
+  startTurn(s, {message,attachments,references,runPrompt,background}) {
+    const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {}),...(references.length ? {references} : {}),...(runPrompt ? {runPrompt,background:!!background} : {})}
     s.messages.push(entry)
     this.pruneMessages(s)
     s.lastPrompt = message || `${attachments.length} image${attachments.length === 1 ? '' : 's'}`; s.error = null; s.status = 'starting'; s.currentTool = null
-    const run = {controller:new AbortController(),query:null,stopping:false,finished:false,streamText:'',assistant:null,result:false,stderr:''}
+    const run = {controller:new AbortController(),query:null,stopping:false,finished:false,streamText:'',assistant:null,result:false,stderr:'',background:!!background}
     this.runs.set(s.id,run)
     try { this.changed(s,true) }
     catch (error) { this.runs.delete(s.id); s.status='error'; s.messages.pop(); throw error }
@@ -358,7 +439,7 @@ class ManagedSessions extends EventEmitter {
   // A message with images has to travel as content blocks, which the SDK accepts
   // only in streaming-input form: an iterable that yields the one message and ends.
   promptFor(entry) {
-    const promptText = referencePrompt(entry.text, entry.references)
+    const promptText = referencePrompt(entry.runPrompt ?? entry.text, entry.references)
     if (!entry.attachments?.length) return promptText
     const dir = this.attachmentsDir
     return (async function* () {
@@ -381,7 +462,7 @@ class ManagedSessions extends EventEmitter {
         includePartialMessages:true,abortController:run.controller,
         canUseTool:(tool,input,context) => this.ask(s,run,tool,input,context),
         stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
-        ...(s.sessionId ? {resume:s.sessionId} : {}),
+        ...(s.sessionId && !run.background ? {resume:s.sessionId} : {}),
       }
       const automatic=s.selectedModel===routing.AUTO_MODEL
       const selectedModel=automatic ? '' : s.selectedModel
@@ -398,6 +479,17 @@ class ManagedSessions extends EventEmitter {
         manager.model=options.model
         options.effort=manager.effort
         options.maxTurns=manager.maxTurns
+      }
+      if (s.kind === 'day') {
+        options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.SYSTEM}
+        options.agents = dayAgent.AGENTS
+        options.model = boundedModel(s.selectedModel,'sonnet')
+        // Code is changed by initiatives the operator launches, never by the Day itself.
+        options.disallowedTools = ['Edit','Write','NotebookEdit']
+        const remaining=(s.limits?.budgetUsd ?? DAY_BUDGET_USD)-(s.costUsd || 0)
+        if (remaining<=0) throw new Error('This Day reached its usage cap. Raise it explicitly before continuing.')
+        options.maxBudgetUsd=remaining
+        options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true))}
       }
       if (team?.workflow) {
         if (ownerReview.refresh(s)) this.changed(s,true)
@@ -517,7 +609,7 @@ class ManagedSessions extends EventEmitter {
     }
   }
   event(s,run,event) {
-    if (event.session_id && !event.parent_tool_use_id) s.sessionId=event.session_id
+    if (event.session_id && !event.parent_tool_use_id && !run.background) s.sessionId=event.session_id
     // Account-wide, so it is recorded whoever emitted it, sub-agent turns included.
     if (event.type==='rate_limit_event') this.usage.recordEvent(event.rate_limit_info)
     if (s.taskBoard && event.parent_tool_use_id) {
@@ -669,7 +761,7 @@ class ManagedSessions extends EventEmitter {
   }
   setLimits(id,body) {
     const s=this.get(id)
-    if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
+    if (!s.teamSnapshot?.workflow && s.kind !== 'day') fail('This initiative does not have configurable limits.')
     if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
     const {maxAttempts}=body
     if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')
@@ -694,7 +786,14 @@ class ManagedSessions extends EventEmitter {
   ask(s,run,tool,input,context) {
     if (run.stopping || context.signal.aborted) return Promise.resolve({behavior:'deny',message:'Agent stopped.'})
     if (JSON.stringify(input).length > 256000) return Promise.resolve({behavior:'deny',message:'Tool input is too large for Fleet approval. Split the action into smaller steps.'})
-    const reason=askReason(tool,input,s.approvalMode)
+    let reason=askReason(tool,input,s.approvalMode)
+    // A Day reaches other people on the operator's behalf. Whatever the approval mode,
+    // that happens only for content they approved on the board, or approve right here.
+    if (s.kind === 'day' && day.outward(tool)) {
+      const approved=day.approvedFor(s,input)
+      if (approved) { day.act(s,{action:'update',itemId:approved.item.id,note:`Sent with ${tool}.`},'agent'); this.changed(s,true); return Promise.resolve({behavior:'allow',updatedInput:input}) }
+      reason='Reaches other people and has no approved draft on the Day board'
+    }
     if (!reason) return Promise.resolve({behavior:'allow',updatedInput:input})
     return new Promise(resolve => {
       const id=randomUUID()
@@ -760,6 +859,7 @@ class ManagedSessions extends EventEmitter {
     // A closed session must not keep a place in line; dispatchNext would otherwise
     // spend a slot on it and find nothing to send.
     this.dispatch.drop(id)
+    clearTimeout(this.dayTimers.get(id)); this.dayTimers.delete(id)
     this.cancelApprovals(id,'This agent was closed.')
     for (const m of s.messages) this.deleteAttachments(m)
     this.sessions.delete(id)
@@ -773,6 +873,8 @@ class ManagedSessions extends EventEmitter {
   }
   async close() {
     this.closed=true
+    clearInterval(this.sweepTimer)
+    for (const timer of this.dayTimers.values()) clearTimeout(timer)
     const running=[...this.runs.values()]
     for (const id of this.runs.keys()) this.stop(id)
     await Promise.allSettled(running.map(r=>r.done))

@@ -160,10 +160,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{update:{...update,restarting:!!restart}})
         }
-        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|approvals\/([\w-]+))$/)
+        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
+        if(action==='day') return json(res,200,{result:manager.dayAction(id,data),session:manager.detail(id)})
         if(action==='messages') manager.send(id,data)
         else if(action==='stop') manager.stop(id)
         else if(action==='mode') manager.setMode(id,data)
