@@ -3017,7 +3017,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .modal-spark { background:var(--raised); color:var(--text); border-color:var(--line) }
 .modal-backdrop { background:#08080ba8; backdrop-filter:blur(10px) }
 .modal input, .modal textarea, .modal select { border-radius:10px }
-#initiative-board, #day-board { border-bottom:1px solid var(--divider); font-size:12px }
+#initiative-board { border-bottom:1px solid var(--divider); font-size:12px }
 @media(min-width:721px) and (max-width:1199px) {
   .workspace { grid-template-columns:clamp(240px,var(--split,25%),300px) 1px minmax(0,1fr) }
   .detail:has(#composer) { position:relative }

@@ -14,4 +14,4 @@ Preserve existing controls and permission behavior. No new dependencies. Synthet
 
 ## Verification
 
-185 existing tests pass. Browser checked at 1440×1000, 1000×800 and 390×844: no horizontal overflow, session selection works, inspector toggles, completed tool output expands, composer remains reachable, and Search/New agent dialogs open. Screenshot uses only synthetic sessions. Reproduce with `node docs/prototypes/minimal-dark/preview-server.js`.
+209 existing tests pass after integration with the latest release. Browser checked at 1440×1000, 1000×800 and 390×844: no horizontal overflow, session selection works, inspector toggles, completed tool output expands, composer remains reachable, and Search/New agent dialogs open. Released Work queue and Settings controls were also checked after the rebase. Screenshot uses only synthetic sessions. Reproduce with `node docs/prototypes/minimal-dark/preview-server.js`.
