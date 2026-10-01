@@ -2895,3 +2895,173 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 #gateway-result { min-height: 1.5em; color: var(--text); }
 @media (max-width: 640px) { .modal-settings .modal-body { padding: 0 20px 20px; } }
 @media (max-width: 720px) { .topbar .refresh-info { max-width: 100%; flex-wrap: wrap; } }
+
+/* Minimal dark workspace — conversation first, operational detail one click away. */
+:root {
+  --term-bg:#151517; --term-fg:#e8e7e5; --term-accent:#e8e7e5;
+  --term-green:#83b698; --term-yellow:#d8b574; --term-red:#e18e89;
+  --term-blue:#91a9cc; --term-cyan:#9eb7c4; --term-magenta:#b5a1c9;
+  --bg:#151517; --panel:#19191c; --pane:#19191c; --raised:#252528;
+  --text:#e8e7e5; --muted:#a2a2aa; --faint:#87878f;
+  --line:#303034; --divider:#28282c; --hover:#222225; --hover-strong:#303034;
+  --selected:#2b2b2f; --accent:#e8e7e5;
+  --busy:#83b698; --idle:#a2a2aa; --stale:#d8b574; --dead:#98989f; --hot:#e18e89;
+  --ui:14px "Avenir Next","Segoe UI",sans-serif;
+  --radius-md:10px; --radius-lg:14px; --radius-xl:18px;
+}
+::selection { background:#55555f; color:#fff }
+.topbar { min-height:74px; padding:0 24px; background:var(--pane); border-bottom:1px solid var(--divider); gap:12px }
+.brand { font-size:23px; letter-spacing:-.8px; font-weight:600; gap:10px }
+.brandmark { color:var(--text); font-size:28px }
+.brand-sub { text-transform:none; letter-spacing:0; font-size:12px; font-weight:400; margin-left:12px; color:var(--faint) }
+.app-version { font-size:10px; color:var(--faint) }
+.topbar .refresh-info { flex-direction:row; align-items:center; gap:8px; border:0; padding:0 }
+.button { border-radius:999px; font-size:12px; padding:8px 14px; background:transparent; border:1px solid var(--line); box-shadow:none }
+.button:hover { background:var(--raised); border-color:#49494f }
+.button.resume { background:var(--text); color:#19191c; border-color:var(--text); font-weight:600 }
+.button.resume:hover { background:#fff; border-color:#fff }
+.topbar .refresh-info .button { padding:9px 14px; min-height:36px }
+.topbar #refresh, .topbar .details-toggle { width:36px; padding:8px; justify-content:center; text-transform:none; letter-spacing:0; margin:0; font:inherit }
+.topbar .details-toggle[aria-expanded=true] { background:var(--raised); color:var(--text) }
+.workspace { grid-template-columns:clamp(240px,var(--split,22%),380px) 1px minmax(0,1fr) }
+.splitter { width:1px; background:var(--divider); position:relative; z-index:4 }
+.splitter::after { content:""; position:absolute; inset:0 -3px }
+.sessions-pane { padding:10px 10px 16px; background:var(--pane) }
+.section-heading { padding:12px 10px 20px; gap:8px }
+.section-heading h2 { font-size:12px; text-transform:none; letter-spacing:0; font-weight:500; color:var(--muted) }
+.section-heading h2 span { border:0; font:inherit; background:none; color:var(--faint); margin-left:5px; padding:0 }
+.filter-trigger { border:0; background:transparent; font-size:11px; color:var(--muted); padding:6px 0 6px 8px }
+.list-head { display:none }
+.session-list { border:0; padding:0; overflow:auto }
+.session { grid-template-columns:38px minmax(0,1fr); gap:12px; padding:14px 10px; margin-bottom:4px; border:0; border-radius:12px }
+.session[aria-pressed=true] { box-shadow:none; background:var(--selected) }
+.session-summary { min-width:0 }
+.agent-avatar { position:relative; display:grid; place-items:center; width:38px; height:38px; border-radius:14px; background:#3d4543; color:#d6e5dd; font-size:17px; font-weight:500; margin-top:2px }
+.avatar-1 { background:#434050; color:#dcd3ef; border-radius:50% }
+.avatar-2 { background:#494238; color:#ebddc5; border-radius:12px }
+.avatar-3 { background:#37464d; color:#d0e3ef; border-radius:50% }
+.avatar-4 { background:#4e3c40; color:#edcfd5; border-radius:14px }
+.avatar-status { position:absolute; right:-2px; bottom:-2px; width:10px; height:10px; border:2px solid var(--pane); border-radius:50%; background:currentColor }
+.session-title { font-size:13px; line-height:1.5; font-weight:600; margin:0; color:var(--text) }
+.session-preview { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; line-height:1.6; margin-top:2px }
+.session-top { margin:6px 0 0; gap:6px }
+.session-top .badge { padding:0; background:none; font-size:10px; color:var(--faint) }
+.session-top .badge.stale, .session-top .badge.hot { color:var(--stale) }
+.session-top .badge.hot { color:var(--hot) }
+.session-top .badge .dot { display:none }
+.session-name { font-size:10px; color:var(--faint) }
+.session-context, .session-meta, .session .turn { display:none }
+.session .initiative-tag { display:block; margin-top:5px; width:fit-content; max-width:100%; white-space:normal; font-size:10px }
+.session-children { margin-left:22px }
+.detail { background:var(--bg); padding:28px; }
+.detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
+.detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
+.detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
+.detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:28px 22px; border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
+.detail:has(#composer) .conversation-header { min-height:86px; padding:20px 0 16px; margin:0; border:0; gap:10px }
+.header-title { gap:9px; flex-wrap:wrap; min-width:0 }
+.conversation-header h3 { font-size:15px; font-weight:600; letter-spacing:-.2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.header-controls { gap:6px; flex-wrap:wrap }
+.mode-picker select { border-color:transparent; background-color:transparent; font-family:inherit; font-size:11px; color:var(--muted); max-width:155px }
+.mode-picker select:hover { background-color:var(--raised) }
+.close-agent { font-size:11px; padding:5px 10px; color:var(--muted) }
+.detail:has(#composer) .conversation { padding:20px 0 24px; background:transparent; min-height:120px; font:14px/1.7 "Avenir Next","Segoe UI",sans-serif; scrollbar-width:thin; scrollbar-color:var(--line) transparent }
+.conversation .block { max-width:780px; margin:0 auto 22px; border:0; border-radius:16px; overflow:hidden; background:var(--panel) }
+.conversation .block[data-role=user] { width:fit-content; max-width:86%; margin-left:auto; margin-right:0; background:#2b2b30; border-radius:18px 18px 5px 18px }
+.conversation .block[data-role=assistant] { margin-left:0; margin-right:auto; border-radius:5px 18px 18px 18px }
+.conversation .block-head { position:static; background:transparent; backdrop-filter:none; padding:10px 16px 0; gap:7px; min-height:28px }
+.conversation .block-tool { font:500 10px/1.4 "Avenir Next","Segoe UI",sans-serif; color:var(--muted); letter-spacing:.4px }
+.conversation .block-icon { color:var(--muted); font-size:12px }
+.conversation .block-meta { font-size:10px; color:var(--faint) }
+.conversation .block-body { padding:2px 4px 7px }
+.block-prose { font-family:"Avenir Next","Segoe UI",sans-serif; font-size:14px; line-height:1.75; color:var(--text) }
+.block-prose p { color:inherit }
+#composer-hint, #agent-state { font-family:"Avenir Next","Segoe UI",sans-serif }
+#composer-hint { max-width:none }
+.block-plain { font-family:inherit; font-size:14px; line-height:1.75 }
+.conversation .block[data-role=tool] { border:1px solid var(--divider); background:transparent; border-radius:10px; margin:0 0 10px; max-width:none; font-family:var(--mono) }
+.conversation .block[data-role=tool] .block-head { padding:9px 12px; min-height:36px }
+.conversation .block[data-role=tool] .block-actions { opacity:1 }
+.conversation .block[data-role=tool] .block-tool { letter-spacing:0; font-size:11px }
+.block-code { font-size:12px; background:#121214; border-radius:8px; margin:4px 8px; }
+.block-prose a { color:#b8cee6 }
+.detail:has(#composer) .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+.composer:focus-within { border-color:#62626c }
+.composer textarea { padding:2px 0 8px; font-family:inherit; font-size:14px; line-height:1.6; color:var(--text) }
+.composer textarea:focus { padding-left:0; box-shadow:none }
+.composer textarea::placeholder { color:var(--faint) }
+.composer-footer { gap:8px; padding-top:4px }
+.composer-footer .note { font:10px/1.5 "Avenir Next","Segoe UI",sans-serif; color:var(--faint) }
+.composer-footer .button { font-size:11px; padding:7px 13px }
+.panel-splitter { margin:0; height:5px; flex-basis:5px }
+.panel-splitter::before { left:calc(50% - 18px); right:auto; width:36px; background:var(--line); border-radius:4px; top:2px }
+.detail h2 { font-size:19px; line-height:1.4; letter-spacing:-.3px; overflow-wrap:anywhere }
+.detail-top { gap:8px; flex-wrap:wrap }
+.eyebrow { font-size:9px; letter-spacing:1.3px; color:var(--faint) }
+.detail:has(#composer) .detail-top { margin:0 0 24px }
+.detail-name { font-size:11px; line-height:1.7 }
+.detail-section { margin-top:24px; padding-top:20px; border-color:var(--divider) }
+.detail-section h3 { font-size:11px; text-transform:none; letter-spacing:0; color:var(--muted) }
+.facts { font-size:11px; grid-template-columns:1fr; gap:5px }
+.facts dt { color:var(--faint); margin-top:8px }
+.facts dd { margin:0; overflow-wrap:anywhere }
+.detail-actions { flex-wrap:wrap; gap:12px; margin-top:24px }
+.context-label { font-size:10px; flex-wrap:wrap; gap:4px }
+.detail .mini-bar { height:3px; margin-top:10px }
+.work-link { border-radius:8px; font-size:11px; padding:8px 10px }
+.statusbar { height:34px; min-height:34px; background:var(--pane); border-color:var(--divider); padding:0 20px; font-size:10px; color:var(--faint) }
+.statusbar .local { display:none }
+.status-usage, .status-fleet { font-size:10px }
+.modal { border-radius:22px; background:var(--panel); box-shadow:0 25px 100px #0008 }
+.modal-head { background:transparent }
+.modal-spark { background:var(--raised); color:var(--text); border-color:var(--line) }
+.modal-backdrop { background:#08080ba8; backdrop-filter:blur(10px) }
+.modal input, .modal textarea, .modal select { border-radius:10px }
+#initiative-board, #day-board { border-bottom:1px solid var(--divider); font-size:12px }
+@media(min-width:721px) and (max-width:1199px) {
+  .workspace { grid-template-columns:clamp(240px,var(--split,25%),300px) 1px minmax(0,1fr) }
+  .detail:has(#composer) { position:relative }
+  .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) }
+  .detail:has(#composer) #detail-content { position:absolute; top:0; bottom:0; right:0; width:280px; z-index:8; box-shadow:-20px 0 40px #0004 }
+  .brand-sub { display:none }
+  .detail:has(#composer) #control-panel { padding-inline:20px }
+}
+@media(max-width:720px) {
+  body { display:flex; height:auto; min-height:100dvh; overflow:auto }
+  .topbar { min-height:66px; padding:12px 16px; flex-wrap:wrap; gap:8px }
+  .brand { font-size:21px }
+  .brand-sub, .app-version, #ask-shortcut { display:none }
+  .topbar .refresh-info { flex:1; gap:5px }
+  .topbar .refresh-info .button { padding:7px 10px; min-height:34px; font-size:11px }
+  .topbar #refresh { display:none }
+  main { display:block }
+  .workspace { display:flex; flex-direction:column; min-height:0; overflow:visible }
+  .sessions-pane { max-height:260px; min-height:150px; padding:4px 10px 8px; border-bottom:1px solid var(--line) }
+  .section-heading { padding:10px }
+  .session { padding:10px; margin-bottom:0 }
+  .splitter { display:none }
+  .detail, .detail:has(#composer), .detail:has(#composer):has(#detail-content:not([hidden])) { display:flex; flex-direction:column; padding:0; overflow:visible }
+  .detail:not(:has(#composer)) { padding:20px }
+  .detail:has(#composer) #control-panel { padding:0 16px; min-height:620px; overflow:visible }
+  .detail:has(#composer) .conversation-header { min-height:90px; padding:18px 0; }
+  .detail:has(#composer) .conversation { flex:none; height:440px; padding:12px 0 }
+  .detail:has(#composer) .composer { min-height:125px; margin-bottom:20px; }
+  .detail:has(#composer) #detail-content { border-left:0; border-top:1px solid var(--line); padding:24px; order:-1; max-height:400px }
+  .conversation .block { max-width:100%; margin-bottom:16px }
+  .conversation .block[data-role=tool] .block-meta { display:none }
+  .statusbar { height:auto; padding:10px 16px; min-height:34px }
+  .status-conn { flex-wrap:wrap }
+  .block-prose { font-size:13px }
+  .modal { border-radius:16px }
+}
+
+/* Keep the released queue rows and utility controls usable in the compact shell. */
+.work-row { grid-template-columns:minmax(0,1fr) 70px }
+.work-row .session-context { display:block }
+.work-row .session-meta { display:block }
+.work-tabs { margin-left:8px }
+.work-tabs .button { padding:7px 10px }
+.topbar { height:auto; flex-wrap:wrap; padding-block:12px }
+@media(max-width:1500px) { .brand-sub { display:none } }
+@media(max-width:1100px) { .app-version { display:none }.topbar { gap:8px }.topbar .refresh-info .button { padding:7px 10px } }
+@media(max-width:720px) { .topbar .refresh-info { flex-basis:100%; justify-content:flex-start }.work-tabs { order:3; margin:0 } }

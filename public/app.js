@@ -291,11 +291,15 @@ function sessionRowHtml(s, spawnCounts) {
   // A row holding the selected sub-agent is an ancestor of the selection, not the
   // selection itself, so it gives up aria-pressed to the child row below it.
   const childSelectedHere = !!selectedChild && (s.delegations || []).some(d => d.id === selectedChild)
-  const name = (s.managed ? 'FLEET · ' : '') + (s.name || s.shortId || 'Unnamed session')
-  const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}<span class="session-name">${esc(name)}</span>${rowTags(s, spawnCounts)}</span>`
+  const name = s.name || s.shortId || 'Unnamed session'
+  const top = `<span class="session-top">${hasUnseen(s) ? '<span class="unseen" aria-label="New output"></span>' : ''}${status(s)}${name !== s.title ? `<span class="session-name">${esc(name)}</span>` : ''}${rowTags(s, spawnCounts)}</span>`
   const title = `<span class="session-title">${esc(s.title || s.lastPrompt || 'Untitled session')}</span>`
-  const body = `${top}<span class="session-title-row">${initiativeTag(s)}${title}</span>${rowMeta(s)}${turnRow(s)}`
-  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}"><span>${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+  const preview = s.latestResponse || s.lastPrompt || 'Ready for your next idea'
+  const initial = (s.title || s.name || 'F').trim().slice(0, 1).toUpperCase()
+  const tone = [...key(s)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5
+  const avatar = `<span class="agent-avatar avatar-${tone}" aria-hidden="true">${esc(initial)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
+  const body = `<span class="session-title-row">${title}</span><span class="session-preview">${esc(preview)}</span>${top}${initiativeTag(s)}${rowMeta(s)}${turnRow(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${avatar}<span class="session-summary">${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
 // The trigger names whichever combination is active instead of repeating every
 // count Sessions' own header badge already shows.
@@ -679,25 +683,31 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) tick
 // Layout the operator controls: a draggable split between the session list and the
 // inspector, and resizable session sections. Sizes are remembered per browser; a storage
 // failure (private window, blocked site data) only costs the remembered size.
-const LAYOUT = { split: 'fleet:split' }
-const SPLIT_DEFAULT = 58, LIST_MIN = 300, DETAIL_MIN = 380
+const LAYOUT = { split: 'fleet:minimal-split' }
+const SPLIT_DEFAULT = 22, LIST_MIN = 240, DETAIL_MIN = 480
 
 function applySplit(percent, { save = true } = {}) {
-  const value = Math.round(percent * 10) / 10
+  const width = document.querySelector('.workspace')?.getBoundingClientRect().width || 0
+  const value = Math.round(clampSplit(percent, width) * 10) / 10
   document.documentElement.style.setProperty('--split', `${value}%`)
   $('splitter')?.setAttribute('aria-valuenow', String(Math.round(value)))
+  if (width > 720) {
+    $('splitter')?.setAttribute('aria-valuemin', String(Math.round(LIST_MIN / width * 100)))
+    $('splitter')?.setAttribute('aria-valuemax', String(Math.round(Math.min(width <= 1199 ? 300 : 380, width - DETAIL_MIN) / width * 100)))
+  }
   if (save) store.set(LAYOUT.split, String(value))
 }
 // Clamp in pixels so neither pane can be squeezed past the point of being usable.
 function clampSplit(percent, width) {
-  if (!width) return percent
-  return Math.min(Math.max(percent, LIST_MIN / width * 100), (width - DETAIL_MIN) / width * 100)
+  if (width <= 720) return percent
+  const max = Math.min(width <= 1199 ? 300 : 380, width - DETAIL_MIN)
+  return Math.min(Math.max(percent, LIST_MIN / width * 100), max / width * 100)
 }
 function initSplitter() {
   const splitter = $('splitter'), workspace = document.querySelector('.workspace')
   if (!splitter || !workspace) return
   const saved = Number(store.get(LAYOUT.split))
-  if (Number.isFinite(saved) && saved > 0) applySplit(saved, { save: false })
+  applySplit(Number.isFinite(saved) && saved > 0 ? saved : SPLIT_DEFAULT, { save: false })
 
   const move = event => {
     const rect = workspace.getBoundingClientRect()
@@ -741,7 +751,7 @@ function initSplitter() {
     const width = workspace.getBoundingClientRect().width
     const current = Number(splitter.getAttribute('aria-valuenow')) || SPLIT_DEFAULT
     const clamped = clampSplit(current, width)
-    if (Math.abs(clamped - current) > 0.5) applySplit(clamped, { save: false })
+    applySplit(clamped, { save: false })
   })
 }
 
@@ -830,7 +840,7 @@ function watchConversation(element) {
     return dispose
   }
   const composer = $('composer')
-  if (composer) addPanel(composer, { key: 'fleet:composer-height', label: 'Resize message composer', min: 130, initial: 170, before: true })
+  if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true })
   let board = null, disposeBoard = null
   const syncBoard = () => {
     const next = $('initiative-board')
@@ -848,18 +858,20 @@ function watchConversation(element) {
 }
 initSplitter()
 
-// The session details sit behind a disclosure: with a console on screen the terminal
-// is the point, and the facts below it are reference material. A session with no
-// console (a terminal one, monitor-only) has nothing else to show, so it stays open.
-const DETAILS_KEY = 'fleet:details-open'
+// Wide screens show the inspector beside the conversation. Smaller screens start
+// with it closed, unless the operator explicitly chose otherwise. Read-only sessions
+// show their details in the main pane because they have no managed conversation.
+const DETAILS_KEY = 'fleet:minimal-details-open'
 function syncDetails() {
   const toggle = $('details-toggle'), content = $('detail-content'), hasConsole = !!$('composer')
   if (!toggle || !content) return
   toggle.hidden = !hasConsole
-  const open = !hasConsole || store.get(DETAILS_KEY) === '1'
+  const preference = store.get(DETAILS_KEY)
+  const open = !hasConsole || (preference === null ? matchMedia('(min-width:1200px)').matches : preference === '1')
   content.hidden = !open
   toggle.setAttribute('aria-expanded', String(open))
 }
+addEventListener('resize', syncDetails)
 $('details-toggle')?.addEventListener('click', () => {
   const open = $('details-toggle').getAttribute('aria-expanded') !== 'true'
   store.set(DETAILS_KEY, open ? '1' : '0')
