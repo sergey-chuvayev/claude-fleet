@@ -475,21 +475,22 @@ entries persist in `.fleet/sessions.json`. Claude keeps its own full transcript,
 
 </details>
 
-### It borrows your terminal's colours
+### A quieter dark workspace
 
-Fleet reads the active theme named in `~/.warp/settings.toml`, loads it from
-`~/.warp/themes/`, and serves it as CSS variables at `/theme.css`. Surfaces and
-muted text are mixed from the terminal's own background and foreground with
-`color-mix()`, so any Warp theme produces a coherent dashboard rather than a
-clashing one.
+Fleet uses a neutral charcoal palette with a compact agent sidebar, message bubbles,
+and a rounded composer. Session details open in a separate inspector on wide screens;
+the top-right panel button toggles it. Smaller screens start with the inspector closed.
+Completed tool blocks start collapsed, while running tools and errors stay visible.
 
-Only colour values and the terminal font size are read, a theme file outside the
-themes directory is ignored, and anything that is not a hex colour is discarded.
-Without Warp installed, Fleet uses its own palette. Set `CLAUDE_FLEET_WARP_DIR` to
-read a different directory.
+![Minimal dark Fleet workspace with synthetic sessions](docs/minimal-dark.jpg)
 
-The app icons are drawn geometrically from that same palette by `npm run icons`,
-with no image library, so rerun it if you switch themes.
+Try the isolated demo with `node docs/prototypes/minimal-dark/preview-server.js`,
+then open http://localhost:7788. The demo uses synthetic sessions and a mock model.
+
+The legacy `/theme.css` endpoint still reads the local Warp palette and terminal font
+size. The workspace now sets its own neutral colors; code retains the configured
+terminal font size. App icons can still be regenerated from the Warp palette with
+`npm run icons`.
 
 ### It can live in the Dock
 

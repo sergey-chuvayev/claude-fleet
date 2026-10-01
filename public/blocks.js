@@ -165,8 +165,8 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
       element = document.createElement('article')
       element.className = 'block'
       element.dataset.block = message.id
-      // Long tool output starts collapsed, the way a long command block does in a terminal.
-      if (message.role === 'tool' && !isDelegation(message.tool) && (message.result || '').length > 1200) element.classList.add('collapsed')
+      // Completed tool activity starts compact; errors and live work remain visible.
+      if (message.role === 'tool' && !isDelegation(message.tool) && message.status !== 'running' && message.status !== 'error') element.classList.add('collapsed')
     }
     if (element.dataset.sig !== sig) {
       element.dataset.sig = sig
