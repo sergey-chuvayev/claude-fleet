@@ -432,11 +432,19 @@ open question never stalls the day. Everything waiting on you sits at the top of
 Nothing reaches other people without you. A Slack reply, a Linear comment or status change, or
 a GitHub review goes out only when you approved that exact text on the board; edit the draft
 before approving and only your version can be sent. Any other outward connector call stops for
-approval, whatever the approval mode. Read-only calls run freely. A Day cannot edit files: code
-work becomes an *Agent does it* item whose brief you approve and launch as an initiative.
+approval, whatever the approval mode. Read-only calls run freely.
+
+A Day cannot edit files or start sessions itself. For an *Agent does it* item it writes a brief
+and asks to launch it: you see the brief, the repository and the team, edit any of them, and
+press **Launch**. Fleet then starts that session the way the Work queue does, so it shows up in
+Sessions with its own console; the item links to it and shows its live state.
+
+Above the Day's console, tabs show the Day agent and each subagent it ran: the scouts, and any
+helper it used. Select one to read its assignment, every tool step with its input and output,
+and the report it returned.
 
 Through the day Fleet runs a short check every 45 minutes between 8:00 and 20:00, and picks
-your answers up 20 seconds after your last click. Those runs start from the board, not from the
+your answers up a few seconds after you give them, and triage 20 seconds after your last click. Those runs start from the board, not from the
 conversation, so talking to the agent stays cheap however long the day gets. A failed check is
 retried; three in a row wait for you. Starting tomorrow's Day carries over what is unfinished,
 with its open questions. A Day has no usage cap: it runs on your Claude subscription.

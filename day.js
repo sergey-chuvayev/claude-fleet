@@ -14,7 +14,8 @@ const SOURCES=['slack','linear','granola','github','calendar','me']
 const PRIORITIES=['must','should','could']
 const STATUSES=['proposed','today','in_progress','waiting_on_you','done','later','dropped']
 const MODES=['me','draft','agent','ask']
-const NEED_KINDS=['approve','choose','info']
+// launch: approve a brief that Fleet then starts as its own session (an agent or a team).
+const NEED_KINDS=['approve','choose','info','launch']
 // How the operator settled a question. A reply is a message about the item and never
 // licenses sending anything; only approve and edit do.
 const DECISIONS=['approve','reject','edit','reply','choose','info']
@@ -44,7 +45,7 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=item=>({id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
+const compact=(item,ctx={})=>({...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
   const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
@@ -71,7 +72,7 @@ function minutes(value) {
 function update(s,input,by) {
   const item=itemFor(s,input.itemId),status=oneOf(input.status,STATUSES,'Status',true)
   if (status==='waiting_on_you' && !open(item).length) fail('Record what you need with ask; an item waits on the operator only for an open question.')
-  if (status==='done' && open(item).some(n=>n.kind==='approve')) fail('This item has an unanswered approval. It cannot be done before the operator decides.')
+  if (status==='done' && open(item).some(n=>['approve','launch'].includes(n.kind))) fail('This item has an unanswered approval. It cannot be done before the operator decides.')
   // Triage is the operator's call: the agent proposes, it never promotes its own items.
   if (by==='agent' && item.status==='proposed' && status && !['proposed','dropped'].includes(status)) fail('Proposed items are triaged by the operator. Use ask if you need a decision.')
   if (input.title!==undefined) item.title=str(input.title,'Title',200)
@@ -84,14 +85,23 @@ function update(s,input,by) {
   if (input.note) log(item,input.note)
   return item
 }
-function ask(s,input) {
+function ask(s,input,ctx={}) {
   const item=itemFor(s,input.itemId),kind=oneOf(input.kind,NEED_KINDS,'Kind')
   if (open(item).length>=MAX_NEEDS) fail('This item already has too many open questions. Wait for answers.')
   const options=input.options===undefined ? undefined : input.options
   if (kind==='choose' && (!Array.isArray(options) || options.length<2 || options.length>6 || options.some(o=>typeof o!=='string' || !o.trim() || o.length>200))) fail('A choice needs 2-6 options.')
   // An approval is only meaningful if the operator sees exactly what will go out.
   if (kind==='approve' && typeof input.draft!=='string') fail('An approval needs the exact draft that will be sent or applied.')
-  const need={id:randomUUID(),kind,question:str(input.question,'Question',1000),...(kind==='choose' ? {options} : {}),...(input.draft!==undefined ? {draft:String(input.draft).slice(0,16000)} : {}),at:Date.now()}
+  let launch
+  if (kind==='launch') {
+    if (typeof input.draft!=='string' || !input.draft.trim()) fail('A launch needs the brief the new session starts from, in draft.')
+    const cwd=str(input.cwd,'Repository path (cwd)',4096)
+    if (!cwd.startsWith('/') && cwd!=='~' && !cwd.startsWith('~/')) fail('Give the repository as an absolute path or ~/path.')
+    const teamId=input.teamId ? str(input.teamId,'Team',60) : null
+    if (teamId && ctx.teams && !ctx.teams().some(t=>t.id===teamId)) fail('Unknown team. Use the teams action to list them, or omit teamId for a single agent.')
+    launch={cwd,teamId,...(input.name ? {name:str(input.name,'Name',100)} : {})}
+  }
+  const need={id:randomUUID(),kind,question:str(input.question,'Question',1000),...(kind==='choose' ? {options} : {}),...(input.draft!==undefined ? {draft:String(input.draft).slice(0,16000)} : {}),...(launch ? {launch} : {}),at:Date.now()}
   item.needs.push(need);item.status='waiting_on_you'
   return need
 }
@@ -105,7 +115,7 @@ function answer(s,itemId,needId,value,decision) {
   const text=str(value,'Answer',16000)
   if (decision!==undefined) oneOf(decision,DECISIONS,'Decision')
   const settled=decision==='reply' ? 'reply'
-    : need.kind==='approve' ? (text==='approve' ? 'approve' : text==='reject' ? 'reject' : 'edit')
+    : ['approve','launch'].includes(need.kind) ? (text==='approve' ? 'approve' : text==='reject' ? 'reject' : 'edit')
     : need.kind
   if (settled==='choose' && !need.options.includes(text)) fail('Choose one of the offered options, or reply instead.')
   need.answer=text;need.decision=settled;need.answeredAt=Date.now()
@@ -133,19 +143,22 @@ function cursor(s,input) {
   if (input.value!==undefined) board.cursors[source]=str(input.value,'Cursor',200)
   return {source,value:board.cursors[source] ?? null}
 }
-function act(s,input,by='agent') {
+// ctx lets the server answer what the board alone cannot: the state of sessions an item
+// launched, and which teams exist.
+function act(s,input,by='agent',ctx={}) {
   const board=ledger(s)
   if (input.action==='list') {
     // Answers are delivered once: the next list after an answer carries it, then it is
     // marked seen so the agent does not act on the same approval twice.
-    const items=board.items.filter(i=>input.includeClosed || !['done','dropped'].includes(i.status)).map(compact)
+    const items=board.items.filter(i=>input.includeClosed || !['done','dropped'].includes(i.status)).map(i=>compact(i,ctx))
     if (by==='agent') for (const i of board.items) for (const n of i.needs) if (n.answer!==undefined) n.seen=true
     return {date:board.date,cursors:board.cursors,items,closed:board.items.filter(i=>['done','dropped'].includes(i.status)).length}
   }
   if (input.action==='inspect') {const item=itemFor(s,input.itemId);return item}
   if (input.action==='add') return add(s,input,by)
   if (input.action==='update') return update(s,input,by)
-  if (input.action==='ask') return ask(s,input)
+  if (input.action==='ask') return ask(s,input,ctx)
+  if (input.action==='teams') return ctx.teams ? ctx.teams() : []
   if (input.action==='cursor') return cursor(s,input)
   fail('Unknown Day board action.')
 }
@@ -187,16 +200,16 @@ function approvedFor(s,input) {
   }
   return null
 }
-async function sdkServer(s,changed) {
+async function sdkServer(s,changed,ctx={}) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options), then move on to other items. cursor: get or set the last-seen point for a source.',{
-    action:z.enum(['list','inspect','add','update','ask','cursor']),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options; launch needs the brief in draft plus cwd and optional teamId, and Fleet starts that session itself once approved), then move on to other items. teams: the teams a launch can use. cursor: get or set the last-seen point for a source.',{
+    action:z.enum(['list','inspect','add','update','ask','cursor','teams']),cwd:z.string().optional(),teamId:z.string().optional(),name:z.string().optional(),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
     priority:z.enum(PRIORITIES).optional(),status:z.enum(STATUSES).optional(),mode:z.enum(MODES).optional(),estimateMin:z.number().optional(),note:z.string().optional(),
     kind:z.enum(NEED_KINDS).optional(),question:z.string().optional(),options:z.array(z.string()).optional(),draft:z.string().optional(),value:z.string().optional(),includeClosed:z.boolean().optional(),
   },async input=>{
     const before=structuredClone(s.dayBoard)
-    try {const result=act(s,input,'agent');changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}
+    try {const result=act(s,input,'agent',ctx);changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}
     catch(error){s.dayBoard=before;return {isError:true,content:[{type:'text',text:error.message}]}}
   })]})
 }

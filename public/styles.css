@@ -3168,3 +3168,43 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .today-meter.note { font-style:italic }
 .day-reply { display:flex; gap:6px; margin-top:8px }
 .day-reply input { flex:1 1 auto; width:auto }
+/* Launch questions and launched sessions on the Day board. */
+.day-field { display:grid; gap:4px; color:var(--muted); font-size:var(--text-xs) }
+.day-launch-fields { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:8px; margin-top:8px }
+.day-launch-fields input, .day-launch-fields select {
+  width:100%; box-sizing:border-box; padding:7px 8px; background:var(--bg); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.4 var(--mono);
+}
+.day-launched { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 2px }
+.day-launch-chip {
+  display:inline-flex; align-items:center; gap:6px; padding:3px 9px; cursor:pointer;
+  background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:999px; font-size:var(--text-xs);
+}
+.day-launch-chip:hover { border-color:var(--accent) }
+.day-launch-chip .dot { width:6px; height:6px; border-radius:50%; background:var(--idle) }
+.day-launch-chip[data-state=running] .dot, .day-launch-chip[data-state=starting] .dot { background:var(--busy) }
+.day-launch-chip[data-state=approval] .dot, .day-launch-chip[data-state=queued] .dot { background:var(--stale) }
+.day-launch-chip[data-state=error] .dot, .day-launch-chip[data-state=closed] .dot { background:var(--hot) }
+.day-launch-chip[data-state=closed] { cursor:default; color:var(--muted) }
+/* The Day's subagents, as tabs above its console. */
+#day-agents { display:flex; align-items:center; gap:4px; overflow-x:auto; padding:8px 0; border-bottom:1px solid var(--divider); flex:none; scrollbar-width:thin }
+.day-agent-tab {
+  display:inline-flex; align-items:center; gap:6px; flex:none; padding:4px 10px; cursor:pointer;
+  background:transparent; color:var(--muted); border:1px solid transparent; border-radius:999px; font-size:var(--text-xs); white-space:nowrap;
+}
+.day-agent-tab:hover { color:var(--text); background:var(--hover) }
+.day-agent-tab[aria-pressed=true] { color:var(--text); background:var(--selected); border-color:var(--accent) }
+.day-agent-tab .dot { width:6px; height:6px; border-radius:50%; background:var(--faint) }
+.day-agent-tab .dot.busy { background:var(--busy) }
+.day-agent-tab .dot.idle { background:var(--idle) }
+.day-agent-tab .dot.hot { background:var(--hot) }
+.day-agent-tab .dot.stale { background:var(--stale) }
+#day-agents .note { flex:none; margin:0 0 0 6px; font-size:var(--text-xs) }
+.day-agents-running { color:var(--busy) }
+.day-agent-view { flex:1 1 0; min-height:0; overflow:auto; padding:16px 2px }
+.day-agent-view[hidden] { display:none }
+.day-agent-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px }
+.day-agent-head h3 { margin:0; font-size:16px }
+.day-agent-head .note { margin:0 }
+@media(max-width:720px) { .day-launch-fields { grid-template-columns:1fr } }
+.conversation[hidden] { display:none!important }
