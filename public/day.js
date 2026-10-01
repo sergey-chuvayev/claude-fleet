@@ -27,7 +27,13 @@ window.FleetDay=(()=>{
     if(/slack\.com/.test(url))return 'Slack'
     try{return new URL(url).hostname.replace(/^www\./,'')}catch{return 'Link'}
   }
-  const head=item=>`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span><strong>${escape(item.title)}</strong>${item.estimateMin ? `<small>${duration(item.estimateMin)}</small>`:''}`
+  // Work from an earlier Day says so, with the day it first came from.
+  const carriedHtml=item=>{
+    if(!item.carriedFrom)return ''
+    const day=new Date(`${item.carriedFrom}T12:00:00`).toLocaleDateString([],{weekday:'short'})
+    return `<span class="day-carried" title="Carried over from ${escape(item.carriedFrom)}">from ${escape(day)}</span>`
+  }
+  const head=item=>`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}<strong>${escape(item.title)}</strong>${item.estimateMin ? `<small>${duration(item.estimateMin)}</small>`:''}`
   // An answer is typed into the board while the board keeps refreshing under it. Every
   // field that holds the operator's words is keyed, read back before a render and put
   // back after, so a poll never eats a half-written reply.
@@ -80,6 +86,7 @@ window.FleetDay=(()=>{
   }
   // The gist of the item's thread, and the way back into it.
   function threadHtml(item) {
+    if(!item.thread && item.previousThread?.summary)return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-session="${escape(item.previousThread.sessionId)}" title="Open that conversation in Sessions" data-state="idle"><span class="dot"></span>Earlier thread ↗</button>${escape(item.previousThread.summary)}</p>`
     if(!item.thread || item.thread.closed)return ''
     return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-thread="${escape(item.thread.sessionId)}" title="Open your conversation about this item"><span class="dot"></span>Thread ↗</button>${item.thread.summary ? escape(item.thread.summary) : 'Starting…'}</p>`
   }

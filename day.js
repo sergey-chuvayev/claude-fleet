@@ -45,7 +45,7 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=(item,ctx={})=>({...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
+const compact=(item,ctx={})=>({...(item.carriedFrom ? {carriedFrom:item.carriedFrom} : {}),...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
   const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
@@ -182,8 +182,17 @@ function progress(s) {
 }
 // A new day keeps what was unfinished and forgets what was settled. Open questions carry
 // over with their item: the operator still owes them an answer.
+// Proposals carry too: the scouts' cursors have moved past them, so an untriaged item
+// left behind would never be found again. An item keeps the date it was first carried
+// from, so "from Tue" stays true on Thursday.
+// A thread belongs to the Day it was opened in. The new board keeps only the gist of it,
+// as previousThread, and the next question starts a fresh thread on today's board.
 function carryOver(previous,date=dateOf()) {
-  const items=(previous?.items || []).filter(i=>['today','in_progress','waiting_on_you','later'].includes(i.status)).map(i=>({...structuredClone(i),status:i.status==='later' ? 'later' : i.status==='waiting_on_you' ? 'waiting_on_you' : 'today',carriedFrom:previous.date}))
+  const items=(previous?.items || []).filter(i=>['proposed','today','in_progress','waiting_on_you','later'].includes(i.status)).map(i=>{
+    const {thread,...rest}=structuredClone(i)
+    const status=['proposed','later','waiting_on_you'].includes(i.status) ? i.status : 'today'
+    return {...rest,status,carriedFrom:i.carriedFrom || previous.date,...(thread?.summary ? {previousThread:{summary:thread.summary,at:thread.at,sessionId:thread.sessionId}} : {})}
+  })
   return {date,items,cursors:{...(previous?.cursors || {})}}
 }
 // A connector call that only reads. Everything else a Day agent does through a connector

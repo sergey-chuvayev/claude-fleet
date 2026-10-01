@@ -17,6 +17,7 @@ How you work:
 - Never block. When you need the operator (a decision, missing information, or approval of anything that leaves this machine), record it with day ask on that item and move on to the next item. An approval must carry the exact text or change in "draft".
 - Anything that reaches other people (sending a Slack message, commenting on or changing a Linear issue, a GitHub review or comment) happens only after the operator approved that exact draft. Then perform it with the draft text unchanged (or the operator's edited version, which is their answer), log it with day update note, and mark the item done if nothing else remains.
 - Every option in a choose question must be a complete answer on its own. If an answer would need more detail ("tell me which"), ask an info question instead; the operator can always reply in words.
+- An item with "carriedFrom" came over from an earlier Day with its log, questions and launched sessions. Treat it as known work, not as new.
 - When the operator discusses an item in its own thread, the item's "thread" field carries the gist of that conversation. Take it into account; do not redo what the thread settled.
 - Answers arrive on items in the "answered" field of day list. Act on each one once. A "reply" decision is the operator talking to you about that item, not an approval: do what it asks, and if something still has to go out, ask again with a revised draft.
 - Keep notes short and factual. Do not paste whole threads into the board; summarise and link.
@@ -61,12 +62,12 @@ function since(now=new Date()) {
 const timeframe=(now=new Date())=>{const s=since(now);return `Now: ${iso(now)}. Without a cursor, Slack, Linear and GitHub start at ${s.day} and Granola at ${s.workday}. Pass each scout its start explicitly and tell it to ignore anything older.`}
 const intake=()=>`Morning intake for today.
 ${timeframe()}
-1. Call day list. Note each source's cursor.
+1. Call day list. Note each source's cursor. Items with "carriedFrom" are unfinished work from an earlier Day: review them first. Drop nothing yourself, but note on each (day update note) whether it still looks current from what you know, and correct estimates that look wrong. Do not add them again.
 2. In ONE message, delegate to slack-scout, linear-scout, granola-scout, github-scout and calendar-scout as foreground calls (never run_in_background), giving each its cursor or the start above. They run side by side.
 3. Add every returned item with day add and its source. Duplicates merge by link; that is expected.
 4. Add one calendar item per meeting that needs preparation (mode "me", with the prep in context). Record freeMinutes with day capacity.
 5. Set each source's cursor to the current time (ISO) with day cursor.
-6. Finish with a short message to the operator: how many items were proposed per source, the free focus time today vs. the estimated minutes of the "must" items, and the top 3 you would put on today. Do not start working items until the operator has triaged.`
+6. Finish with a short message to the operator. Open with what carried over (how many items, how many still waiting on them, anything that looks stale), then how many new items were proposed per source, the free focus time today vs. the estimated minutes of the "must" items, and the top 3 you would put on today. Do not start working items until the operator has triaged.`
 const sweep=()=>`Scheduled sweep.
 ${timeframe()}
 1. Call day list.
@@ -104,6 +105,7 @@ function threadPrompt(day,item,message,{cwd,repoKnown}={}) {
   const log=item.log.map(l=>`- ${new Date(l.at).toISOString().slice(11,16)} ${l.text}`).join('\n')
   const questions=item.needs.map(n=>`- [${n.answer===undefined ? 'open' : n.decision || 'answered'}] (${n.kind}, id ${n.id}) ${n.question}${n.draft ? `\n  Draft: ${n.draft.slice(0,3000)}` : ''}${n.answer!==undefined ? `\n  Answer: ${String(n.answer).slice(0,1000)}` : ''}`).join('\n')
   const reports=related(day,item)
-  return `The item:\n${JSON.stringify(card,null,2)}\n\nIts log:\n${log || '(empty)'}\n\nIts questions:\n${questions || '(none)'}${reports.length ? `\n\nReports from the Day's subagents about it:\n\n${reports.join('\n\n')}` : ''}\n\n${repoKnown ? `You are in its repository: ${cwd}` : `Fleet could not tell which repository this item belongs to; you are in ${cwd}.`}\n\nThe operator asks:\n${message}`
+  const earlier=item.previousThread?.summary ? `\n\nYou discussed this item with the operator on an earlier day. Where that conversation ended:\n${item.previousThread.summary}` : ''
+  return `The item${item.carriedFrom ? ` (carried over from ${item.carriedFrom})` : ''}:\n${JSON.stringify(card,null,2)}\n\nIts log:\n${log || '(empty)'}\n\nIts questions:\n${questions || '(none)'}${reports.length ? `\n\nReports from the Day's subagents about it:\n\n${reports.join('\n\n')}` : ''}${earlier}\n\n${repoKnown ? `You are in its repository: ${cwd}` : `Fleet could not tell which repository this item belongs to; you are in ${cwd}.`}\n\nThe operator asks:\n${message}`
 }
 module.exports={SYSTEM,AGENTS,SOURCES,promptFor,since,THREAD_SYSTEM,threadPrompt}
