@@ -48,16 +48,27 @@ const AGENTS={
 }
 
 const SOURCES=['slack','linear','granola','github','calendar']
+const iso=d=>d.toISOString().replace(/\.\d{3}Z$/,'Z')
+// Where a source with no cursor starts. A scout left to decide "recent" on its own read
+// Granola back to July; this is a fixed point it cannot stretch.
+function since(now=new Date()) {
+  const day=new Date(now);day.setHours(0,0,0,0)
+  do day.setDate(day.getDate()-1); while ([0,6].includes(day.getDay()))
+  return {day:iso(new Date(now.getTime()-86400000)),workday:iso(day)}
+}
+const timeframe=(now=new Date())=>{const s=since(now);return `Now: ${iso(now)}. Without a cursor, Slack, Linear and GitHub start at ${s.day} and Granola at ${s.workday}. Pass each scout its start explicitly and tell it to ignore anything older.`}
 const intake=()=>`Morning intake for today.
+${timeframe()}
 1. Call day list. Note each source's cursor.
-2. In ONE message, delegate in parallel to slack-scout, linear-scout, granola-scout, github-scout and calendar-scout, giving each its cursor (or "none").
+2. In ONE message, delegate to slack-scout, linear-scout, granola-scout, github-scout and calendar-scout as foreground calls (never run_in_background), giving each its cursor or the start above. They run side by side.
 3. Add every returned item with day add and its source. Duplicates merge by link; that is expected.
 4. Add one calendar item per meeting that needs preparation (mode "me", with the prep in context). Remember freeMinutes.
 5. Set each source's cursor to the current time (ISO) with day cursor.
 6. Finish with a short message to the operator: how many items were proposed per source, the free focus time today vs. the estimated minutes of the "must" items, and the top 3 you would put on today. Do not start working items until the operator has triaged.`
 const sweep=()=>`Scheduled sweep.
+${timeframe()}
 1. Call day list.
-2. Delegate in parallel to slack-scout, linear-scout and github-scout with their cursors. Add what they return; set the cursors to now.
+2. In ONE message, delegate to slack-scout, linear-scout and github-scout as foreground calls (never run_in_background) with their cursors. Add what they return; set the cursors to now.
 3. Then work any "today" or "in_progress" item that has new answers or that you can advance without the operator, following its mode.
 4. Reply with at most three lines: what is new, and what now waits on the operator. If nothing changed, reply "No change."`
 const resume=()=>`The operator answered or triaged items on the Day board.
@@ -68,4 +79,4 @@ function promptFor(kind) {
   if (!make) throw new Error('Unknown Day run.')
   return make()
 }
-module.exports={SYSTEM,AGENTS,SOURCES,promptFor}
+module.exports={SYSTEM,AGENTS,SOURCES,promptFor,since}

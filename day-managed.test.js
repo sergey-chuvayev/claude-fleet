@@ -164,3 +164,18 @@ test('a failed sweep is retried, but three failures in a row wait for the operat
     assert.equal(s.dayFailures,0,'a good run resets the count')
   } finally { await manager.close() }
 })
+
+test('a Day keeps its scouts in the foreground so their tool calls outlive no stream',async()=>{
+  const {directory,manager,calls}=setup()
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const hook=calls[0].options.hooks.PreToolUse[0].hooks[0]
+    const moved=await hook({tool_name:'Agent',tool_input:{subagent_type:'slack-scout',prompt:'Cursor: none',run_in_background:true}})
+    assert.equal(moved.hookSpecificOutput.updatedInput.run_in_background,false)
+    assert.equal(moved.hookSpecificOutput.updatedInput.subagent_type,'slack-scout')
+    assert.deepEqual(await hook({tool_name:'Agent',tool_input:{subagent_type:'github-scout',prompt:'x'}}),{})
+    assert.deepEqual(await hook({tool_name:'mcp__fleet__day',tool_input:{action:'list'}}),{})
+    assert.match(calls[0].prompt,/Granola at \d{4}-\d\d-\d\dT/)
+  } finally { await manager.close() }
+})
