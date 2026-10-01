@@ -137,7 +137,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
     catch (error) { if (error && error.name === 'SyntaxError') throw new Error(`${file} failed to load: ${error.message}`) }
   }
   const added = Object.keys(context).filter(k => !before.has(k)).sort()
-  assert.deepEqual(added, ['Fleet', 'FleetAsk', 'FleetBlocks', 'FleetConnections', 'FleetControl', 'FleetQueue', 'FleetSettings', 'FleetTeams'],
+  assert.deepEqual(added, ['Fleet', 'FleetAsk', 'FleetBlocks', 'FleetConnections', 'FleetControl', 'FleetDay', 'FleetQueue', 'FleetSettings', 'FleetTeams'],
     'the only new globals may be the one namespace each file publishes')
   // Every namespace has to survive its own file's boot wiring. app.js and control.js
   // publish partway down rather than as the value their wrapper returns, precisely so

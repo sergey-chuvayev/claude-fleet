@@ -58,19 +58,24 @@ window.FleetDay=(()=>{
     return `<section class="day-section">${list('Later',later,true)}${list('Done',done,false)}</section>`
   }
   const addHtml=()=>`<details class="day-add" data-evidence="add"><summary>＋ Add something</summary><div class="day-add-fields">${keep('add:title')}<textarea data-keep="add:context" rows="3" maxlength="8000" placeholder="Context, links, who is waiting. The agent fills in the rest."></textarea><div class="day-actions"><select data-add="priority" aria-label="Priority">${options(PRIORITY,'should')}</select><select data-add="mode" aria-label="How">${options(MODE,'me')}</select><button type="button" class="button resume" data-add-item>Add to today</button></div></div></details>`
+  // The Today tab: the board in a pane of its own, beside the Day's console. The console
+  // is the ordinary control panel, so talking to the Day works like any agent.
+  const pane=()=>document.getElementById('today-pane')
+  const active=()=>window.FleetQueue?.view?.()==='today' && !!pane()
+  const current=days=>days.find(s=>s.dayDate===today()) || null
+  function bindPanel(panel) {
+    // Bound once for the panel's life; the session it shows is read from the dataset at
+    // click time, for the same reason as the initiative board.
+    panel.addEventListener('click',event=>act(panel.dataset.sessionId,event))
+    // On a proposal the choices travel with Today/Later/Drop; on a triaged item a new
+    // mode is the instruction, so it goes at once.
+    panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])');if(card && event.target.dataset.field==='mode')triage(panel.dataset.sessionId,card.dataset.card,{mode:event.target.value},'Updated')})
+  }
   function board(s) {
     let panel=document.getElementById('day-board')
-    if(s.kind!=='day'){panel?.remove();return}
-    if(!panel){
-      panel=document.createElement('details');panel.id='day-board';panel.open=true
-      document.getElementById('conversation').before(panel)
-      // Bound once for the panel's life; the session it shows is read from the dataset
-      // at click time, for the same reason as the initiative board.
-      panel.addEventListener('click',event=>act(panel.dataset.sessionId,event))
-      // On a proposal the choices travel with Today/Later/Drop; on a triaged item a new
-      // mode is the instruction, so it goes at once.
-      panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])');if(card && event.target.dataset.field==='mode')triage(panel.dataset.sessionId,card.dataset.card,{mode:event.target.value},'Updated')})
-    }
+    if(s.kind!=='day' || !pane()){panel?.remove();return}
+    pane().querySelector('.today-empty')?.remove()
+    if(!panel){panel=document.createElement('section');panel.id='day-board';panel.setAttribute('aria-label','Day board');pane().append(panel);bindPanel(panel)}
     panel.dataset.sessionId=s.id
     const b=s.dayBoard || {items:[],cursors:{}}
     const signature=JSON.stringify([s.id,b,s.status])
@@ -79,19 +84,32 @@ window.FleetDay=(()=>{
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
     const typed=new Map([...panel.querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.value]))
     const focused=document.activeElement?.closest?.('#day-board [data-keep]')?.dataset.keep
-    const scrollTop=panel.querySelector('.initiative-body')?.scrollTop || 0
+    const scrollTop=panel.querySelector('.today-body')?.scrollTop || 0
     panel.fleetSignature=signature
     const items=b.items.filter(i=>i.status!=='dropped')
     const done=items.filter(i=>i.status==='done').length,triaged=items.filter(i=>i.status!=='proposed').length
     const waiting=items.reduce((n,i)=>n+open(i).length,0)
-    const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'})
-    panel.innerHTML=`<summary><strong>${escape(when)}</strong>${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></summary><div class="initiative-body">${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
+    const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})
+    const gathering=!items.length && control().isWorking(s) ? '<p class="note today-gathering">Gathering your day from Slack, Linear, Granola, GitHub and your calendar…</p>':''
+    panel.innerHTML=`<header class="today-head"><div><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
     for(const el of panel.querySelectorAll('details[data-evidence]'))if(opened.has(el.dataset.evidence))el.open=true
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
-    panel.querySelector('.initiative-body').scrollTop=scrollTop
+    panel.querySelector('.today-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-keep="${CSS.escape(focused)}"]`)?.focus({preventScroll:true})
-    document.getElementById('message-input').placeholder='Ask your day agent…'
+    const composer=document.getElementById('message-input');if(composer)composer.placeholder='Ask your day agent…'
+  }
+  // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
+  function render(days) {
+    const day=current(days),badge=document.getElementById('today-count')
+    const waiting=day?.dayProgress?.waiting || 0,proposed=day?.dayProgress?.proposed || 0
+    if(badge){badge.textContent=waiting || proposed || '';badge.dataset.alert=String(!!waiting);badge.title=waiting ? `${waiting} waiting on you` : proposed ? `${proposed} to triage` : ''}
+    if(!pane())return
+    if(day){if(!document.getElementById('day-board'))pane().querySelector('.today-empty')?.remove();return}
+    document.getElementById('day-board')?.remove()
+    if(pane().querySelector('.today-empty'))return
+    pane().insertAdjacentHTML('beforeend',`<div class="today-empty"><span class="modal-eyebrow">TODAY</span><h2>Good morning.</h2><p class="note">One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
+    document.getElementById('start-day').addEventListener('click',start)
   }
   async function post(id,body,done) {
     try{await api(`/api/managed/${id}/day`,body);if(done)toast(done);control().refresh()}
@@ -136,27 +154,24 @@ window.FleetDay=(()=>{
       return post(id,{op:'add',item},'Added to today')
     }
   }
-  // Opens today's Day, or starts it. The server refuses a second Day for a date, so the
-  // button can only ever lead to one.
+  // The server refuses a second Day for a date, so this can only ever lead to one.
   async function start() {
-    const existing=(window.Fleet.snapshot()?.sessions || []).find(s=>s.kind==='day' && s.dayDate===today())
-    if(existing){window.Fleet.setFilter('all');return window.Fleet.select(existing.managedId)}
     const button=document.getElementById('start-day');button.disabled=true
     try{
-      const data=await api('/api/managed',{kind:'day',requestId:crypto.randomUUID()})
-      await window.Fleet.tick();window.Fleet.setFilter('all');window.Fleet.select(data.session.id)
+      const prompt=document.getElementById('today-note')?.value.trim()
+      await api('/api/managed',{kind:'day',...(prompt ? {prompt}:{}),requestId:crypto.randomUUID()})
+      await window.Fleet.tick()
       toast('Good morning. Gathering your day.')
-    }catch(error){toast(error.message)}finally{button.disabled=false}
+    }catch(error){toast(error.message);button.disabled=false}
   }
   function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+  // Mounted before work-queue.js runs, which owns switching between the views.
   function mount() {
-    if(document.getElementById('start-day'))return
-    const button=document.createElement('button')
-    button.id='start-day';button.className='button';button.type='button';button.textContent='☀ Today'
-    button.title='Open today’s Day, or start one: your Slack, Linear, meetings and PRs in one plan'
-    document.getElementById('new-session').before(button)
-    button.addEventListener('click',start)
+    const tabs=document.querySelector('.work-tabs'),sessions=document.getElementById('sessions-pane')
+    if(!tabs || !sessions || document.getElementById('view-today'))return
+    tabs.insertAdjacentHTML('afterbegin','<button type="button" class="button" id="view-today" aria-pressed="false" title="Your day: what needs you, in one plan">Today <span id="today-count"></span></button>')
+    sessions.insertAdjacentHTML('afterend','<section class="sessions-pane today-pane" id="today-pane" aria-label="Today" hidden></section>')
   }
   mount()
-  return {board,start}
+  return {board,render,active,current,start}
 })()

@@ -2381,7 +2381,7 @@ body[data-modal] { overflow:hidden }
   margin-bottom:20px;
   margin:20px 0 0;
 }
-#initiative-board, #day-board {
+#initiative-board {
   flex:none;
   border:1px solid var(--line);
   border-radius:var(--radius-lg);
@@ -2389,15 +2389,15 @@ body[data-modal] { overflow:hidden }
   font-size:var(--text-sm);
   overflow:hidden;
 }
-#initiative-board>summary, #day-board>summary {
+#initiative-board>summary {
   display:flex;
   gap:12px;
   padding:12px;
   cursor:pointer;
   background:var(--panel);
 }
-#initiative-board>summary strong, #day-board>summary strong { margin-right:auto }
-#initiative-board>summary span, #day-board>summary span { color:var(--muted); font-variant-numeric:tabular-nums }
+#initiative-board>summary strong { margin-right:auto }
+#initiative-board>summary span { color:var(--muted); font-variant-numeric:tabular-nums }
 .initiative-body {
   max-height:38vh;
   overflow:auto;
@@ -2776,11 +2776,11 @@ body[data-modal] { overflow:hidden }
 .conversation .block-head { border:0; background:var(--panel) }
 .conversation .block[data-status="running"] .block-icon { color:var(--term-yellow) }
 .conversation .block[data-status="error"] .block-icon { color:var(--term-red) }
-#initiative-board, #day-board {
+#initiative-board {
   border:0; border-radius:0; margin:0; background:transparent;
   min-height:0; flex:0 1 auto;
 }
-#initiative-board[open], #day-board[open] { display:flex; flex-direction:column }
+#initiative-board[open] { display:flex; flex-direction:column }
 /* A `details` does not lay its content out as a direct child any more: Chrome puts an
    anonymous `::details-content` box between the element and everything after `summary`.
    That box, not `.initiative-body`, is the flex item here, so with no rule of its own it
@@ -2790,9 +2790,9 @@ body[data-modal] { overflow:hidden }
    the constraint down to the body, which is what actually scrolls. Browsers without the
    pseudo-element ignore this and shrink `.initiative-body` directly instead, which the
    `flex` below makes work the same way. */
-#initiative-board[open]::details-content, #day-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
-#initiative-board>summary, #day-board>summary { flex:none; background:transparent; padding:10px 0; align-items:center }
-#initiative-board .initiative-body, #day-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
+#initiative-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
+#initiative-board>summary { flex:none; background:transparent; padding:10px 0 }
+#initiative-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
 #initiative-board .initiative-handoff { border-radius:0; background:transparent; border-left:1px solid var(--line) }
 .detail:has(#composer) .composer {
   display:flex; flex-direction:column; min-height:130px; flex:0 1 auto;
@@ -3068,7 +3068,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 
 /* ── Day ─────────────────────────────────────────────────────────────────────
    The Day board reuses the initiative board's frame; these are its own parts. */
-#day-board>summary .day-alert { color:var(--stale); font-weight:600 }
+#day-board .day-alert { color:var(--stale); font-weight:600 }
 .day-small { padding:3px 8px; font-size:var(--text-xs) }
 .day-section { padding:4px 0 14px }
 .day-section>h4 {
@@ -3124,6 +3124,37 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-rest li { padding:5px 0; border-bottom:1px solid var(--line) }
 .day-tag { color:var(--accent) }
 @media(max-width:720px) {
-  #day-board .initiative-body { max-height:50vh }
   .day-actions .button { flex:1 1 auto }
+}
+
+/* ── The Today tab ───────────────────────────────────────────────────────────
+   Two panels: the Day board, and the Day's console in the ordinary control panel.
+   The inspector stays out of the way; syncDetails hides it in this view. */
+.work-tabs #today-count[data-alert=true] { color:var(--stale); font-weight:600 }
+.workspace[data-view=today] { grid-template-columns:minmax(0,1.3fr) 1px minmax(380px,1fr) }
+.workspace[data-view=today] #splitter { pointer-events:none }
+.today-pane { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding:0 }
+.today-pane[hidden] { display:none }
+#day-board { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; font-size:var(--text-sm) }
+.today-head {
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  padding:24px 28px 16px; border-bottom:1px solid var(--divider);
+}
+.today-head h2 { margin:4px 0 0; font-size:20px; font-weight:600; color:var(--text) }
+.today-stats { display:flex; align-items:center; gap:12px; color:var(--muted); font-variant-numeric:tabular-nums }
+.today-body { flex:1 1 auto; min-height:0; overflow:auto; padding:18px 28px 28px }
+.today-gathering { margin:0 0 16px }
+.today-empty { max-width:520px; margin:auto; padding:32px 28px; display:grid; gap:12px }
+.today-empty h2 { margin:0; font-size:24px; font-weight:600 }
+.today-empty .note { margin:0; line-height:1.7 }
+.today-empty textarea {
+  width:100%; box-sizing:border-box; padding:10px; resize:vertical;
+  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md);
+  font:var(--code)/1.6 var(--mono);
+}
+.today-empty .button { justify-self:start }
+@media(max-width:720px) {
+  .today-head, .today-body { padding-left:16px; padding-right:16px }
+  .today-pane { max-height:none; overflow:visible }
+  .today-body { overflow:visible }
 }

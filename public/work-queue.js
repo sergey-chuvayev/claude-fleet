@@ -13,7 +13,7 @@
   }
   function visible(sessions,filter='all',search='') {
     const query=search.trim().toLowerCase()
-    return sessions.filter(s=>s.managed && !s.archived && !s.background && (filter==='all' || state(s)===filter) &&
+    return sessions.filter(s=>s.managed && !s.archived && !s.background && s.kind!=='day' && (filter==='all' || state(s)===filter) &&
       [s.title,s.name,s.cwd,s.teamName,s.worktreeBranch].filter(Boolean).join(' ').toLowerCase().includes(query))
       .sort((a,b)=>groups.findIndex(([id])=>id===state(a))-groups.findIndex(([id])=>id===state(b)) ||
         (state(a)==='queued' ? (a.queuePosition || 0)-(b.queuePosition || 0) : (b.lastActivity || 0)-(a.lastActivity || 0)))
@@ -32,15 +32,21 @@
   // The grouping rules are shared with Node tests; no browser dependency is needed.
   if (typeof module!=='undefined' && module.exports) {module.exports={state,visible,nextAction};return}
   const { $,esc,update,store,toast,key,money }=window.Fleet
-  let mode=store.get('fleet:view')==='queue' ? 'queue':'sessions',filter='all',search='',busy=false
+  const VIEWS=['sessions','queue','today']
+  let mode=VIEWS.includes(store.get('fleet:view')) ? store.get('fleet:view'):'sessions',filter='all',search='',busy=false
   const mounted=()=>!!$('work-pane')
   function active() {return mode==='queue' && mounted()}
+  // The one place views change. Today's pane and tab belong to day.js, which mounts
+  // them before this file runs; without them the Today view simply is not offered.
   function switchView(next) {
+    if (next==='today' && !$('today-pane')) next='sessions'
     mode=next;store.set('fleet:view',mode)
-    $('sessions-pane').hidden=mode==='queue';$('work-pane').hidden=mode!=='queue'
-    $('view-sessions').setAttribute('aria-pressed',String(mode==='sessions'))
-    $('view-queue').setAttribute('aria-pressed',String(mode==='queue'))
-    document.querySelector('.workspace').setAttribute('aria-label',mode==='queue' ? 'Work queue':'Sessions')
+    $('sessions-pane').hidden=mode!=='sessions';$('work-pane').hidden=mode!=='queue'
+    if ($('today-pane')) $('today-pane').hidden=mode!=='today'
+    for (const view of VIEWS) $(`view-${view}`)?.setAttribute('aria-pressed',String(mode===view))
+    const workspace=document.querySelector('.workspace')
+    workspace.dataset.view=mode
+    workspace.setAttribute('aria-label',mode==='queue' ? 'Work queue':mode==='today' ? 'Today':'Sessions')
     window.Fleet.render()
   }
   function reveal() {
@@ -90,12 +96,13 @@
       return `<section aria-label="${label}"><h3 class="work-group" data-state="${id}">${label}<span>${members.length}</span></h3>${members.map(s=>`<button type="button" class="session work-row" data-session="${esc(key(s))}" aria-pressed="${current===key(s)}"><span><span class="session-top"><span class="badge ${id==='attention' ? 'stale':id==='running' ? 'busy':'idle'}"><span class="dot"></span>${label}</span><span class="session-name">${esc(s.teamName || 'Single agent')}</span></span><span class="session-title">${esc(s.title || s.name || 'Untitled task')}</span><span class="session-meta">${esc(s.cwdShort || s.cwd)}${s.worktreeBranch ? ' · '+esc(s.worktreeBranch):''}</span><span class="work-next">${esc(nextAction(s,queue))}</span></span><span class="session-context" title="Context tokens used">${s.contextTokens == null ? '—' : esc(Math.round(s.contextTokens/1000)+'k')}</span></button>`).join('')}</section>`
     }).join(''))
   }
-  window.FleetQueue={active,visible:sessions=>visible(sessions,filter,search),render,reveal,switchView}
+  window.FleetQueue={active,visible:sessions=>visible(sessions,filter,search),render,reveal,switchView,view:()=>mode}
   const original=$('sessions-pane')
   if (!original || !$('view-queue')) return
   original.insertAdjacentHTML('afterend',`<section class="sessions-pane work-pane" id="work-pane" aria-label="Managed tasks" hidden><div class="section-heading"><h2>Work queue <span id="work-count">0</span></h2><button type="button" class="button resume" id="work-add">＋ Add task</button></div><div class="work-controls"><span id="work-capacity" role="status">Connecting to queue…</span><label>Concurrent tasks<select id="work-limit" aria-label="Concurrent tasks">${Array.from({length:8},(_,i)=>`<option value="${i+1}"${i===3 ? ' selected':''}>${i+1}</option>`).join('')}</select></label><button type="button" class="button" id="work-enable">Enable queue</button><button type="button" class="button" id="work-pause" hidden>Pause queue</button><p class="note" id="work-note"></p><p class="form-error" id="work-error" role="alert" hidden></p></div><div class="work-filters" id="work-filters" aria-label="Filter tasks"></div><label class="work-search"><span class="sr-only">Find a task</span><input id="work-search" type="search" placeholder="Find a task or project…"></label><div class="list-head"><span>TASK / SESSION</span><span>TOKENS</span></div><div id="work-list" class="session-list"></div></section>`)
   $('view-sessions').addEventListener('click',()=>switchView('sessions'))
   $('view-queue').addEventListener('click',()=>switchView('queue'))
+  $('view-today')?.addEventListener('click',()=>switchView('today'))
   $('work-add').addEventListener('click',()=>window.FleetControl.openLaunch())
   $('work-enable').addEventListener('click',()=>changeQueue({enabled:true}))
   $('work-pause').addEventListener('click',()=>changeQueue({paused:!window.Fleet.snapshot()?.queue?.paused}))

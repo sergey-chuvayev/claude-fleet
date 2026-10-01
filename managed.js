@@ -486,10 +486,19 @@ class ManagedSessions extends EventEmitter {
       if (s.kind === 'day') {
         options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.SYSTEM}
         options.agents = dayAgent.AGENTS
-        options.model = boundedModel(s.selectedModel,'sonnet')
+        options.model = boundedModel(selectedModel,'sonnet')
         // Code is changed by initiatives the operator launches, never by the Day itself.
         options.disallowedTools = ['Edit','Write','NotebookEdit']
         options.mcpServers={fleet:await day.sdkServer(s,()=>this.changed(s,true))}
+        // Scouts run in the foreground. A background subagent outlives the turn that
+        // launched it, and once that turn's result arrives the SDK closes its input:
+        // every permission check and every call to the in-process day tool after that
+        // fails with "Stream closed". Several foreground calls in one message still run
+        // side by side, so the intake loses nothing by waiting for them.
+        options.hooks={PreToolUse:[{hooks:[async input=>{
+          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+        }]}]}
       }
       if (team?.workflow) {
         if (ownerReview.refresh(s)) this.changed(s,true)

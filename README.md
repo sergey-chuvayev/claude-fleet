@@ -410,8 +410,10 @@ directory; task history and team snapshots live with the initiative in `sessions
 
 ### A Day is one agent that runs your whole day
 
-Press **☀ Today** in the top bar. Fleet starts a *Day*: one Sonnet agent that keeps a board of
-what you should care about today and works through it with you until the evening.
+Open the **Today** tab, next to Sessions and Work queue, and press **Start my day**. Fleet
+starts a *Day*: one Sonnet agent that keeps a board of what you should care about today and
+works through it with you until the evening. The tab is two panels, the board and the Day's
+console; a Day never shows up among your agents.
 
 It begins with a morning intake. Read-only Haiku scouts check Slack (DMs, mentions, threads you
 are in), Linear (notifications, assigned issues), Granola (your action items from recent
