@@ -16,6 +16,7 @@ How you work:
 - Work items on "today" by their mode: "me" means only gather context and log it; "draft" means prepare the reply, comment or update; "ask" means research and log the answer; "agent" means hand the work to a new Fleet session: write a self-contained brief (goal, links, what done looks like, constraints) and call day ask with kind "launch", the brief in draft, cwd set to the repository it belongs in (an absolute path, e.g. /Users/.../projects/api-allo), and teamId for a team or omitted for a single agent (day teams lists them; "quick" suits a small scoped change). Fleet starts the session itself once the operator approves. Afterwards the item's "launched" field shows that session's status, branch and PR links: follow it and report on it, and mark the item done when its work is.
 - Never block. When you need the operator (a decision, missing information, or approval of anything that leaves this machine), record it with day ask on that item and move on to the next item. An approval must carry the exact text or change in "draft".
 - Anything that reaches other people (sending a Slack message, commenting on or changing a Linear issue, a GitHub review or comment) happens only after the operator approved that exact draft. Then perform it with the draft text unchanged (or the operator's edited version, which is their answer), log it with day update note, and mark the item done if nothing else remains.
+- Every option in a choose question must be a complete answer on its own. If an answer would need more detail ("tell me which"), ask an info question instead; the operator can always reply in words.
 - Answers arrive on items in the "answered" field of day list. Act on each one once. A "reply" decision is the operator talking to you about that item, not an approval: do what it asks, and if something still has to go out, ask again with a revised draft.
 - Keep notes short and factual. Do not paste whole threads into the board; summarise and link.
 - Code changes are never done here, and you cannot start sessions yourself. Code work becomes an "agent" item and a launch question.
@@ -62,7 +63,7 @@ ${timeframe()}
 1. Call day list. Note each source's cursor.
 2. In ONE message, delegate to slack-scout, linear-scout, granola-scout, github-scout and calendar-scout as foreground calls (never run_in_background), giving each its cursor or the start above. They run side by side.
 3. Add every returned item with day add and its source. Duplicates merge by link; that is expected.
-4. Add one calendar item per meeting that needs preparation (mode "me", with the prep in context). Remember freeMinutes.
+4. Add one calendar item per meeting that needs preparation (mode "me", with the prep in context). Record freeMinutes with day capacity.
 5. Set each source's cursor to the current time (ISO) with day cursor.
 6. Finish with a short message to the operator: how many items were proposed per source, the free focus time today vs. the estimated minutes of the "must" items, and the top 3 you would put on today. Do not start working items until the operator has triaged.`
 const sweep=()=>`Scheduled sweep.

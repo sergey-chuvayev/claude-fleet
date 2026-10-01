@@ -111,3 +111,9 @@ test('approving, rejecting and editing are told apart',()=>{
   day.answer(s,item.id,a.id,'approve');day.answer(s,item.id,b.id,'reject');day.answer(s,item.id,c.id,'third draft, edited')
   assert.deepEqual([a.decision,b.decision,c.decision],['approve','reject','edit'])
 })
+test('free time from the calendar is recorded and bounded',()=>{
+  const s={}
+  assert.deepEqual(Object.keys(day.act(s,{action:'capacity',freeMinutes:270})),['freeMinutes','at'])
+  assert.equal(s.dayBoard.capacity.freeMinutes,270)
+  assert.throws(()=>day.act(s,{action:'capacity',freeMinutes:-5}),/0-960/)
+})

@@ -69,17 +69,29 @@ window.FleetDay=(()=>{
       return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape(x.teamName || 'Agent')} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} ↗</button>`
     }).join('')}</div>`
   }
-  function todayHtml(items,opened) {
+  // Today's items under their priority. A row says only what is unusual about it (it
+  // needs you, it is moving, it launched something); "today" on every row said nothing.
+  const STATE_ICON={waiting_on_you:['●','Needs you'],in_progress:['◐','In progress']}
+  function capacityHtml(planned,b) {
+    const free=b.capacity?.freeMinutes
+    if(free==null)return planned ? `<span class="day-capacity">${duration(planned)} planned</span>`:''
+    const over=planned>free,share=free ? Math.min(100,Math.round(planned/free*100)) : 100
+    return `<span class="day-capacity ${over ? 'is-over':''}" title="Estimated time of today's open items against focus time left on your calendar"><span class="mini-bar"><i style="width:${share}%"></i></span>${duration(planned)} planned · ${duration(free)} free${over ? ' · over by '+duration(planned-free):''}</span>`
+  }
+  function todayHtml(items,opened,b) {
     const today=items.filter(i=>['today','in_progress','waiting_on_you'].includes(i.status))
-    const order={must:0,should:1,could:2}
-    today.sort((a,b)=>order[a.priority]-order[b.priority] || a.createdAt-b.createdAt)
-    const row=item=>`<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="task-state" data-state="${escape(item.status)}">${escape(STATUS[item.status])}</span><span class="day-priority" data-priority="${escape(item.priority)}">${PRIORITY[item.priority]}</span>${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></summary>${launchedHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
-    return `<section class="day-section"><h4>Today <span>${today.length}${minutes(today) ? ` · ${duration(minutes(today))} estimated`:''}</span></h4>${today.length ? `<ol class="initiative-tasks day-list">${today.map(row).join('')}</ol>` : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
+    today.sort((a,b)=>a.createdAt-b.createdAt)
+    const row=item=>{
+      const icon=STATE_ICON[item.status],latest=item.log.at(-1)?.text
+      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${latest ? `<span class="day-latest">${escape(latest)}</span>`:''}</summary>${launchedHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
+    }
+    const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
+    return `<section class="day-section"><h4>Today <span>${today.length}</span>${capacityHtml(minutes(today),b)}</h4>${today.length ? groups.map(([p,list])=>`<div class="day-group" data-priority="${p}"><h5>${PRIORITY[p]} <span>${list.length}${minutes(list) ? ` · ${duration(minutes(list))}`:''}</span></h5><ol class="day-list">${list.map(row).join('')}</ol></div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
   }
   function restHtml(items) {
     const later=items.filter(i=>i.status==='later'),done=items.filter(i=>i.status==='done')
     if(!later.length && !done.length) return ''
-    const list=(title,list,action)=>list.length ? `<details class="day-rest" data-evidence="rest-${title}"><summary>${title} <span>${list.length}</span></summary><ul>${list.map(i=>`<li data-card="${escape(i.id)}">${head(i)}${action ? `<button type="button" class="button day-small" data-triage="today">Today</button>`:''}</li>`).join('')}</ul></details>`:''
+    const list=(title,list,action)=>list.length ? `<details class="day-rest" data-evidence="rest-${title}"><summary>${title} <span>${list.length}</span></summary><ul>${list.map(i=>`<li data-card="${escape(i.id)}" ${action ? '':'class="is-done"'}>${action ? '':'<span class="day-check" aria-hidden="true">✓</span>'}${head(i)}${action ? `<button type="button" class="button day-small" data-triage="today">Today</button>`:''}</li>`).join('')}</ul></details>`:''
     return `<section class="day-section">${list('Later',later,true)}${list('Done',done,false)}</section>`
   }
   const addHtml=()=>`<details class="day-add" data-evidence="add"><summary>＋ Add something</summary><div class="day-add-fields">${keep('add:title')}<textarea data-keep="add:context" rows="3" maxlength="8000" placeholder="Context, links, who is waiting. The agent fills in the rest."></textarea><div class="day-actions"><select data-add="priority" aria-label="Priority">${options(PRIORITY,'should')}</select><select data-add="mode" aria-label="How">${options(MODE,'me')}</select><button type="button" class="button resume" data-add-item>Add to today</button></div></div></details>`
@@ -110,7 +122,7 @@ window.FleetDay=(()=>{
     panel.dataset.sessionId=s.id
     const b=s.dayBoard || {items:[],cursors:{}}
     const launchedState=b.items.flatMap(i=>i.launched || []).map(id=>(window.Fleet.snapshot()?.sessions || []).find(x=>x.managedId===id)).map(x=>x ? [x.managedStatus,x.taskProgress] : null)
-    const signature=JSON.stringify([s.id,b,s.status,launchedState])
+    const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks])
     if(panel.fleetSignature===signature)return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
@@ -123,7 +135,7 @@ window.FleetDay=(()=>{
     const waiting=items.reduce((n,i)=>n+open(i).length,0)
     const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})
     const gathering=!items.length && control().isWorking(s) ? '<p class="note today-gathering">Gathering your day from Slack, Linear, Granola, GitHub and your calendar…</p>':''
-    panel.innerHTML=`<header class="today-head"><div><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-usage" id="today-usage">${usageHtml(s)}</div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span><button type="button" class="button day-small" data-sweep ${control().isWorking(s) ? 'disabled':''}>Check now</button></div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened)}${addHtml()}${restHtml(items)}</div>`
+    panel.innerHTML=`<header class="today-head"><div><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-usage" id="today-usage">${usageHtml(s)}</div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}<span>${done}/${triaged} done</span>${checkHtml(s)}</div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened,b)}${addHtml()}${restHtml(items)}</div>`
     for(const el of panel.querySelectorAll('details[data-evidence]'))if(opened.has(el.dataset.evidence))el.open=true
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
@@ -131,6 +143,22 @@ window.FleetDay=(()=>{
     panel.querySelector('.today-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-keep="${CSS.escape(focused)}"]`)?.focus({preventScroll:true})
     const composer=document.getElementById('message-input');if(composer)composer.placeholder='Ask your day agent…'
+  }
+  // When the Day last looked at your sources and when it will next, so a greyed-out
+  // button is never the only clue that something is (or is not) happening.
+  const clock=ms=>new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+  function checkHtml(s) {
+    const c=s.dayChecks,working=control().isWorking(s)
+    const last=[...s.messages].reverse().find(m=>m.role==='user')
+    if(working && last?.runPrompt)return `<span class="day-check-state is-running"><span class="day-spinner" aria-hidden="true"></span>${escape(AUTO_RUN[last.text] || 'Checking')}…</span>`
+    let when=''
+    if(c?.lastAt){
+      const next=new Date(c.lastAt+c.everyMin*60000),[from,to]=c.hours || [8,20]
+      const later=next.getHours()>=to || next.toDateString()!==new Date().toDateString()
+      const morning=new Date();morning.setDate(morning.getDate()+1);morning.setHours(from,0,0,0)
+      when=`Checked ${clock(c.lastAt)} · next ${later ? `tomorrow ${clock(morning)}` : next.getHours()<from ? clock(new Date(next).setHours(from,0,0,0)) : clock(next)}`
+    }
+    return `<span class="day-check-state">${when}</span><button type="button" class="button day-small" data-sweep ${working ? 'disabled title="The Day agent is busy"':''}>Check now</button>`
   }
   // What today has used: this Day's own tokens and context, then the account's plan
   // windows, which every session on the machine draws from, the Day included.
@@ -164,6 +192,36 @@ window.FleetDay=(()=>{
     pane().insertAdjacentHTML('beforeend',`<div class="today-empty"><span class="modal-eyebrow">TODAY</span><h2>Good morning.</h2><p class="note">One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
     document.getElementById('start-day').addEventListener('click',start)
   }
+  // The Day's console, told in its own terms. An automatic run is a marker, not a
+  // message from the operator; back-to-back board calls are one "Board" block that says
+  // what changed, instead of six identical rows of mcp__fleet__day.
+  const AUTO_RUN={'Start my day':'Morning intake','Sweep':'Auto check','Pick up answers':'Picked up your answers'}
+  const BOARD_VERB={add:'added',update:'updated',ask:'asked',list:'read the board',inspect:'looked up',cursor:'moved cursors',teams:'listed teams',capacity:'noted free time'}
+  function messages(list) {
+    const out=[],groups=[]
+    let group=null
+    for(const m of list){
+      if(m.role==='user' && m.runPrompt){out.push({id:m.id,role:'event',text:AUTO_RUN[m.text] || m.text,at:m.at});group=null;continue}
+      if(m.role==='tool' && m.tool==='mcp__fleet__day'){
+        if(!group){group={id:`${m.id}~board`,role:'tool',tool:m.tool,label:'Board',approval:'auto',at:m.at,calls:[]};out.push(group);groups.push(group)}
+        group.calls.push(m);continue
+      }
+      group=null;out.push(m)
+    }
+    for(const g of groups){
+      const counts={}
+      for(const c of g.calls){const a=c.input?.action || 'call';counts[a]=(counts[a] || 0)+1}
+      g.status=g.calls.some(c=>c.status==='running') ? 'running' : g.calls.some(c=>c.status==='error') ? 'error' : 'done'
+      g.ms=g.calls.every(c=>c.ms!=null) ? g.calls.reduce((n,c)=>n+c.ms,0) : null
+      g.target=Object.entries(counts).map(([a,n])=>['add','update','ask'].includes(a) ? `${BOARD_VERB[a]} ${n}` : BOARD_VERB[a] || a).join(' · ')
+      g.lines=g.calls.map(c=>{
+        const i=c.input || {},what=i.title || i.question || i.note || i.source || ''
+        return {text:`${BOARD_VERB[i.action] || i.action || 'call'}${what ? `: ${String(what).slice(0,140)}`:''}${c.status==='error' && c.result ? ` (failed: ${String(c.result).slice(0,160)})`:''}`,error:c.status==='error'}
+      })
+      delete g.calls
+    }
+    return out
+  }
   // The Day's subagents, as tabs above its console. "Day agent" is the conversation;
   // a subagent tab swaps it for that subagent's assignment, steps and report. Read-only:
   // a subagent answers to the Day, not to you.
@@ -182,6 +240,8 @@ window.FleetDay=(()=>{
       strip.addEventListener('click',event=>{const tab=event.target.closest('[data-agent]');if(!tab)return;shownAgent=tab.dataset.agent || null;strip.fleetSignature=null;agents(control().session())})
     }
     if(!view){view=document.createElement('section');view.id='day-agent-view';view.className='day-agent-view';conversation.after(view)}
+    // Tabs earn their row only once there is something to switch to.
+    strip.hidden=!list.length
     const running=list.filter(d=>d.status==='running').length
     const signature=JSON.stringify([s.id,shownAgent,list.map(d=>[d.id,d.status,d.steps.length,d.report?.length,d.output?.length])])
     if(strip.fleetSignature!==signature){
@@ -266,5 +326,5 @@ window.FleetDay=(()=>{
     sessions.insertAdjacentHTML('afterend','<section class="sessions-pane today-pane" id="today-pane" aria-label="Today" hidden></section>')
   }
   mount()
-  return {board,render,active,current,start}
+  return {board,render,active,current,start,messages}
 })()
