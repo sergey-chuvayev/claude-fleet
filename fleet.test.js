@@ -770,7 +770,7 @@ test('a waiting session says it is queued, and where it is in the queue', () => 
 // bare `controlSession`, which lives in control.js and was never published, so the button
 // threw a ReferenceError and did nothing at all. Same class of bug as `tick`, one layer
 // further in. So: render a board, press the button, and require it to reach its names.
-test('the initiative board button can reach the names it uses', () => {
+test('the initiative board preserves review evidence without monetary controls', () => {
   const vm = require('node:vm')
   // A DOM small enough to read and real enough to run board() and its click handler.
   // querySelector hands back a persistent stub per selector so the code under test can
@@ -835,20 +835,10 @@ test('the initiative board button can reach the names it uses', () => {
   const panel = byId.get('initiative-board')
   assert.equal(panel.dataset.sessionId, 'i1', 'the panel records whose board it is showing')
 
-  // The panel outlives the session in it, so the click must read the id from the panel
-  // rather than from whichever session first created it.
+  assert.doesNotMatch(panel.innerHTML,/Adjust limits|data-adjust-limits|Usage cap|API-rate|\$18\.81|\$10/)
   context.fixture = { ...context.fixture, id: 'i2', teamName: 'Second initiative' }
   vm.runInContext('window.FleetTeams.board(fixture)', context)
   assert.equal(panel.dataset.sessionId, 'i2', 'switching initiative updates it')
-
-  const clicks = panel.listeners.click || []
-  assert.ok(clicks.length, 'the board wires a click handler')
-  const unresolved = []
-  for (const handler of clicks) {
-    try { handler({ target: { closest: () => ({ dataset: { adjustLimits: '' } }) } }) }
-    catch (error) { if (error && error.name === 'ReferenceError') unresolved.push(error.message) }
-  }
-  assert.deepEqual(unresolved, [], 'the board action reached for a name no namespace hands it')
 
   context.fixture={...context.fixture,teamName:'Owner + review',teamSnapshot:require('./teams').getTeam('owner-review'),taskBoard:{tasks:[{
     id:'request',title:'Fix redirect',owner:'owner',status:'stale',attempt:2,criteria:['Keep query parameters.'],dependencies:[],reviews:{},snapshot:{commit:'1234567890abcdef',tree:'tree'},reviewErrors:1,

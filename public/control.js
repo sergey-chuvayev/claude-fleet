@@ -198,7 +198,7 @@ function renderControl() {
   $('agent-state').textContent=(s.currentTool && s.status==='running' ? `Using ${s.currentTool}` : managedLabels[s.status])+queueNote
   const routing=$('model-routing'),decision=s.modelRouting
   routing.hidden=s.selectedModel!=='auto-jev'
-  routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}${decision.costUsd!=null ? ` Gateway evaluation: $${decision.costUsd.toFixed(6)}.`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
+  routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
   $('agent-state').className=`subtle ${s.status==='approval' ? 'stale' : ''}`
   const used=s.contextTokens, limit=s.contextLimit || 200000
   const share=used==null ? null : Math.min(100,Math.round(used/limit*100))

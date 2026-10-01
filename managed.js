@@ -401,9 +401,6 @@ class ManagedSessions extends EventEmitter {
       }
       if (team?.workflow) {
         if (ownerReview.refresh(s)) this.changed(s,true)
-        const remaining=(s.limits?.budgetUsd ?? team.workflow.budgetUsd)-(s.costUsd || 0)
-        if (remaining<=0) throw new Error('Usage cap reached. Increase the cap explicitly before continuing.')
-        options.maxBudgetUsd=remaining
         options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
         options.hooks={
           PreToolUse:[{hooks:[async input=>{
@@ -674,11 +671,10 @@ class ManagedSessions extends EventEmitter {
     const s=this.get(id)
     if (!s.teamSnapshot?.workflow) fail('This initiative does not have configurable limits.')
     if (this.runs.has(id)) fail('Stop the manager before changing its limits.',409)
-    const {budgetUsd,maxAttempts}=body
-    if (!Number.isFinite(budgetUsd) || budgetUsd<0.1 || budgetUsd>1000 || budgetUsd<(s.costUsd || 0)) fail('Choose a usage cap between the amount already used and $1,000 (minimum $0.10).')
+    const {maxAttempts}=body
     if (!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>10) fail('Choose 1–10 attempts per task.')
     const previous=s.limits
-    s.limits={budgetUsd,maxAttempts}
+    s.limits={maxAttempts}
     try {this.changed(s,true)} catch(error) {s.limits=previous;throw error}
     return s
   }
