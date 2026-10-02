@@ -288,6 +288,49 @@ function contextCell(s) {
   const p = percent(s)
   return `<span class="session-context ${heat(p)}">${p === null ? '—' : Math.round(p) + '%'}<span class="mini-bar"><i class="${heat(p)}" style="width:${p || 0}%"></i></span><small>${age(s.lastActivity)} ago</small></span>`
 }
+// ── Pixel avatars ─────────────────────────────────────────────────────────────
+// A session's avatar is a dot matrix in its own colour: its initial drawn in bright
+// pixels over a field of dimmer ones that brighten from left to right. While the agent
+// works, the pixels twinkle. Each pixel's twinkle phase is taken from the clock, not
+// from when the row was drawn, so the list re-rendering every couple of seconds never
+// restarts the animation.
+const GLYPHS = {
+  A:'0111010001111111000110001', B:'1111010001111101000111110', C:'0111110000100001000001111', D:'1111010001100011000111110',
+  E:'1111110000111101000011111', F:'1111110000111101000010000', G:'0111110000100111000101111', H:'1000110001111111000110001',
+  I:'1111100100001000010011111', J:'0011100010000101001001100', K:'1001010100110001010010010', L:'1000010000100001000011111',
+  M:'1000111011101011000110001', N:'1000111001101011001110001', O:'0111010001100011000101110', P:'1111010001111101000010000',
+  Q:'0111010001101011001001101', R:'1111010001111101001010001', S:'0111110000011100000111110', T:'1111100100001000010000100',
+  U:'1000110001100011000101110', V:'1000110001100010101000100', W:'1000110001101011101110001', X:'1000101010001000101010001',
+  Y:'1000101010001000010000100', Z:'1111100010001000100011111', 0:'0111010011101011100101110', 1:'0010001100001000010001110',
+  2:'1111000001011101000011111', 3:'1111000001001100000111110', 4:'1001010010111110001000010', 5:'1111110000111100000111110',
+  6:'0111010000111101000101110', 7:'1111100001000100010000100', 8:'0111010001011101000101110', 9:'0111010001011110000101110',
+}
+const AVATAR_TONES = ['#a8d8bf', '#b9b2ff', '#e6c891', '#9fcbe8', '#eba9b8']
+// A small deterministic generator, so a session's pattern is the same on every render.
+function seeded(text) {
+  let h = 2166136261
+  for (const ch of String(text)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000 }
+}
+function pixelAvatar(seed, initial, tone, working) {
+  const rand = seeded(seed), glyph = GLYPHS[initial] || null, now = Date.now() / 1000, cells = []
+  for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
+    const inGlyph = !!glyph && x > 0 && x < 6 && y > 0 && y < 6 && glyph[(y - 1) * 5 + (x - 1)] === '1'
+    const r = rand()
+    // Dim field, brighter towards the right; a few lit "stars"; the letter on top.
+    const base = inGlyph ? 0.95 : Math.min(0.5, 0.06 + r * 0.12 + (x / 6) * 0.12 + (r > 0.94 ? 0.28 : 0))
+    let motion = ''
+    if (working) {
+      const length = 1.4 + rand() * 1.8, phase = rand() * length
+      // Most of the field breathes softly and a few pixels flare like stars; the letter
+      // only dims a little, so it stays readable while everything around it moves.
+      const high = inGlyph ? 0.7 : rand() > 0.75 ? 0.6 : Math.min(0.32, base * 1.8 + 0.05)
+      motion = ` style="--o:${base.toFixed(2)};--hi:${high.toFixed(2)};animation-duration:${length.toFixed(2)}s;animation-delay:-${((now + phase) % length).toFixed(2)}s"`
+    }
+    cells.push(`<rect x="${(3.5 + x * 4.6).toFixed(1)}" y="${(3.5 + y * 4.6).toFixed(1)}" width="3.2" height="3.2" rx=".6" opacity="${base.toFixed(2)}"${motion}/>`)
+  }
+  return `<svg class="avatar-pixels" viewBox="0 0 38 38" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}</svg>`
+}
 function sessionRowHtml(s, spawnCounts) {
   // A row holding the selected sub-agent is an ancestor of the selection, not the
   // selection itself, so it gives up aria-pressed to the child row below it.
@@ -298,7 +341,8 @@ function sessionRowHtml(s, spawnCounts) {
   const preview = s.latestResponse || s.lastPrompt || 'Ready for your next idea'
   const initial = (s.title || s.name || 'F').trim().slice(0, 1).toUpperCase()
   const tone = [...key(s)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5
-  const avatar = `<span class="agent-avatar avatar-${tone}" aria-hidden="true">${esc(initial)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
+  const working = isWorkingRow(s)
+  const avatar = `<span class="agent-avatar avatar-${tone}${working ? ' is-working' : ''}" aria-hidden="true">${pixelAvatar(key(s), initial, tone, working)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
   const body = `<span class="session-title-row">${title}</span><span class="session-preview">${esc(preview)}</span>${top}${initiativeTag(s)}${rowMeta(s)}${turnRow(s)}`
   return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${avatar}<span class="session-summary">${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }

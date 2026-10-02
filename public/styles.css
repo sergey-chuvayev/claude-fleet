@@ -2902,11 +2902,17 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .session { grid-template-columns:38px minmax(0,1fr); gap:12px; padding:14px 10px; margin-bottom:4px; border:0; border-radius:12px }
 .session[aria-pressed=true] { box-shadow:none; background:var(--selected) }
 .session-summary { min-width:0 }
-.agent-avatar { position:relative; display:grid; place-items:center; width:38px; height:38px; border-radius:14px; background:#3d4543; color:#d6e5dd; font-size:17px; font-weight:500; margin-top:2px }
-.avatar-1 { background:#434050; color:#dcd3ef; border-radius:50% }
-.avatar-2 { background:#494238; color:#ebddc5; border-radius:12px }
-.avatar-3 { background:#37464d; color:#d0e3ef; border-radius:50% }
-.avatar-4 { background:#4e3c40; color:#edcfd5; border-radius:14px }
+.agent-avatar { position:relative; display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:#24242a; margin-top:2px; overflow:visible }
+.avatar-0 { background:#1f2a25 }
+.avatar-1 { background:#24223a }
+.avatar-2 { background:#2a251c }
+.avatar-3 { background:#1d262e }
+.avatar-4 { background:#2c1f24 }
+.avatar-pixels { display:block; width:38px; height:38px; border-radius:10px }
+/* While an agent works its pixels twinkle, each on its own clock (set inline). */
+.agent-avatar.is-working .avatar-pixels rect { animation-name:avatar-twinkle; animation-iteration-count:infinite; animation-timing-function:ease-in-out }
+@keyframes avatar-twinkle { 0%, 100% { opacity:var(--o) } 50% { opacity:var(--hi) } }
+@media(prefers-reduced-motion:reduce) { .agent-avatar.is-working .avatar-pixels rect { animation:none } }
 .avatar-status { position:absolute; right:-2px; bottom:-2px; width:10px; height:10px; border:2px solid var(--pane); border-radius:50%; background:currentColor }
 .session-title { font-size:13px; line-height:1.5; font-weight:600; margin:0; color:var(--text) }
 .session-preview { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; line-height:1.6; margin-top:2px }
