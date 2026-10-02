@@ -406,7 +406,7 @@ window.FleetDay=(()=>{
     const button=target.closest('[data-triage]')
     if(button){
       const card=button.closest('[data-card]'),changes={status:button.dataset.triage}
-      if(card.hasAttribute('data-proposed'))for(const el of card.querySelectorAll('[data-field]'))changes[el.dataset.field]=el.value
+      if(card.hasAttribute('data-proposed'))for(const el of card.querySelectorAll('select[data-field]'))changes[el.dataset.field]=el.value
       button.disabled=true
       return triage(id,card.dataset.card,changes)
     }

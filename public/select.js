@@ -59,7 +59,6 @@
     state.value.textContent = text
     state.trigger.disabled = select.disabled
     state.trigger.title = select.title || ''
-    for (const [key, value] of Object.entries(select.dataset)) if (key !== 'fleetSelect') state.trigger.dataset[key] = value
     const label = labelFor(select)
     state.trigger.setAttribute('aria-label', label ? `${label}: ${text}` : text)
     if (open === select) render()
