@@ -468,7 +468,11 @@ class ManagedSessions extends EventEmitter {
     this.projects.require(projectId)
     const today = [...this.sessions.values()].filter(x => x.kind === 'day' && x.dayBoard?.date === day.dateOf()).sort((a,b) => b.createdAt-a.createdAt)[0]
     if (!today) fail('There is no Day running today. Ask the operator to start their day first.')
-    const result = day.act(today,{action:'add',source:'me',...input,projectId},'agent')
+    // Only the fields a Day item takes. The manager's tool input also carries its own
+    // action ('suggest') and other keys; spread whole, they overrode the Day action and
+    // every suggestion failed with "Unknown Day board action."
+    const {title,context,priority,mode,links,estimateMin} = input || {}
+    const result = day.act(today,{title,context,priority,mode,links,estimateMin,source:'me',projectId,action:'add'},'agent')
     this.changed(today,true)
     return result
   }

@@ -167,3 +167,21 @@ test('a new project is just a title, and its manager starts setting it up at onc
     assert.throws(()=>manager.createProject({name:''}),/Project name/)
   } finally { await manager.close() }
 })
+
+test('a manager\'s suggestion, as its tool sends it, lands on today\'s Day with the project set',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const p=make(manager.projects)
+    // Exactly what the project tool passes on: its own action and unrelated keys included.
+    const input={action:'suggest',title:'Rebase #3799 onto main',context:'Stalled since July.',priority:'must',mode:'agent',links:['https://github.com/acme/api-allo/pull/3799'],estimateMin:30,deliverableId:'queue-as-a-ring-option',sessionId:'x'}
+    assert.throws(()=>manager.suggestForProject(p.id,input),/There is no Day running today/,'without a Day the manager is told to ask the operator to start one')
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const {item}=manager.suggestForProject(p.id,input)
+    assert.equal(item.projectId,p.id)
+    assert.equal(item.status,'proposed')
+    assert.deepEqual([item.title,item.context,item.priority,item.mode,item.estimateMin,item.links],['Rebase #3799 onto main','Stalled since July.','must','agent',30,['https://github.com/acme/api-allo/pull/3799']])
+    assert.equal(item.deliverableId,undefined,'keys a Day item does not take stay out')
+    assert.ok(d.dayBoard.items.some(i=>i.id===item.id),'it is on today\'s board')
+  } finally { await manager.close() }
+})
