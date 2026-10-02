@@ -249,6 +249,9 @@ window.FleetDay=(()=>{
   // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
   function render(days) {
     const day=days.find(s=>s.dayDate===today()) || null,badge=document.getElementById('today-count')
+    // Before the Day starts its console would be blank; say what goes there.
+    const panel=document.getElementById('control-panel')
+    if(active() && !day && panel && !panel.children.length)panel.innerHTML='<div class="console-empty"><strong>Your Day agent</strong><span>Its conversation appears here once you start your day.</span></div>'
     if(active() && day && control().session()?.kind==='thread' && Date.now()-dayFetchAt>2000){
       dayFetchAt=Date.now()
       api(`/api/managed/${day.managedId}`).then(data=>{dayDetail=data.session;renderBoard(dayDetail);const t=control().session();if(t?.kind==='thread')agents(t)}).catch(()=>{})
