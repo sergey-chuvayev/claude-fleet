@@ -272,6 +272,7 @@ test('the cost label never rounds a real spend down to nothing', () => {
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
   catch (error) { if (error && error.name === 'SyntaxError') throw error }
@@ -317,6 +318,7 @@ test('a team session renders one nested child row per delegation, with role, mod
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   new vm.Script(source, { filename: 'app.js' }).runInContext(context)
 
@@ -354,7 +356,8 @@ test('a team session renders one nested child row per delegation, with role, mod
   // returned for it, exactly as loadChildDetail's completion does.
   vm.runInContext("window.Fleet.select('m1','dev-1');window.Fleet.setChildDetail('dev-1',inspectorFixture)",context)
   const detail=elements.get('detail-content').innerHTML
-  assert.match(detail,/45s · attempt 2/)
+  assert.match(detail,/<b>Duration<\/b><span class="ui-stat-value">45s<\/span>/)
+  assert.match(detail,/<b>Attempt<\/b><span class="ui-stat-value">2<\/span>/)
   assert.match(detail,/950 input · 320 output · 12k cache read/)
   assert.doesNotMatch(detail,/Reported cost|Per-agent cost|\$/)
   assert.match(detail,/6 tests passed/)
@@ -396,6 +399,7 @@ test('a delegation selected outside the visible tail still renders, and only it 
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   new vm.Script(source, { filename: 'app.js' }).runInContext(context)
 
@@ -473,6 +477,7 @@ test('a sub-agent group folds behind a labelled header without ever hiding the s
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   new vm.Script(source, { filename: 'app.js' }).runInContext(context)
 
@@ -580,6 +585,7 @@ test('focus on a selected child row survives a re-render that changes the list H
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   new vm.Script(source, { filename: 'app.js' }).runInContext(context)
 
@@ -708,6 +714,7 @@ test('the status bar reports absence honestly and swaps to the countdown when a 
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
   catch (error) { if (error && error.name === 'SyntaxError') throw error }
@@ -747,6 +754,7 @@ test('a waiting session says it is queued, and where it is in the queue', () => 
     crypto: { randomUUID: () => 'x' }, CSS: { escape: s => s }, ResizeObserver: function () { return { observe() {}, disconnect() {} } }, navigator: {}, console,
   })
   context.window = context
+  new vm.Script(fs.readFileSync(path.join(__dirname, 'public', 'ui.js'), 'utf8'), { filename: 'ui.js' }).runInContext(context)
   const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
   try { new vm.Script(source, { filename: 'app.js' }).runInContext(context) }
   catch (error) { if (error && error.name === 'SyntaxError') throw error }
