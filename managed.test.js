@@ -1228,10 +1228,10 @@ test('the dashboard can read the queue and change its limit over HTTP',async()=>
     const base=`http://127.0.0.1:${app.server.address().port}`
     const config=await (await fetch(base+'/api/control')).json()
     const page=await (await fetch(base+'/')).text()
-    assert.match(page,/id="view-queue"/)
-    const asset=await fetch(base+'/work-queue.js')
+    assert.doesNotMatch(page,/id="view-queue"/,'the Work queue tab is gone')
+    const asset=await fetch(base+'/views.js')
     assert.equal(asset.status,200)
-    assert.match(await asset.text(),/window\.FleetQueue/)
+    assert.match(await asset.text(),/window\.FleetViews/)
     assert.equal(config.queue.enabled,true)
     assert.equal(config.maxConcurrent,4,'the advertised limit is the one actually enforced')
 

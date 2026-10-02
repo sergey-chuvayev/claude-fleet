@@ -12,7 +12,7 @@ window.FleetProjects=(()=>{
   const store=window.Fleet.store
   let projects=[],selected=null,editing=null,fetchedAt=0,loading=null
   const pane=()=>document.getElementById('projects-pane')
-  const active=()=>window.FleetQueue?.view?.()==='projects' && !!pane()
+  const active=()=>window.FleetViews?.view()==='projects' && !!pane()
   const current=live=>{
     const p=projects.find(p=>p.id===selected)
     return p?.managerId ? live.find(s=>s.managedId===p.managerId) || null : null
@@ -110,7 +110,7 @@ window.FleetProjects=(()=>{
     const archive=t.closest('[data-archive]')
     if(archive){if(!confirmArchive(archive))return;await api(`/api/projects/${archive.dataset.archive}/archive`,{archived:true}).catch(e=>toast(e.message));editing=null;selected=null;return load(true)}
     const opener=t.closest('[data-open-session]')
-    if(opener){window.FleetQueue?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
+    if(opener){window.FleetViews?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const ask=t.closest('[data-ask-project]')
     if(ask){
       const field=pane().querySelector('[data-project-ask]'),message=field?.value.trim()
@@ -146,7 +146,7 @@ window.FleetProjects=(()=>{
     try{await api(`/api/projects/${selected}/deliverable`,{deliverableId:select.dataset.deliverable,state:select.value});await load(true)}
     catch(error){toast(error.message)}
   }
-  // Mounted before work-queue.js runs, which owns switching between the views.
+  // Mounted before views.js runs, which owns switching between the views.
   function mount() {
     const tabs=document.querySelector('.work-tabs'),sessions=document.getElementById('sessions-pane')
     if(!tabs || !sessions || document.getElementById('view-projects'))return

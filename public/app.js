@@ -350,7 +350,7 @@ function render() {
   // finding a specific session is what the Ask modal is for.
   // The Today tab shows exactly one conversation, today's Day, or none before it starts.
   const today = window.FleetDay?.active() ? window.FleetDay.current(days, live) : window.FleetProjects?.active() ? window.FleetProjects.current(live) : undefined
-  const shown = today !== undefined ? (today ? [today] : []) : window.FleetQueue?.active() ? window.FleetQueue.visible(agents) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
+  const shown = today !== undefined ? (today ? [today] : []) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
@@ -385,7 +385,6 @@ function render() {
     window.FleetControl?.selectControl(current)
   }
   syncDetails()
-  window.FleetQueue?.render(snapshot,selected)
   window.FleetDay?.render(days)
   window.FleetProjects?.render(live)
 }
@@ -656,7 +655,7 @@ window.Fleet = {
   $, esc, update, key, age, tokens, money, status, store,
   // The account's plan windows, rendered from a usage reading.
   usageHtml,
-  // work-queue.js calls this after a view switch: each view keeps its own divider.
+  // views.js calls this after a view switch: each view keeps its own divider.
   syncSplit: () => syncSplit(),
   // Current state.
   snapshot: () => snapshot,
