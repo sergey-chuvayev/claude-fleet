@@ -222,9 +222,10 @@
     scan(document.body)
     new MutationObserver(records => {
       for (const r of records) for (const node of r.addedNodes) scan(node)
-      // A select that left the page takes its open menu with it.
-      if (open && !open.isConnected) close(false)
-    }).observe(document.body, { childList:true, subtree:true })
+      // A menu whose select left the page, or whose trigger was hidden (a dialog closed,
+      // a tab switched), closes with it.
+      if (open && (!open.isConnected || !enhanced.get(open)?.trigger.offsetParent)) close(false)
+    }).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden','class','open'] })
   }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start)
 })()

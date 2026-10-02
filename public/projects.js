@@ -84,8 +84,16 @@ window.FleetProjects=(()=>{
     if(focused){const el=pane().querySelector(`[data-keep="${CSS.escape(focused)}"]`);if(el){el.focus({preventScroll:true});const end=el.value.length;el.setSelectionRange?.(end,end)}}
     const scroller=pane().querySelector('.today-body');if(scroller)scroller.scrollTop=top
   }
+  // Before a project has a manager the console beside it would be blank; say what goes there.
+  function emptyConsole() {
+    const panel=document.getElementById('control-panel')
+    if(!active() || !panel || panel.children.length)return
+    const p=projects.find(p=>p.id===selected)
+    panel.innerHTML=`<div class="console-empty"><strong>${p ? 'No project manager yet' : 'No project selected'}</strong><span>${p ? 'Ask it something on the left. Its conversation appears here.' : 'Create a project to give it a manager.'}</span></div>`
+  }
   function render(live) {
     if(!pane())return
+    emptyConsole()
     // Other tabs need the list too (the console's project picker, Day item tags), just
     // not as fresh.
     if(active())load();else if(Date.now()-fetchedAt>30000)load()
