@@ -418,12 +418,21 @@ class ManagedSessions extends EventEmitter {
   managerOf(projectId) { return [...this.sessions.values()].find(x => x.kind === 'project' && x.projectId === projectId) || null }
   // The project's manager: started on the first question, continued after that. It works
   // in the project's first repository so it can read the code it reports on.
+  // A new project is a title. Its manager starts straight away and sets the rest up.
+  createProject(body) {
+    const project = this.projects.create({name:body.name})
+    const note = typeof body.note === 'string' && body.note.trim() ? text(body.note,'Note',8000) : ''
+    try { this.askProject(project.id,{message:note || 'Set up this project.',runPrompt:projectAgent.SETUP(project.name,note),requestId:body.requestId}) }
+    catch (error) { this.emit('storage-error',error) }
+    return this.projects.get(project.id)
+  }
   askProject(projectId, body) {
     const project = this.projects.require(projectId)
     const message = text(body.message,'Message',16000)
+    const runPrompt = typeof body.runPrompt === 'string' ? body.runPrompt : projectAgent.OPENING(message)
     const rid = requestId(body.requestId || randomUUID())
     const existing = this.managerOf(project.id)
-    if (existing) { this.send(existing.id,{message,runPrompt:projectAgent.OPENING(message),requestId:rid}); return existing }
+    if (existing) { this.send(existing.id,{message,runPrompt,requestId:rid}); return existing }
     this.checkCapacity()
     let cwd = defaultCwd()
     for (const repo of project.repos) {
@@ -433,7 +442,7 @@ class ManagedSessions extends EventEmitter {
     const id = randomUUID()
     const pm = {id,projectId:project.id,sessionId:null,name:project.name,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:'auto',selectedModel:'',messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'project',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,worktree:null}
     this.sessions.set(id,pm)
-    try { this.send(id,{message,runPrompt:projectAgent.OPENING(message),requestId:rid}) }
+    try { this.send(id,{message,runPrompt,requestId:rid}) }
     catch (error) { this.sessions.delete(id); throw error }
     return pm
   }
@@ -444,6 +453,7 @@ class ManagedSessions extends EventEmitter {
     return {
       name:p.name, deadline:p.deadline, brief:p.brief, repos:p.repos, links:p.links,
       deliverables:p.deliverables.map(d => ({id:d.id,title:d.title,state:d.state,note:d.note})), log:(p.log || []).slice(-15),
+      file:p.file, otherSections:p.sections.map(s => s.heading),
       sessions:this.members(p.id).map(x => ({...this.launchedStatus(x.id),lastWords:[...x.messages].reverse().find(m => m.role === 'assistant')?.text?.replace(/\s+/g,' ').slice(0,500) || null,updatedAt:x.updatedAt})),
       today:today?.dayBoard ? today.dayBoard.items.filter(i => i.projectId === p.id).map(i => ({title:i.title,status:i.status,mode:i.mode,lastLog:i.log.at(-1)?.text || null})) : [],
     }

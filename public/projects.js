@@ -22,7 +22,7 @@ window.FleetProjects=(()=>{
     loading=api('/api/projects').then(data=>{
       projects=data.projects;fetchedAt=Date.now()
       if(!projects.some(p=>p.id===selected))selected=projects[0]?.id || null
-      draw(true)
+      draw()
       // The console follows the project: its manager, once there is one.
       if(active())window.Fleet.render()
     }).catch(()=>{}).finally(()=>{loading=null})
@@ -36,29 +36,32 @@ window.FleetProjects=(()=>{
     return n
   }
   const lines=list=>escape((list || []).join('\n'))
-  function formHtml(p) {
-    return `<form class="project-form" data-project-form="${escape(p?.id || '')}"><h3>${p ? 'Edit project' : 'New project'}</h3>
-      <label class="day-field">Name<input name="name" required maxlength="100" value="${escape(p?.name)}" placeholder="Queue in the ring node"></label>
-      <label class="day-field">Deadline<input name="deadline" type="date" value="${escape(p?.deadline || '')}"></label>
-      <label class="day-field">Brief: the goal, who it is for, constraints, anything the manager should know<textarea name="brief" rows="6" maxlength="16000" placeholder="Paste the roadmap section or write it in your own words.">${escape(p?.brief)}</textarea></label>
-      <label class="day-field">Deliverables, one per line<textarea name="deliverables" rows="5" maxlength="9000" placeholder="Queue as a ring option&#10;Waiting music and announcements">${lines(p?.deliverables.map(d=>d.title))}</textarea></label>
-      <label class="day-field">Repositories, one per line<textarea name="repos" rows="2" maxlength="4000" placeholder="~/projects/api-allo">${lines(p?.repos)}</textarea></label>
-      <label class="day-field">Links: PRs, tickets, docs, one per line<textarea name="links" rows="3" maxlength="8000">${lines(p?.links)}</textarea></label>
-      <div class="day-actions"><button type="submit" class="button resume">${p ? 'Save' : 'Create project'}</button><button type="button" class="button" data-cancel>Cancel</button>${p ? `<button type="button" class="button" data-archive="${escape(p.id)}">Archive</button>`:''}</div></form>`
-  }
+  // A project starts from a title. Everything else is the manager's job, by chat.
+  const newHtml=()=>`<div class="today-body"><form class="project-new-form" data-project-new><span class="modal-eyebrow">NEW PROJECT</span><h2>What are you working towards?</h2><p class="note">Just a title. The project manager looks it up in Linear, GitHub, Slack, Notion and your meetings, writes the brief, deadline and deliverables into the project's file, and asks you what it could not find.</p><input data-keep="new:name" name="name" required maxlength="100" placeholder="Queue in the ring node" autocomplete="off"><textarea data-keep="new:note" name="note" rows="3" maxlength="8000" placeholder="Anything to start from? A link, a deadline, who asked. Optional."></textarea><div class="day-actions"><button type="submit" class="button resume">Create and set up ↗</button><button type="button" class="button" data-cancel>Cancel</button></div></form></div>`
   function projectHtml(p,live) {
     const left=daysLeft(p.deadline),members=live.filter(s=>s.projectId===p.id && s.kind!=='project')
     const deliverables=p.deliverables.map(d=>`<li class="project-deliverable" data-state="${escape(d.state)}"><select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select><span><strong>${escape(d.title)}</strong>${d.note ? `<small>${escape(d.note)}</small>`:''}</span></li>`).join('')
     const sessions=members.length ? `<div class="day-launched">${members.map(s=>`<button type="button" class="day-launch-chip" data-open-session="${escape(s.managedId)}" data-state="${escape(s.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape((s.title || s.name || 'Session').slice(0,48))} · ${escape(SESSION_STATE[s.managedStatus] || s.managedStatus)} ↗</button>`).join('')}</div>` : '<p class="note">No sessions yet. Tag one from its console, or launch from your Day.</p>'
     const log=(p.log || []).slice(-5).reverse()
-    return `<header class="today-head"><div><span class="modal-eyebrow">PROJECT</span><h2>${escape(p.name)}</h2></div><div class="today-stats">${p.deadline ? `<span>${escape(new Date(`${p.deadline}T12:00:00`).toLocaleDateString([],{day:'numeric',month:'short'}))}${left!=null ? ` · ${left} working day${left===1 ? '':'s'} left`:''}</span>`:''}<span>${p.progress.done}/${p.progress.total} done</span><button type="button" class="button day-small" data-edit="${escape(p.id)}">Edit</button></div></header>
+    return `<header class="today-head"><div><span class="modal-eyebrow">PROJECT</span><h2>${escape(p.name)}</h2></div><div class="today-stats">${p.deadline ? `<span>${escape(new Date(`${p.deadline}T12:00:00`).toLocaleDateString([],{day:'numeric',month:'short'}))}${left!=null ? ` · ${left} working day${left===1 ? '':'s'} left`:''}</span>`:''}<span>${p.progress.done}/${p.progress.total} done</span><button type="button" class="button day-small" data-copy-path="${escape(p.file)}" title="${escape(p.file)}">Copy file path</button><button type="button" class="button day-small" data-archive="${escape(p.id)}">Archive</button></div></header>
       <div class="today-body">
-        ${p.managerId ? '' : `<section class="day-section project-ask"><h4>Project manager</h4><p class="note">One agent that follows this project: its sessions, PRs and tickets, and the deliverables below. Ask it where things stand; it can put next steps on your Day.</p><div class="day-ask">${'<input data-project-ask maxlength="2000" placeholder="Where are we? What is blocking? Are we on track for the deadline?">'}<button type="button" class="button resume" data-ask-project="${escape(p.id)}">Ask ↗</button></div></section>`}
-        <section class="day-section"><h4>Deliverables <span>${p.progress.done}/${p.progress.total}</span></h4>${p.deliverables.length ? `<ol class="project-deliverables">${deliverables}</ol>` : '<p class="note">No deliverables yet. Edit the project to add them.</p>'}</section>
+        ${setting(p,live)}
+        ${p.managerId ? '' : `<section class="day-section project-ask"><h4>Project manager</h4><p class="note">One agent that follows this project: its sessions, PRs and tickets, and the deliverables below. Ask it where things stand; it can put next steps on your Day.</p><div class="day-ask">${`<input data-project-ask data-keep="ask:${escape(p.id)}" maxlength="2000" placeholder="Where are we? What is blocking? Are we on track for the deadline?">`}<button type="button" class="button resume" data-ask-project="${escape(p.id)}">Ask ↗</button></div></section>`}
+        <section class="day-section"><h4>Deliverables <span>${p.progress.done}/${p.progress.total}</span></h4>${p.deliverables.length ? `<ol class="project-deliverables">${deliverables}</ol>` : '<p class="note">No deliverables yet. The project manager adds them as it learns what has to ship, or tell it.</p>'}</section>
         <section class="day-section"><h4>Sessions <span>${members.length}</span></h4>${sessions}</section>
         ${log.length ? `<section class="day-section"><h4>Log</h4><ol class="day-log">${log.map(l=>`<li><time>${new Date(l.at).toLocaleString([],{weekday:'short',hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol></section>`:''}
-        ${p.brief ? `<details class="day-section project-brief"><summary>Brief</summary><p class="day-context">${escape(p.brief)}</p>${p.links.length ? `<span class="day-links">${p.links.map(u=>`<a href="${escape(u)}" target="_blank" rel="noopener noreferrer">${escape(u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60))} ↗</a>`).join('')}</span>`:''}</details>`:''}
+        ${p.brief ? `<section class="day-section project-brief"><h4>Brief</h4><div class="project-md">${md(p.brief)}</div></section>`:''}
+        ${p.sections.map(x=>`<details class="day-section project-brief" data-keep-open="${escape(x.heading)}"><summary>${escape(x.heading)}</summary><div class="project-md">${md(x.body)}</div></details>`).join('')}
+        ${p.links.length ? `<section class="day-section"><h4>Links</h4><span class="day-links">${p.links.map(u=>`<a href="${escape(u)}" target="_blank" rel="noopener noreferrer">${escape(u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60))} ↗</a>`).join('')}</span></section>`:''}
       </div>`
+  }
+  // Markdown from the project file, rendered the way the console renders replies.
+  const md=text=>window.FleetBlocks?.proseHtml ? window.FleetBlocks.proseHtml(String(text || '')) : `<p class="day-context">${escape(text)}</p>`
+  // While the manager's first run is under way, the empty parts of the project say why.
+  function setting(p,live) {
+    const pm=live.find(s=>s.managedId===p.managerId),busy=pm && ['starting','running','approval','queued'].includes(pm.managedStatus)
+    if(p.brief && p.deliverables.length)return ''
+    return `<p class="note project-setting">${busy ? '<span class="day-spinner" aria-hidden="true"></span> The project manager is setting this up: brief, deadline, deliverables, sources. Watch it on the right.' : 'Not set up yet. Tell the project manager on the right what this project is, or ask it to look it up.'}</p>`
   }
   function draw(force=false) {
     if(!pane())return
@@ -66,14 +69,19 @@ window.FleetProjects=(()=>{
     const p=projects.find(p=>p.id===selected)
     const signature=JSON.stringify([projects,selected,editing,live.filter(s=>s.projectId).map(s=>[s.managedId,s.managedStatus,s.title])])
     if(!force && pane().fleetSignature===signature)return
-    // A half-typed question or form survives a redraw, as on the Day board.
-    const typed=[...pane().querySelectorAll('input,textarea')].filter(el=>el.value && el.name!=='').map(el=>[el.name || el.dataset.projectAsk,el.value])
+    // What the operator is in the middle of survives a redraw: typed text, focus, open
+    // sections. Polling used to rebuild the pane every few seconds and wipe the form.
+    const typed=new Map([...pane().querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.value]))
+    const focused=document.activeElement?.closest?.('#projects-pane [data-keep]')?.dataset.keep
+    const opened=new Set([...pane().querySelectorAll('details[open][data-keep-open]')].map(el=>el.dataset.keepOpen))
     pane().fleetSignature=signature
     const list=`<nav class="project-list" aria-label="Projects">${projects.map(x=>`<button type="button" class="project-tab" data-project="${escape(x.id)}" aria-pressed="${x.id===selected && editing!=='new'}"><strong>${escape(x.name)}</strong><span class="mini-bar"><i style="width:${x.progress.total ? Math.round(x.progress.done/x.progress.total*100) : 0}%"></i></span><small>${x.progress.done}/${x.progress.total}${x.deadline ? ` · ${daysLeft(x.deadline)}d`:''}${x.sessions ? ` · ${x.sessions} session${x.sessions===1 ? '':'s'}`:''}</small></button>`).join('')}<button type="button" class="project-tab project-new" data-new aria-pressed="${editing==='new'}">＋ New project</button></nav>`
-    const body=editing==='new' ? `<div class="today-body">${formHtml(null)}</div>` : editing && p ? `<div class="today-body">${formHtml(p)}</div>` : p ? projectHtml(p,live) : `<div class="today-empty"><span class="modal-eyebrow">PROJECTS</span><h2>Group your work by outcome.</h2><p class="note">A project holds a goal, a deadline and its deliverables. Sessions you tag to it, and items on your Day, roll up here, and its manager can tell you where things stand.</p><button type="button" class="button resume" data-new>Create a project ↗</button></div>`
+    const body=editing==='new' || !projects.length && editing!=='closed' ? newHtml() : p ? projectHtml(p,live) : `<div class="today-empty"><span class="modal-eyebrow">PROJECTS</span><h2>Group your work by outcome.</h2><p class="note">A project holds a goal, a deadline and its deliverables. Sessions you tag to it, and items on your Day, roll up here, and its manager can tell you where things stand.</p><button type="button" class="button resume" data-new>Create a project ↗</button></div>`
     const top=pane().querySelector('.today-body')?.scrollTop || 0
     pane().innerHTML=list+body
-    for(const [key,value] of typed){const el=pane().querySelector(`[name="${CSS.escape(key)}"]`) || (key && pane().querySelector('[data-project-ask]'));if(el && !el.value)el.value=value}
+    for(const el of pane().querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
+    for(const el of pane().querySelectorAll('details[data-keep-open]'))if(opened.has(el.dataset.keepOpen))el.open=true
+    if(focused){const el=pane().querySelector(`[data-keep="${CSS.escape(focused)}"]`);if(el){el.focus({preventScroll:true});const end=el.value.length;el.setSelectionRange?.(end,end)}}
     const scroller=pane().querySelector('.today-body');if(scroller)scroller.scrollTop=top
   }
   function render(live) {
@@ -88,10 +96,11 @@ window.FleetProjects=(()=>{
     const tab=t.closest('[data-project]')
     if(tab){selected=tab.dataset.project;editing=null;store.set('fleet:project',selected);draw(true);return window.Fleet.render()}
     if(t.closest('[data-new]')){editing='new';return draw(true)}
-    if(t.closest('[data-cancel]')){editing=null;return draw(true)}
-    const edit=t.closest('[data-edit]');if(edit){editing=edit.dataset.edit;return draw(true)}
+    if(t.closest('[data-cancel]')){editing=projects.length ? null : 'closed';return draw(true)}
+    const copy=t.closest('[data-copy-path]')
+    if(copy){navigator.clipboard?.writeText(copy.dataset.copyPath).then(()=>toast('Path copied. Edit the file by hand any time; Fleet reads it.'),()=>toast(copy.dataset.copyPath));return}
     const archive=t.closest('[data-archive]')
-    if(archive){await api(`/api/projects/${archive.dataset.archive}/archive`,{archived:true}).catch(e=>toast(e.message));editing=null;selected=null;return load(true)}
+    if(archive){if(!confirmArchive(archive))return;await api(`/api/projects/${archive.dataset.archive}/archive`,{archived:true}).catch(e=>toast(e.message));editing=null;selected=null;return load(true)}
     const opener=t.closest('[data-open-session]')
     if(opener){window.FleetQueue?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const ask=t.closest('[data-ask-project]')
@@ -103,15 +112,26 @@ window.FleetProjects=(()=>{
       catch(error){toast(error.message);ask.disabled=false}
     }
   }
+  // Archiving takes two clicks, the second within a few seconds, like closing an agent.
+  function confirmArchive(button) {
+    if(button.dataset.armed)return true
+    button.dataset.armed='1';button.textContent='Archive for good?'
+    setTimeout(()=>{if(button.isConnected){delete button.dataset.armed;button.textContent='Archive'}},4000)
+    return false
+  }
   async function submit(event) {
-    const form=event.target.closest('[data-project-form]');if(!form)return
+    const form=event.target.closest('[data-project-new]');if(!form)return
     event.preventDefault()
-    const data=Object.fromEntries(new FormData(form))
+    const name=form.elements.name.value.trim(),note=form.elements.note.value.trim()
+    if(!name)return toast('Give it a title.')
+    const button=form.querySelector('[type=submit]');button.disabled=true
     try{
-      const {project}=await api('/api/projects',{...data,...(form.dataset.projectForm ? {id:form.dataset.projectForm}:{})})
+      const {project}=await api('/api/projects',{name,...(note ? {note}:{}),requestId:crypto.randomUUID()})
       selected=project.id;editing=null;store.set('fleet:project',selected)
-      toast('Project saved');await load(true)
-    }catch(error){toast(error.message)}
+      for(const el of form.querySelectorAll('[data-keep]'))el.value=''
+      toast('Project created. Its manager is setting it up.')
+      await window.Fleet.tick();await load(true);window.Fleet.render()
+    }catch(error){toast(error.message);button.disabled=false}
   }
   async function change(event) {
     const select=event.target.closest('[data-deliverable]');if(!select)return

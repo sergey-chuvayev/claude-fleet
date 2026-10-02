@@ -470,10 +470,17 @@ previous Day's, or set `CLAUDE_FLEET_DAY_CWD`.
 
 ### Projects group work by outcome
 
-A Day is organised by time; a project by outcome. In the **Projects** tab, define a project in
-your own words: a name, a deadline, a brief (paste a roadmap section, or write it), the
-deliverables that make it done, its repositories and links. Fleet does not sync with a roadmap
-tool; the brief is the context.
+A Day is organised by time; a project by outcome. In the **Projects** tab, a new project is just
+a title. Its manager starts at once: it looks the project up in Linear, GitHub, Slack, Notion,
+your meetings and your local repositories, writes the brief, deadline, deliverables,
+repositories and links, notes where each fact came from, and asks you only what it could not
+find. From then on you shape the project by talking to it.
+
+Each project is one Markdown file, `~/.claude-fleet/projects/<name>.md`, and that file is the
+source of truth: a short header (name, deadline, repositories, links), then the brief, the
+deliverables as a checklist (`[ ]` to do, `[~]` doing, `[?]` in review, `[x]` done), any other
+sections the manager or you write (sources, decisions, risks, open questions) and a log. Fleet
+reads the file every time, so editing it by hand works as well as asking the manager.
 
 Work belongs to a project when you tag it: from an agent's or initiative's console (the project
 picker in its header), or on a Day item, whose launches then inherit the project. The project
@@ -624,7 +631,7 @@ for the app itself.
 | [`tasks.js`](tasks.js) | The task board: tasks, delegations, and the initiative's verification ledger |
 | [`day.js`](day.js) | The Day board: items, the questions each waits on, dedupe, cursors, carry-over, and the outward-call gate |
 | [`day-agent.js`](day-agent.js) | The Day agent's instructions, its read-only scouts, and the prompt each kind of run starts from |
-| [`projects.js`](projects.js) | Projects: the brief, deadline, deliverables with their state, repositories, links and log |
+| [`projects.js`](projects.js) | Projects, one Markdown file each: reading, writing and migrating the brief, deliverables, sections and log |
 | [`project-agent.js`](project-agent.js) | A project's manager: its instructions and the project tool it reads and updates the project with |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |

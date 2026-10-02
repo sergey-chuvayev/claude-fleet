@@ -19,30 +19,68 @@ function setup(){
   }}}})
   return {directory,manager,calls}
 }
-const queue={name:'Queue in the ring node',deadline:'2026-10-30',brief:'Customers rebuild a queue by hand in call flows.',deliverables:'Queue as a ring option\nWaiting music and announcements\nMax wait and fallback'}
+const queue={name:'Queue in the ring node',deadline:'2026-10-30',brief:'Customers rebuild a queue by hand in call flows.',deliverables:['Queue as a ring option','Waiting music and announcements','Max wait and fallback']}
+// The way a manager sets a project up: create from a title, then define the rest.
+const make=(store,extra={})=>{const p=store.create({name:queue.name});return store.define(p.id,{...queue,...extra})}
 
-test('a project is defined here, and its deliverables keep their state across edits',()=>{
+test('a project is one Markdown file, readable by a person and kept on every change',()=>{
   const directory=tmp(),store=new ProjectStore(directory)
-  const p=store.save({...queue,repos:'~/projects/api-allo\n~/projects/desktop-allo',links:'https://github.com/acme/api-allo/pull/3796\nnot a link'})
-  assert.equal(p.deliverables.length,3)
-  assert.deepEqual(p.repos,['~/projects/api-allo','~/projects/desktop-allo'])
+  const p=make(store,{repos:['~/projects/api-allo','~/projects/desktop-allo'],links:['https://github.com/acme/api-allo/pull/3796','not a link']})
+  assert.equal(path.dirname(p.file),path.join(directory,'projects'))
+  assert.equal(path.basename(p.file),'queue-in-the-ring-node.md')
   assert.deepEqual(p.links,['https://github.com/acme/api-allo/pull/3796'],'only real links are kept')
-  store.deliverable(p.id,p.deliverables[0].id,{state:'doing',note:'#3796 rebased'})
-  const edited=store.save({...queue,id:p.id,deliverables:'Queue as a ring option\nMax wait and fallback\nQueue tab in settings'})
-  assert.deepEqual(edited.deliverables.map(d=>[d.title,d.state]),[['Queue as a ring option','doing'],['Max wait and fallback','todo'],['Queue tab in settings','todo']])
-  assert.deepEqual(progress(edited),{total:3,done:0,doing:1})
-  assert.throws(()=>store.deliverable(p.id,p.deliverables[0].id,{state:'shipped'}),/State must be/)
-  assert.throws(()=>store.save({name:'x',deadline:'next week'}),/Deadline/)
-  assert.equal(new ProjectStore(directory).get(p.id).deliverables[0].note,'#3796 rebased','projects survive a restart')
+  store.deliverable(p.id,p.deliverables[0].id,{state:'doing',note:'#3796 rebasing'})
+  store.section(p.id,'Sources','- Roadmap section, 2 Oct\n- Slack thread with Franco')
+  store.note(p.id,'Agreed scope with Franco.')
+  const md=fs.readFileSync(p.file,'utf8')
+  assert.match(md,/^---\nid: [\w-]+\nname: Queue in the ring node\ndeadline: 2026-10-30\nrepos:\n  - ~\/projects\/api-allo/)
+  assert.match(md,/## Brief\n\nCustomers rebuild a queue by hand/)
+  assert.match(md,/## Deliverables\n\n- \[~\] Queue as a ring option · #3796 rebasing\n- \[ \] Waiting music and announcements/)
+  assert.match(md,/## Sources\n\n- Roadmap section, 2 Oct/)
+  assert.match(md,/## Log\n\n- \d{4}-\d\d-\d\d \d\d:\d\d Project created\.\n- \d{4}-\d\d-\d\d \d\d:\d\d Agreed scope with Franco\./)
+  assert.doesNotMatch(md,/\u2014/,'no long dashes in the file')
+  const again=new ProjectStore(directory).get(p.id)
+  assert.deepEqual(again.deliverables.map(d=>[d.title,d.state,d.note]),[['Queue as a ring option','doing','#3796 rebasing'],['Waiting music and announcements','todo',''],['Max wait and fallback','todo','']])
+  assert.deepEqual(progress(again),{total:3,done:0,doing:1})
+  const redefined=store.define(p.id,{deliverables:['Queue as a ring option','Max wait and fallback','Queue tab in settings']})
+  assert.deepEqual(redefined.deliverables.map(d=>[d.title,d.state]),[['Queue as a ring option','doing'],['Max wait and fallback','todo'],['Queue tab in settings','todo']],'known deliverables keep their state')
+  assert.equal(redefined.brief,queue.brief,'fields left out are kept')
+  assert.throws(()=>store.deliverable(p.id,redefined.deliverables[0].id,{state:'shipped'}),/State must be/)
+  assert.throws(()=>store.define(p.id,{deadline:'next week'}),/Deadline/)
+  assert.throws(()=>store.section(p.id,'Deliverables','x'),/its own action/)
+  store.section(p.id,'Sources','')
+  assert.doesNotMatch(fs.readFileSync(p.file,'utf8'),/## Sources/,'an empty section is removed')
   store.archive(p.id)
   assert.equal(store.list().length,0)
   assert.equal(store.list({archived:true}).length,1)
 })
 
+test('an edit made by hand to the file is what Fleet reads next',async()=>{
+  const directory=tmp(),store=new ProjectStore(directory),p=make(store)
+  await delay(20)
+  const md=fs.readFileSync(p.file,'utf8').replace('- [ ] Waiting music and announcements','- [x] Waiting music and announcements · shipped in #2090').replace('deadline: 2026-10-30','deadline: 2026-11-06')+'\n## Decisions\n\nQueue lives in the ring node, not a separate node.\n'
+  fs.writeFileSync(p.file,md)
+  const read=store.get(p.id)
+  assert.equal(read.deadline,'2026-11-06')
+  assert.deepEqual(read.deliverables[1],{id:'waiting-music-and-announcements',title:'Waiting music and announcements',state:'done',note:'shipped in #2090'})
+  assert.deepEqual(read.sections,[{heading:'Decisions',body:'Queue lives in the ring node, not a separate node.'}])
+  store.note(p.id,'Checked.')
+  assert.match(fs.readFileSync(p.file,'utf8'),/## Decisions\n\nQueue lives in the ring node/,'a hand-written section survives Fleet writing the file')
+})
+
+test('projects from 0.28.0 move into their own files once',()=>{
+  const directory=tmp()
+  fs.writeFileSync(path.join(directory,'projects.json'),JSON.stringify({version:1,projects:[{id:'p-1',name:'Failed payment',deadline:'2026-10-30',brief:'Pay from the app.',repos:[],links:[],deliverables:[{id:'x',title:'Pay from the app on web',state:'doing',note:''}],log:[],archived:false}]}))
+  const store=new ProjectStore(directory)
+  assert.deepEqual(store.list().map(p=>[p.name,p.deliverables[0].state]),[['Failed payment','doing']])
+  assert.ok(fs.existsSync(path.join(directory,'projects.json.migrated')))
+  assert.equal(new ProjectStore(directory).list().length,1,'and only once')
+})
+
 test('sessions belong to a project, and a launch from the Day carries the item\'s project',async()=>{
   const {directory,manager}=setup()
   try{
-    const p=manager.projects.save(queue)
+    const p=make(manager.projects)
     const agent=manager.create({cwd:directory,prompt:'Rebase #3796',projectId:p.id,requestId:randomUUID()})
     assert.equal(agent.projectId,p.id)
     await until(()=>agent.status==='idle')
@@ -66,7 +104,7 @@ test('the project manager starts on the first question, reads its sessions as su
   const {directory,manager,calls}=setup()
   try{
     fs.mkdirSync(path.join(directory,'api-allo'))
-    const p=manager.projects.save({...queue,repos:[path.join(directory,'missing'),path.join(directory,'api-allo')]})
+    const p=make(manager.projects,{repos:[path.join(directory,'missing'),path.join(directory,'api-allo')]})
     const agent=manager.create({cwd:directory,prompt:'Rebase #3796',projectId:p.id,requestId:randomUUID()})
     await until(()=>agent.status==='idle')
     const pm=manager.askProject(p.id,{message:'Where are we?'})
@@ -106,12 +144,26 @@ test('a project manager never sends anything outside Fleet on its own',async()=>
     yield {type:'result',result:'Done',is_error:false}
   }})})
   try{
-    const p=manager.projects.save(queue)
+    const p=make(manager.projects)
     const pm=manager.askProject(p.id,{message:'Post a status to Slack'})
     await until(()=>decisions.length===2)
     assert.equal(decisions[0].behavior,'allow','reading is free')
     assert.equal(decisions[1],'pending','sending stops for the operator, whatever the approval mode')
     assert.match(reason || '',/does not send anything outside Fleet/)
     assert.ok(pm)
+  } finally { await manager.close() }
+})
+
+test('a new project is just a title, and its manager starts setting it up at once',async()=>{
+  const {manager,calls}=setup()
+  try{
+    const p=manager.createProject({name:'Live status for calls',note:'Spec is due Tue 6 Oct.'})
+    assert.equal(p.name,'Live status for calls')
+    assert.equal(p.brief,'')
+    const pm=manager.managerOf(p.id)
+    await until(()=>pm.status==='idle')
+    assert.equal(pm.messages[0].text,'Spec is due Tue 6 Oct.','the console shows what the operator said')
+    assert.match(calls.at(-1).prompt,/only a title: "Live status for calls"[\s\S]*Linear[\s\S]*project define[\s\S]*Sources[\s\S]*Spec is due Tue 6 Oct\./)
+    assert.throws(()=>manager.createProject({name:''}),/Project name/)
   } finally { await manager.close() }
 })

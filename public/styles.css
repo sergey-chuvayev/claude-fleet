@@ -3296,3 +3296,16 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .project-form h3 { margin:0 }
 .project-form input, .project-form textarea { width:100%; box-sizing:border-box; padding:8px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.5 var(--mono); resize:vertical }
 .day-project { flex:none; padding:1px 6px; border-radius:999px; border:1px solid color-mix(in oklab,var(--accent) 40%,var(--line)); color:var(--accent); font-size:var(--text-xs); white-space:nowrap }
+/* Projects, second pass: created from a title, read from their Markdown file. */
+.project-new-form { display:grid; gap:12px; max-width:620px }
+.project-new-form h2 { margin:0; font-size:22px; font-weight:600 }
+.project-new-form .note { margin:0; line-height:1.7 }
+.project-new-form input, .project-new-form textarea { width:100%; box-sizing:border-box; padding:10px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.5 var(--mono); resize:vertical }
+.project-new-form input { font-size:15px }
+.project-new-form input:focus, .project-new-form textarea:focus { outline:0; border-color:var(--accent) }
+.project-setting { display:flex; align-items:center; gap:8px; margin:0 0 14px; color:var(--muted) }
+.project-md { color:var(--text); font-size:var(--text-md); line-height:1.7 }
+.project-md > :first-child { margin-top:0 }
+.project-md ul, .project-md ol { padding-left:20px }
+details.project-brief>summary { cursor:pointer; color:var(--muted); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600 }
+details.project-brief[open]>summary { margin-bottom:8px }

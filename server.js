@@ -146,7 +146,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         }
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
-        if(url.pathname==='/api/projects'){const project=manager.projects.save(data);manager.emit('change','projects');return json(res,200,{project})}
+        if(url.pathname==='/api/projects'){const project=manager.createProject(data);manager.emit('change','projects');return json(res,200,{project})}
         const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask)$/)
         if(projectAction){
           const [,pid,act]=projectAction
