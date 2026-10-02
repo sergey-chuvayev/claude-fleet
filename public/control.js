@@ -30,6 +30,9 @@ async function initializeControls() {
   if(!$('launch-cwd').value) $('launch-cwd').value=data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
+// The terminal session the inspector is showing, for its "Continue in Fleet" button.
+let outsideSession=null
+document.addEventListener('click',event=>{if(event.target.closest?.('#resume-in-fleet') && outsideSession)openLaunch(outsideSession)})
 function updateLaunchTeam() {
   const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
   const ownerReview=team?.mode==='owner-review'
@@ -176,8 +179,9 @@ function selectControl(session) {
     $('stop-agent').addEventListener('click',stopAgent)
     refreshControl()
   }else if(session){
-    $('control-panel').innerHTML=`<div class="external-note"><strong>Opened outside Fleet</strong><p>${session.alive ? 'This session is running in a terminal. Use its terminal to send messages, or launch a new Fleet-managed agent.' : 'This process has stopped. Continue its saved conversation here with a new message.'}</p>${!session.alive && session.sessionId && session.cwd ? '<button id="resume-in-fleet" class="button">Continue in Fleet ↗</button>' : ''}</div>`
-    $('resume-in-fleet')?.addEventListener('click',()=>openLaunch(session))
+    // The inspector says it was opened outside Fleet and offers to continue it here.
+    $('control-panel').innerHTML=''
+    outsideSession=session
     window.Fleet.syncDetails()
   }
 }

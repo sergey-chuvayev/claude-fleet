@@ -3198,22 +3198,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 /* What each item is doing right now. */
 /* ── Projects ─────────────────────────────────────────────────────────────── */
 .projects-pane { display:flex; flex-direction:column }
-.project-list { display:flex; gap:6px; overflow-x:auto; padding:14px 28px; border-bottom:1px solid var(--divider); flex:none; scrollbar-width:thin }
-.project-tab { display:grid; gap:4px; min-width:170px; max-width:240px; padding:9px 12px; text-align:left; cursor:pointer; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md) }
-.project-tab:hover { border-color:var(--faint) }
-.project-tab[aria-pressed=true] { border-color:var(--accent); background:var(--selected) }
-.project-tab strong { font-size:var(--text-md); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.project-tab small { color:var(--muted); font-size:var(--text-xs); font-variant-numeric:tabular-nums }
-.project-tab .mini-bar { height:3px; margin:0 }
-.project-new { place-content:center; color:var(--muted); min-width:130px }
-.project-deliverables { list-style:none; margin:0; padding:0 }
-.project-deliverable { display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line) }
-.project-deliverable span { display:grid; gap:2px; min-width:0 }
-.project-deliverable small { color:var(--muted); font-size:var(--text-xs) }
-.project-deliverable :is(select,.fleet-select) { flex:none; width:104px; justify-content:space-between; padding:3px 6px; background-color:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-xs) }
-.project-deliverable[data-state=done] strong { color:var(--muted); font-weight:500 }
-.project-deliverable[data-state=done] :is(select,.fleet-select) { color:var(--busy) }
-.project-deliverable[data-state=doing] :is(select,.fleet-select), .project-deliverable[data-state=review] :is(select,.fleet-select) { color:var(--accent) }
 .project-ask .day-ask { margin-left:0 }
 .project-brief>summary { cursor:pointer; color:var(--muted) }
 .project-form { display:grid; gap:10px; max-width:720px }
@@ -3221,12 +3205,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .project-form input, .project-form textarea { width:100%; box-sizing:border-box; padding:8px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.5 var(--mono); resize:vertical }
 .day-project { flex:none; padding:1px 6px; border-radius:999px; border:1px solid color-mix(in oklab,var(--accent) 40%,var(--line)); color:var(--accent); font-size:var(--text-xs); white-space:nowrap }
 /* Projects, second pass: created from a title, read from their Markdown file. */
-.project-new-form { display:grid; gap:12px; max-width:620px }
-.project-new-form h2 { margin:0; font-size:22px; font-weight:600 }
-.project-new-form .note { margin:0; line-height:1.7 }
-.project-new-form input, .project-new-form textarea { width:100%; box-sizing:border-box; padding:10px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.5 var(--mono); resize:vertical }
-.project-new-form input { font-size:15px }
-.project-new-form input:focus, .project-new-form textarea:focus { outline:0; border-color:var(--accent) }
 .project-setting { display:flex; align-items:center; gap:8px; margin:0 0 14px; color:var(--muted) }
 .project-md { color:var(--text); font-size:var(--text-md); line-height:1.7 }
 .project-md > :first-child { margin-top:0 }
@@ -3419,6 +3397,28 @@ details[open]>summary .ui-chevron { transform:rotate(45deg) }
 .ui-empty h3 { margin:0; color:var(--text); font-size:var(--text-title); font-weight:600 }
 .ui-empty p { margin:0; color:var(--muted); line-height:1.7 }
 .ui-empty .button { justify-self:start }
+
+/* Forms on a page: a heading, a note, fields, actions. */
+.ui-form { display:grid; gap:12px; max-width:620px }
+.ui-form h3 { margin:0; color:var(--text); font-size:var(--text-title); font-weight:600 }
+.ui-form .note { margin:0; line-height:1.7 }
+.ui-form :is(input,textarea) { width:100%; box-sizing:border-box; padding:10px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-lg); resize:vertical }
+.ui-form :is(input,textarea):focus { outline:0; border-color:var(--faint) }
+.ui-row-side :is(select,.fleet-select) { min-height:28px; padding:0 10px; background-color:transparent; color:var(--muted); border:1px solid var(--line); border-radius:999px; font-size:var(--text-sm) }
+.ui-row[data-tone=done] .ui-row-side :is(select,.fleet-select) { color:var(--busy) }
+.ui-row:is([data-tone=progress],[data-tone=review]) .ui-row-side :is(select,.fleet-select) { color:var(--text) }
+.page-actions :is(select,.fleet-select) { min-height:var(--control-sm); max-width:220px; padding:0 12px; background-color:transparent; color:var(--text); border:1px solid var(--line); border-radius:999px; font-size:var(--text-md) }
+.page-title h2 .ui-count { margin-left:8px; vertical-align:middle }
+
+/* Every pane puts its head in the same band: the session list, the inspector, the boards. */
+.sessions-pane>.list-pane-head { margin:0 calc(-1 * var(--space-3)) var(--space-2); padding:var(--space-3) var(--space-5) }
+.list-pane-head .page-title h2 { font-size:var(--text-xl); line-height:32px; color:var(--text) }
+#control-panel:empty { display:none }
+.detail:not(:has(#composer)) { padding:0 }
+.detail .page-title h2 { letter-spacing:normal }
+.detail .page-body { overflow:visible }
+.detail:has(#composer) #detail-content .page-head { display:none }
+.detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
 
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
