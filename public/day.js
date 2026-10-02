@@ -90,12 +90,36 @@ window.FleetDay=(()=>{
     if(!item.thread || item.thread.closed)return ''
     return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-thread="${escape(item.thread.sessionId)}" title="Open your conversation about this item"><span class="dot"></span>Thread ↗</button>${item.thread.summary ? escape(item.thread.summary) : 'Starting…'}</p>`
   }
+  // Where each item actually is, in words: being worked on now and by whom, running in
+  // its own session, waiting for a launch, queued behind the Day's current work, or not
+  // started. The plan alone ("today", "Agent does it") never said whether anything moved.
+  let boardDay=null
+  const since=at=>{const m=Math.max(1,Math.round((Date.now()-at)/60000));return m>=60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`}
+  function liveStatus(item) {
+    const s=boardDay
+    if(!s || !['today','in_progress','waiting_on_you'].includes(item.status))return null
+    const working=control().isWorking(s)
+    const subs=(s.subagents || []).filter(d=>d.itemId===item.id && d.status==='running')
+    if(subs.length)return ['working',`Working now · ${[...new Set(subs.map(d=>d.role))].join(', ')} · ${since(Math.min(...subs.map(d=>d.startedAt)))}`]
+    if(working && s.dayBoard?.focus?.itemId===item.id)return ['working',`Working now · Day agent · ${since(s.dayBoard.focus.at)}`]
+    const sessions=window.Fleet.snapshot()?.sessions || []
+    const launched=(item.launched || []).map(id=>sessions.find(x=>x.managedId===id)).filter(Boolean)
+    if(launched.some(x=>x.managedStatus==='approval'))return ['needs','Its session needs you']
+    if(launched.some(x=>['starting','running','queued'].includes(x.managedStatus)))return ['running','Running in its own session']
+    const asks=open(item)
+    if(asks.some(n=>n.kind==='launch'))return ['needs','Launch brief ready · approve it above']
+    if(asks.length)return ['needs','Waiting on you']
+    if(launched.length)return null
+    if(item.mode==='agent')return ['queued',working ? 'Launch brief coming' : 'Launch brief at the next run']
+    if(item.mode==='me')return null
+    return working ? ['queued','Queued for the Day'] : ['idle','Not started']
+  }
   function todayHtml(items,opened,b) {
     const today=items.filter(i=>['today','in_progress','waiting_on_you'].includes(i.status))
     today.sort((a,b)=>a.createdAt-b.createdAt)
     const row=item=>{
-      const icon=STATE_ICON[item.status],latest=item.log.at(-1)?.text
-      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${latest ? `<span class="day-latest">${escape(latest)}</span>`:''}</summary>${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
+      const icon=STATE_ICON[item.status],latest=item.log.at(-1)?.text,live=liveStatus(item)
+      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${live || latest ? `<span class="day-latest">${live ? `<span class="day-live" data-live="${live[0]}">${live[0]==='working' ? '<span class="day-spinner" aria-hidden="true"></span>':''}${escape(live[1])}</span>`:''}${latest ? escape(latest):''}</span>`:''}</summary>${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
     return `<section class="day-section"><h4>Today <span>${today.length}</span>${capacityHtml(minutes(today),b)}</h4>${today.length ? groups.map(([p,list])=>`<div class="day-group" data-priority="${p}"><h5>${PRIORITY[p]} <span>${list.length}${minutes(list) ? ` · ${duration(minutes(list))}`:''}</span></h5><ol class="day-list">${list.map(row).join('')}</ol></div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
@@ -147,6 +171,7 @@ window.FleetDay=(()=>{
     renderBoard(d)
   }
   function renderBoard(s) {
+    boardDay=s
     let panel=document.getElementById('day-board')
     if(!pane()){panel?.remove();return}
     pane().querySelector('.today-empty')?.remove()
@@ -154,7 +179,8 @@ window.FleetDay=(()=>{
     panel.dataset.sessionId=s.id
     const b=s.dayBoard || {items:[],cursors:{}}
     const launchedState=b.items.flatMap(i=>i.launched || []).map(id=>(window.Fleet.snapshot()?.sessions || []).find(x=>x.managedId===id)).map(x=>x ? [x.managedStatus,x.taskProgress] : null)
-    const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks])
+    const moving=(s.subagents || []).filter(d=>d.status==='running').map(d=>[d.id,d.itemId])
+    const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks,moving,Math.floor(Date.now()/60000)])
     if(panel.fleetSignature===signature)return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
@@ -182,7 +208,13 @@ window.FleetDay=(()=>{
   function checkHtml(s) {
     const c=s.dayChecks,working=control().isWorking(s)
     const last=[...s.messages].reverse().find(m=>m.role==='user')
-    if(working && last?.runPrompt)return `<span class="day-check-state is-running"><span class="day-spinner" aria-hidden="true"></span>${escape(AUTO_RUN[last.text] || 'Checking')}…</span>`
+    if(working){
+      const items=s.dayBoard?.items || [],title=id=>items.find(i=>i.id===id)?.title
+      const subs=(s.subagents || []).filter(d=>d.status==='running')
+      const on=[...new Set([s.dayBoard?.focus?.itemId,...subs.map(d=>d.itemId)].filter(Boolean))].map(title).filter(Boolean)
+      const what=on.length ? `Working on ${on[0].length>40 ? on[0].slice(0,39)+'…' : on[0]}${on.length>1 ? ` +${on.length-1}`:''}` : last?.runPrompt ? AUTO_RUN[last.text] || 'Checking' : 'Working'
+      return `<span class="day-check-state is-running" title="${escape(on.join('\n'))}"><span class="day-spinner" aria-hidden="true"></span>${escape(what)}${subs.length ? ` · ${subs.length} subagent${subs.length===1 ? '':'s'}`:''}…</span>`
+    }
     let when=''
     if(c?.lastAt){
       const next=new Date(c.lastAt+c.everyMin*60000),[from,to]=c.hours || [8,20]

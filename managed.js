@@ -705,7 +705,7 @@ class ManagedSessions extends EventEmitter {
       for (const entry of run.tools?.values() || []) if (entry.status === 'running') entry.status = 'interrupted'
       if (run.stopping) s.status='stopped'
       else if (s.status !== 'error') s.status='idle'
-      if (s.kind === 'day') s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0
+      if (s.kind === 'day') { s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0; if (s.dayBoard) s.dayBoard.focus = null }
       if (s.kind === 'thread' && s.status === 'idle') this.threadSummary(s)
       s.currentTool=null
       this.runs.delete(s.id)
@@ -824,7 +824,11 @@ class ManagedSessions extends EventEmitter {
     // A Day's subagents get the same record an initiative's delegations do, so the
     // Today console can show each one's assignment, steps and report.
     if (s.kind === 'day' && ['Agent','Task'].includes(block.name)) {
-      s.subagents = [...(s.subagents || []), {id:block.id,role:block.input?.subagent_type || 'general-purpose',description:String(block.input?.description || '').slice(0,200),prompt:String(block.input?.prompt || '').slice(0,24000),status:'running',startedAt:Date.now(),finishedAt:null,steps:[],output:'',report:''}].slice(-MAX_DAY_SUBAGENTS)
+      // "Fleet item: <id>" at the top of a delegation ties the subagent to its item, so
+      // the board can say which item is being worked on and by whom.
+      const itemId = /^\s*Fleet item:\s*([\w-]{8,})/m.exec(String(block.input?.prompt || ''))?.[1]
+      const known = itemId && s.dayBoard?.items.some(i => i.id === itemId) ? itemId : null
+      s.subagents = [...(s.subagents || []), {id:block.id,itemId:known,role:block.input?.subagent_type || 'general-purpose',description:String(block.input?.description || '').slice(0,200),prompt:String(block.input?.prompt || '').slice(0,24000),status:'running',startedAt:Date.now(),finishedAt:null,steps:[],output:'',report:''}].slice(-MAX_DAY_SUBAGENTS)
     }
     s.messages.push(entry)
     s.messages=s.messages.slice(-MAX_MESSAGES)

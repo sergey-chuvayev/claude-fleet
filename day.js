@@ -159,6 +159,14 @@ function act(s,input,by='agent',ctx={}) {
   if (input.action==='update') return update(s,input,by)
   if (input.action==='ask') return ask(s,input,ctx)
   if (input.action==='teams') return ctx.teams ? ctx.teams() : []
+  // What the Day is working on itself right now, so the board can say so. Cleared when
+  // the run ends; subagents are linked to their item separately, by their prompt.
+  if (input.action==='focus') {
+    const item=itemFor(s,input.itemId)
+    board.focus={itemId:item.id,at:Date.now()}
+    if (item.status==='today') item.status='in_progress'
+    return board.focus
+  }
   // Focus time left today, from the calendar scout, so the board can weigh the plan
   // against the hours there actually are.
   if (input.action==='capacity') {
@@ -258,8 +266,8 @@ async function threadServer(s,itemId,changed) {
 async function sdkServer(s,changed,ctx={}) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options; launch needs the brief in draft plus cwd and optional teamId, and Fleet starts that session itself once approved), then move on to other items. teams: the teams a launch can use. capacity: record freeMinutes of focus time left today, from the calendar. cursor: get or set the last-seen point for a source.',{
-    action:z.enum(['list','inspect','add','update','ask','cursor','teams','capacity']),freeMinutes:z.number().optional(),cwd:z.string().optional(),teamId:z.string().optional(),name:z.string().optional(),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options; launch needs the brief in draft plus cwd and optional teamId, and Fleet starts that session itself once approved), then move on to other items. teams: the teams a launch can use. capacity: record freeMinutes of focus time left today, from the calendar. focus: say which item you are working on yourself now (call it before you start on an item). cursor: get or set the last-seen point for a source.',{
+    action:z.enum(['list','inspect','add','update','ask','cursor','teams','capacity','focus']),freeMinutes:z.number().optional(),cwd:z.string().optional(),teamId:z.string().optional(),name:z.string().optional(),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
     priority:z.enum(PRIORITIES).optional(),status:z.enum(STATUSES).optional(),mode:z.enum(MODES).optional(),estimateMin:z.number().optional(),note:z.string().optional(),
     kind:z.enum(NEED_KINDS).optional(),question:z.string().optional(),options:z.array(z.string()).optional(),draft:z.string().optional(),value:z.string().optional(),includeClosed:z.boolean().optional(),
   },async input=>{

@@ -439,6 +439,12 @@ and asks to launch it: you see the brief, the repository and the team, edit any 
 press **Launch**. Fleet then starts that session the way the Work queue does, so it shows up in
 Sessions with its own console; the item links to it and shows its live state.
 
+Every item on today says where it actually is: *Working now* (with which agent and for how
+long), *Running in its own session*, *Launch brief ready*, *Queued for the Day*, or *Not started*,
+and the header names what the Day is working on. The Day writes launch questions for all
+*Agent does it* items first, so approved launches run in parallel, and sends *Find out* and
+*Draft* items to subagents side by side rather than one at a time.
+
 To talk about one item in depth, expand it and use **Ask about this**. That starts a thread: a
 separate conversation about that item only, in its repository when Fleet can tell which one
 from its links, with the item's log, questions and the related subagent reports already in
