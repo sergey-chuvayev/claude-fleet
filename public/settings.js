@@ -7,7 +7,7 @@ window.FleetSettings=(()=>{
     const backdrop=document.createElement('div')
     backdrop.id='settings-backdrop';backdrop.className='modal-backdrop';backdrop.hidden=true
     backdrop.innerHTML=`<section class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <header class="modal-head"><div class="modal-heading"><div><span class="modal-eyebrow">FLEET SETTINGS</span><h2 id="settings-title">Settings</h2><p>How many agents run at once, and the key for automatic model selection.</p></div></div><button type="button" class="modal-close" data-close-modal aria-label="Close settings">✕</button></header>
+      <header class="modal-head"><div class="modal-heading"><span class="modal-spark" aria-hidden="true">⚙&#xFE0E;</span><div><span class="modal-eyebrow">FLEET SETTINGS</span><h2 id="settings-title">How Fleet runs.</h2><p>How many agents run at once, and the key for automatic model selection.</p></div></div><button type="button" class="modal-close" data-close-modal aria-label="Close settings">✕</button></header>
       <div class="modal-body">
       <section class="settings-section" aria-labelledby="queue-title"><h3 id="queue-title">Agents</h3><p class="note">With queuing on, a task over the limit waits for a free slot instead of being refused.</p>
       <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="queue-enabled"> Queue tasks over the limit</label><label class="settings-field">Concurrent agents<select id="queue-limit">${Array.from({length:8},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select></label><button class="button" id="queue-pause" type="button">Pause queue</button></div>

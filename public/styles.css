@@ -308,20 +308,6 @@ select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; 
   height:100%;
 }
 .session-context small { color:var(--faint); font-size:var(--text-xs) }
-.detail-empty { padding:85px 20px; text-align:center }
-.detail-empty p { font-size:var(--text-md); margin-top:10px }
-.empty-symbol {
-  display:block;
-  font-size:36px;
-  color:var(--faint);
-  margin-bottom:20px;
-}
-.detail-top {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:17px;
-}
 .detail h2 {
   font-size:21px;
   line-height:1.4;
@@ -385,22 +371,10 @@ select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; 
   overflow-wrap:anywhere;
   color:var(--muted);
 }
-.context-label {
-  display:flex;
-  justify-content:space-between;
-  font-size:var(--text-sm);
-  color:var(--muted);
-}
 .detail .mini-bar {
   display:block;
   height:5px;
   margin:11px 0;
-}
-.detail-actions {
-  margin-top:23px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
 .resume {
   background:var(--accent);
@@ -469,7 +443,7 @@ select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; 
   border-radius:var(--radius-lg);
   margin-bottom:28px;
 }
-.launch-panel h2 { font-size:20px; margin-top:9px }
+.launch-panel h2 { font-size:var(--text-title); margin-top:9px }
 .launch-panel form { padding:0 26px 24px }
 .launch-fields {
   display:grid;
@@ -530,13 +504,6 @@ select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; 
   max-width:240px;
 }
 .stop { color:var(--stale) }
-.external-note {
-  border-top:1px solid var(--line);
-  padding-top:20px;
-  margin-top:20px;
-}
-.external-note strong { font-size:var(--text-md); color:var(--muted) }
-.external-note p { font-size:var(--text-md); margin:8px 0 14px }
 .approval {
   background:var(--warn-surface);
   border:1px solid var(--warn-line);
@@ -611,7 +578,6 @@ select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; 
     align-items:stretch;
     gap:14px;
   }
-  .launch-panel .section-heading { padding:20px }
   .launch-panel form { padding:0 20px 20px }
   .refresh-info { gap:8px }
   .composer-footer { flex-wrap:wrap }
@@ -940,7 +906,7 @@ body[data-resizing] { cursor:col-resize; user-select:none }
 }
 /* Approval mode */
 .mode-picker { margin:0 }
-.mode-picker :is(select,.fleet-select) { min-height:var(--control-sm); border-color:transparent; background-color:transparent; font-family:inherit; font-size:11px; color:var(--muted); max-width:155px }
+.mode-picker :is(select,.fleet-select) { min-height:var(--control-sm); border-color:transparent; background-color:transparent; font-family:inherit; font-size:var(--text-sm); color:var(--muted); max-width:155px }
 .mode-picker :is(select,.fleet-select):hover { background-color:var(--raised) }
 .mode-picker :is(select,.fleet-select)[data-mode="all"] {
   color:var(--term-yellow);
@@ -1152,11 +1118,6 @@ body {
   scrollbar-color:var(--line) transparent;
 }
 .detail h2 { font-size:16px }
-.detail-name {
-  color:var(--muted);
-  font-size:var(--text-sm);
-  margin:6px 0 14px;
-}
 .detail-section {
   border-top:1px solid var(--line);
   padding-top:14px;
@@ -1894,7 +1855,7 @@ body[data-modal] { overflow:hidden }
   border:0;
   color:var(--text);
   font-family:inherit;
-  font-size:14px;
+  font-size:var(--text-xl);
   line-height:1.5;
 }
 #ask-input:focus-visible { outline:0 }
@@ -1968,7 +1929,7 @@ body[data-modal] { overflow:hidden }
   margin:8px 0 16px;
   background:color-mix(in oklab,var(--accent) 8%,var(--panel));
 }
-.modal-ask .ask-answer p { font-size:14px; line-height:1.8 }
+.modal-ask .ask-answer p { font-size:var(--text-xl); line-height:1.8 }
 .modal-ask .ask-hit {
   border:0;
   border-bottom:1px solid var(--line);
@@ -1977,7 +1938,7 @@ body[data-modal] { overflow:hidden }
   margin:0;
   background:transparent;
 }
-.modal-ask .ask-hit-title { font-size:14px }
+.modal-ask .ask-hit-title { font-size:var(--text-xl) }
 .modal-ask .ask-hit-meta { white-space:normal }
 .modal-ask .ask-hit-actions { margin-top:12px }
 .modal-ask .ask-open {
@@ -2020,7 +1981,7 @@ body[data-modal] { overflow:hidden }
   border-radius:var(--radius-xl);
   padding:18px;
   font-family:inherit;
-  font-size:14px;
+  font-size:var(--text-xl);
   line-height:1.8;
 }
 .modal-launch textarea::placeholder { color:var(--muted) }
@@ -2133,7 +2094,7 @@ body[data-modal] { overflow:hidden }
   color:var(--muted);
 }
 .archive-text { min-width:0 }
-.archive-days { max-width:120px; font-size:11px }
+.archive-days { max-width:120px; font-size:var(--text-sm) }
 .archive-bar .button { padding:5px 10px; font-size:var(--text-sm) }
 .archive-none { color:var(--faint) }
 .archive-auto {
@@ -2160,13 +2121,6 @@ body[data-modal] { overflow:hidden }
   white-space:nowrap;
 }
 .archived-note { margin-top:14px }
-.detail-buttons {
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-  justify-content:end;
-}
 @media(max-width:720px) {
   .archive-bar { padding-inline:12px }
   .archive-auto { margin-left:0 }
@@ -2248,7 +2202,7 @@ body[data-modal] { overflow:hidden }
   gap:16px;
   margin-bottom:20px;
 }
-.team-editor-head h3 { margin:5px 0 8px; font-size:20px }
+.team-editor-head h3 { margin:5px 0 8px; font-size:var(--text-title) }
 .team-editor-head p { margin:0 }
 .team-editor-head>.button { flex-shrink:0 }
 .team-meta, .team-rules {
@@ -2472,7 +2426,7 @@ body[data-modal] { overflow:hidden }
   padding:0 var(--space-3) 0 var(--title-inset);
   background:transparent;
   color:var(--faint);
-  font-size:11px;
+  font-size:var(--text-sm);
 }
 .session-children-toggle:hover { color:var(--muted); background:var(--hover) }
 .children-chevron {
@@ -2659,26 +2613,26 @@ body[data-modal] { overflow:hidden }
 
 /* Session references share the command picker and stay with each draft. */
 .reference-tray{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 0 10px}
-.reference-chip{display:inline-flex;align-items:center;max-width:100%;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));border-radius:8px;background:color-mix(in oklab,var(--accent) 7%,var(--panel));overflow:hidden}
-.reference-chip button{border:0;background:transparent;color:var(--text);padding:7px 9px;font-size:11px;min-height:32px}
+.reference-chip{display:inline-flex;align-items:center;max-width:100%;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));border-radius:var(--radius-lg);background:color-mix(in oklab,var(--accent) 7%,var(--panel));overflow:hidden}
+.reference-chip button{border:0;background:transparent;color:var(--text);padding:7px 9px;font-size:var(--text-sm);min-height:32px}
 .reference-chip button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .reference-chip button:last-child{color:var(--muted);border-left:1px solid var(--line)}
 .reference-chip button:hover{background:var(--raised)}
-.reference-note{font-size:10px;color:var(--muted)}
-.reference-empty{padding:14px;color:var(--muted);font-size:12px}
-.block-reference{padding:10px 13px;border-bottom:1px solid var(--line);font-size:11px}
+.reference-note{font-size:var(--text-xs);color:var(--muted)}
+.reference-empty{padding:14px;color:var(--muted);font-size:var(--text-md)}
+.block-reference{padding:10px 13px;border-bottom:1px solid var(--line);font-size:var(--text-sm)}
 .block-reference summary{cursor:pointer;color:var(--accent);overflow-wrap:anywhere}
-.block-reference summary span,.block-reference p{color:var(--muted);font-size:10px}
+.block-reference summary span,.block-reference p{color:var(--muted);font-size:var(--text-xs)}
 .block-reference pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--muted)}
 .session[draggable=true]:active{cursor:grabbing}
-.reference-state{font-size:10px;color:var(--muted)}
+.reference-state{font-size:var(--text-xs);color:var(--muted)}
 
 /* ── The archive ──────────────────────────────────────────────────────────────
    A strip between the filters and the list, present only where putting sessions
    away is the thing you came to do: under Offline, and inside Archived itself. */
-.archive-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--panel) 80%,var(--bg));font-size:11px;color:var(--muted)}
+.archive-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--panel) 80%,var(--bg));font-size:var(--text-sm);color:var(--muted)}
 .archive-text{min-width:0}
-.archive-bar .button{padding:5px 10px;font-size:11px}
+.archive-bar .button{padding:5px 10px;font-size:var(--text-sm)}
 .archive-none{color:var(--faint)}
 .archive-auto{display:flex;align-items:center;gap:6px;margin-left:auto;color:var(--faint);white-space:nowrap;cursor:pointer}
 .archive-auto:hover{color:var(--muted)}
@@ -2687,9 +2641,8 @@ body[data-modal] { overflow:hidden }
 /* An archived row is legible but visibly set aside, the way Background rows are. */
 .session:has(.archived-tag){opacity:.7}
 .session:has(.archived-tag):hover,.session:has(.archived-tag)[aria-pressed=true]{opacity:1}
-.archived-tag{font-size:9px;color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:1px 4px;white-space:nowrap}
+.archived-tag{font-size:var(--text-2xs);color:var(--faint);border:1px solid var(--line);border-radius:var(--radius-sm);padding:1px 4px;white-space:nowrap}
 .archived-note{margin-top:14px}
-.detail-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:end}
 @media(max-width:720px){.archive-bar{padding-inline:12px}.archive-auto{margin-left:0}}
 
 /* Open session sections. The transcript keeps the remaining vertical space. */
@@ -2761,8 +2714,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .work-tabs { order:3; width:100%; margin:0 }
   .work-tabs .button { flex:1 }
 }
-@media(max-width:720px) {
-}
 
 /* Connections use the same flat rows and separators as the session console. */
 .modal-connections { width:min(860px, calc(100vw - 32px)) }
@@ -2784,7 +2735,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .connections-list { list-style:none; padding:0; margin:0 }
 /* A row: who it is and its state on the left, the one thing to do on the right. */
 .connection-row { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:center; gap:var(--space-3); padding:var(--space-3) 0; border-bottom:1px solid var(--divider) }
-.connection-avatar { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; background:var(--raised); color:var(--muted); font-size:13px; font-weight:600 }
+.connection-avatar { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; background:var(--raised); color:var(--muted); font-size:var(--text-lg); font-weight:600 }
 .connection-row[data-status=connected] .connection-avatar { background:color-mix(in oklab,var(--busy) 20%,var(--raised)); color:var(--busy) }
 .connection-row[data-status=needs-auth] .connection-avatar, .connection-row[data-status=signing-in] .connection-avatar { background:color-mix(in oklab,var(--stale) 18%,var(--raised)); color:var(--stale) }
 .connection-row[data-status=failed] .connection-avatar { background:color-mix(in oklab,var(--hot) 18%,var(--raised)); color:var(--hot) }
@@ -2815,12 +2766,12 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .connection-actions { grid-column:2; justify-content:flex-start }
 }
 
-.model-routing{font-size:12px;color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere}
+.model-routing{font-size:var(--text-md);color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere}
 
 /* AI Gateway credentials remain separate from conversation settings. */
 .modal-settings { max-width: 620px; }
 .modal-settings .modal-body { padding: 0 32px 28px; }
-#gateway-status { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; color: var(--accent); }
+#gateway-status { padding: 12px 14px; border: 1px solid var(--line); border-radius:var(--radius-lg); color: var(--accent); }
 #gateway-form label { display: block; margin: 24px 0 8px; font-weight: 600; }
 #gateway-key { box-sizing: border-box; width: 100%; min-height: 42px; padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-md); font: inherit; }
 #gateway-help { margin-top: var(--space-2); }
@@ -2849,11 +2800,11 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 ::selection { background:#55555f; color:#fff }
 .brand { font-size:23px; letter-spacing:-.8px; font-weight:600; gap:10px }
 .brandmark { color:var(--text); font-size:28px }
-.brand-sub { text-transform:none; letter-spacing:0; font-size:12px; font-weight:400; margin-left:12px; color:var(--faint) }
-.app-version { font-size:10px; color:var(--faint) }
+.brand-sub { text-transform:none; letter-spacing:0; font-size:var(--text-md); font-weight:400; margin-left:12px; color:var(--faint) }
+.app-version { font-size:var(--text-xs); color:var(--faint) }
 @media(max-width:1500px) { .brand-sub { display:none } }
 @media(max-width:1100px) { .app-version { display:none } }
-.button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:var(--control-sm); border-radius:999px; font-size:12px; padding:0 var(--space-4); background:transparent; border:1px solid var(--line); box-shadow:none }
+.button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:var(--control-sm); border-radius:999px; font-size:var(--text-md); padding:0 var(--space-4); background:transparent; border:1px solid var(--line); box-shadow:none }
 .button:hover { background:var(--raised); border-color:#49494f }
 .button.resume { background:var(--text); color:#19191c; border-color:var(--text); font-weight:600 }
 .button.resume:hover { background:#fff; border-color:#fff }
@@ -2888,18 +2839,14 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .topbar .refresh-info .button { flex:none }
   .topbar #refresh { display:none }
 }
-.section-heading { display:flex; flex:none; align-items:center; justify-content:space-between; gap:var(--space-2); min-height:var(--panel-head); padding:0 var(--space-2) }
-.section-heading h2 { margin:0; font-size:12px; line-height:20px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--muted) }
-.section-heading h2 span { margin-left:5px; padding:0; border:0; background:none; font:inherit; color:var(--faint) }
 .conversation-header { display:flex; flex:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); min-height:var(--panel-head); margin:0; padding:var(--space-3) 0; border:0 }
 .header-title { display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0; min-height:var(--control-sm) }
 .conversation-header h3 { margin:0; font-size:15px; line-height:20px; font-weight:600; letter-spacing:-.2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .header-controls { display:flex; flex:0 1 auto; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0 }
-.detail:has(#composer) .detail-top { min-height:var(--panel-head); align-items:center; margin:0 0 var(--space-4) }
-.filter-trigger { display:inline-flex; align-items:center; min-height:var(--control-sm); border:0; background:transparent; font-size:11px; color:var(--muted); padding:0 0 0 var(--space-2) }
+.filter-trigger { display:inline-flex; align-items:center; min-height:var(--control-sm); border:0; background:transparent; font-size:var(--text-sm); color:var(--muted); padding:0 0 0 var(--space-2) }
 .list-head { display:none }
 .session-list { border:0; padding:0; overflow:auto }
-.session { grid-template-columns:38px minmax(0,1fr); gap:12px; padding:14px 10px; margin-bottom:4px; border:0; border-radius:12px }
+.session { grid-template-columns:38px minmax(0,1fr); gap:12px; padding:14px 10px; margin-bottom:4px; border:0; border-radius:var(--radius-xl) }
 .session[aria-pressed=true] { box-shadow:none; background:var(--selected) }
 .session-summary { min-width:0 }
 .agent-avatar { position:relative; display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:#24242a; margin-top:2px; overflow:visible }
@@ -2914,74 +2861,70 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 @keyframes avatar-twinkle { 0%, 100% { opacity:var(--o) } 50% { opacity:var(--hi) } }
 @media(prefers-reduced-motion:reduce) { .agent-avatar.is-working .avatar-pixels rect { animation:none } }
 .avatar-status { position:absolute; right:-2px; bottom:-2px; width:10px; height:10px; border:2px solid var(--pane); border-radius:50%; background:currentColor }
-.session-title { font-size:13px; line-height:1.5; font-weight:600; margin:0; color:var(--text) }
-.session-preview { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; line-height:1.6; margin-top:2px }
+.session-title { font-size:var(--text-lg); line-height:1.5; font-weight:600; margin:0; color:var(--text) }
+.session-preview { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:var(--text-md); line-height:1.6; margin-top:2px }
 .session-top { margin:6px 0 0; gap:6px }
-.session-top .badge { padding:0; background:none; font-size:10px; color:var(--faint) }
+.session-top .badge { padding:0; background:none; font-size:var(--text-xs); color:var(--faint) }
 .session-top .badge.stale, .session-top .badge.hot { color:var(--stale) }
 .session-top .badge.hot { color:var(--hot) }
 .session-top .badge .dot { display:none }
-.session-name { font-size:10px; color:var(--faint) }
+.session-name { font-size:var(--text-xs); color:var(--faint) }
 .session-context, .session-meta, .session .turn { display:none }
-.session .initiative-tag { display:block; margin-top:5px; width:fit-content; max-width:100%; white-space:normal; font-size:10px }
+.session .initiative-tag { display:block; margin-top:5px; width:fit-content; max-width:100%; white-space:normal; font-size:var(--text-xs) }
 .detail { background:var(--bg); padding:28px; }
 .detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
 .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
 .detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
 .detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:0 var(--space-5) var(--space-7); border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
-.close-agent { font-size:11px; padding:0 var(--space-3); color:var(--muted) }
+.close-agent { font-size:var(--text-sm); padding:0 var(--space-3); color:var(--muted) }
 .detail:has(#composer) .conversation { padding:20px 0 24px; background:transparent; min-height:120px; font:14px/1.7 "Avenir Next","Segoe UI",sans-serif; scrollbar-width:thin; scrollbar-color:var(--line) transparent }
 .conversation .block { max-width:780px; margin:0 auto 22px; border:0; border-radius:16px; overflow:hidden; background:var(--panel) }
 .conversation .block[data-role=user] { width:fit-content; max-width:86%; margin-left:auto; margin-right:0; background:#2b2b30; border-radius:18px 18px 5px 18px }
-.conversation .block[data-role=assistant] { margin-left:0; margin-right:auto; border-radius:5px 18px 18px 18px }
+.conversation .block[data-role=assistant] { margin-left:0; margin-right:auto; border-radius:var(--radius-md) 18px 18px 18px }
 .conversation .block-head { position:static; background:transparent; backdrop-filter:none; padding:10px 16px 0; gap:7px; min-height:28px }
 .conversation .block-tool { font:500 10px/1.4 "Avenir Next","Segoe UI",sans-serif; color:var(--muted); letter-spacing:.4px }
-.conversation .block-icon { color:var(--muted); font-size:12px }
-.conversation .block-meta { font-size:10px; color:var(--faint) }
+.conversation .block-icon { color:var(--muted); font-size:var(--text-md) }
+.conversation .block-meta { font-size:var(--text-xs); color:var(--faint) }
 .conversation .block-body { padding:2px 4px 7px }
-.block-prose { font-family:"Avenir Next","Segoe UI",sans-serif; font-size:14px; line-height:1.75; color:var(--text) }
+.block-prose { font-family:"Avenir Next","Segoe UI",sans-serif; font-size:var(--text-xl); line-height:1.75; color:var(--text) }
 .block-prose p { color:inherit }
 #composer-hint, #agent-state { font-family:"Avenir Next","Segoe UI",sans-serif }
 #composer-hint { max-width:none }
-.block-plain { font-family:inherit; font-size:14px; line-height:1.75 }
+.block-plain { font-family:inherit; font-size:var(--text-xl); line-height:1.75 }
 .conversation .block[data-role=tool] { border:1px solid var(--divider); background:transparent; border-radius:10px; margin:0 0 10px; max-width:none; font-family:var(--mono) }
 .conversation .block[data-role=tool] .block-head { padding:9px 12px; min-height:36px }
 .conversation .block[data-role=tool] .block-actions { opacity:1 }
-.conversation .block[data-role=tool] .block-tool { letter-spacing:0; font-size:11px }
-.block-code { font-size:12px; background:#121214; border-radius:8px; margin:4px 8px; }
+.conversation .block[data-role=tool] .block-tool { letter-spacing:0; font-size:var(--text-sm) }
+.block-code { font-size:var(--text-md); background:#121214; border-radius:var(--radius-lg); margin:4px 8px; }
 .block-prose a { color:#b8cee6 }
 .detail:has(#composer) .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
 .composer:focus-within { border-color:#62626c }
-.composer textarea { padding:2px 0 8px; font-family:inherit; font-size:14px; line-height:1.6; color:var(--text) }
+.composer textarea { padding:2px 0 8px; font-family:inherit; font-size:var(--text-xl); line-height:1.6; color:var(--text) }
 .composer textarea:focus { padding-left:0; box-shadow:none }
 .composer textarea::placeholder { color:var(--faint) }
 .composer-footer { gap:8px; padding-top:4px }
 .composer-footer .note { font:10px/1.5 "Avenir Next","Segoe UI",sans-serif; color:var(--faint) }
-.composer-footer .button { font-size:11px; padding:0 var(--space-3) }
+.composer-footer .button { font-size:var(--text-sm); padding:0 var(--space-3) }
 .panel-splitter { margin:0; height:5px; flex-basis:5px }
-.panel-splitter::before { left:calc(50% - 18px); right:auto; width:36px; background:var(--line); border-radius:4px; top:2px }
+.panel-splitter::before { left:calc(50% - 18px); right:auto; width:36px; background:var(--line); border-radius:var(--radius-sm); top:2px }
 .detail h2 { font-size:19px; line-height:1.4; letter-spacing:-.3px; overflow-wrap:anywhere }
-.detail-top { gap:8px; flex-wrap:wrap }
-.eyebrow { font-size:9px; letter-spacing:1.3px; color:var(--faint) }
-.detail-name { font-size:11px; line-height:1.7 }
+.eyebrow { font-size:var(--text-2xs); letter-spacing:1.3px; color:var(--faint) }
 .detail-section { margin-top:24px; padding-top:20px; border-color:var(--divider) }
-.detail-section h3 { font-size:11px; text-transform:none; letter-spacing:0; color:var(--muted) }
-.facts { font-size:11px; grid-template-columns:1fr; gap:5px }
+.detail-section h3 { font-size:var(--text-sm); text-transform:none; letter-spacing:0; color:var(--muted) }
+.facts { font-size:var(--text-sm); grid-template-columns:1fr; gap:5px }
 .facts dt { color:var(--faint); margin-top:8px }
 .facts dd { margin:0; overflow-wrap:anywhere }
-.detail-actions { flex-wrap:wrap; gap:12px; margin-top:24px }
-.context-label { font-size:10px; flex-wrap:wrap; gap:4px }
 .detail .mini-bar { height:3px; margin-top:10px }
-.work-link { border-radius:8px; font-size:11px; padding:8px 10px }
-.statusbar { height:34px; min-height:34px; background:var(--pane); border-color:var(--divider); padding:0 20px; font-size:10px; color:var(--faint) }
+.work-link { border-radius:var(--radius-lg); font-size:var(--text-sm); padding:8px 10px }
+.statusbar { height:34px; min-height:34px; background:var(--pane); border-color:var(--divider); padding:0 20px; font-size:var(--text-xs); color:var(--faint) }
 .statusbar .local { display:none }
-.status-usage, .status-fleet { font-size:10px }
+.status-usage, .status-fleet { font-size:var(--text-xs) }
 .modal { border-radius:22px; background:var(--panel); box-shadow:0 25px 100px #0008 }
 .modal-head { background:transparent }
 .modal-spark { background:var(--raised); color:var(--text); border-color:var(--line) }
 .modal-backdrop { background:#08080ba8; backdrop-filter:blur(10px) }
 .modal input, .modal textarea, .modal :is(select,.fleet-select) { border-radius:10px }
-#initiative-board { border-bottom:1px solid var(--divider); font-size:12px }
+#initiative-board { border-bottom:1px solid var(--divider); font-size:var(--text-md) }
 @media(min-width:721px) and (max-width:1199px) {
   .workspace { grid-template-columns:clamp(240px,var(--split,25%),300px) 1px minmax(0,1fr) }
   .detail:has(#composer) { position:relative }
@@ -3008,7 +2951,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .conversation .block[data-role=tool] .block-meta { display:none }
   .statusbar { height:auto; padding:10px 16px; min-height:34px }
   .status-conn { flex-wrap:wrap }
-  .block-prose { font-size:13px }
+  .block-prose { font-size:var(--text-lg) }
   .modal { border-radius:16px }
 }
 
@@ -3016,24 +2959,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 
 /* ── Day ─────────────────────────────────────────────────────────────────────
    The Day board reuses the initiative board's frame; these are its own parts. */
-#day-board .day-alert { color:var(--stale); font-weight:600 }
-.day-small { padding:0 var(--space-3); font-size:var(--text-xs) }
-.day-section { padding:4px 0 14px }
-.day-section>h4 {
-  display:flex; align-items:center; gap:8px; margin:0 0 8px;
-  font-size:var(--text-xs); letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
-}
-.day-section>h4>span { color:var(--faint); font-variant-numeric:tabular-nums; margin-right:auto }
-.day-card {
-  padding:10px 12px; margin-bottom:8px;
-  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md);
-}
-.day-waiting .day-card { border-color:var(--warn-line); background:var(--warn-surface) }
-.day-card-head, .day-list summary, .day-rest li { display:flex; align-items:baseline; gap:8px; min-width:0 }
-.day-card-head strong, .day-list summary strong, .day-rest li strong { flex:1 1 auto; min-width:0; overflow-wrap:anywhere }
-.day-card-head small, .day-list summary small, .day-rest li small { color:var(--muted); font-variant-numeric:tabular-nums; flex:none }
-.day-priority { flex:none; font-size:var(--text-xs); color:var(--faint) }
-.day-priority[data-priority=must] { color:var(--hot); font-weight:600 }
 .task-state[data-state=waiting_on_you] { color:var(--stale) }
 .task-state[data-state=in_progress] { color:var(--accent) }
 .task-state[data-state=done] { color:var(--busy) }
@@ -3043,30 +2968,13 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-links a:hover { text-decoration:underline }
 .day-need { margin-top:8px }
 .day-need>p { margin:0 0 6px; line-height:1.6 }
-.day-need textarea, .day-need input, .day-add input, .day-add textarea {
+.day-need textarea, .day-need input{
   width:100%; box-sizing:border-box; padding:8px;
   background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md);
   font:var(--code)/1.6 var(--mono); resize:vertical;
 }
-.day-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px }
-.day-actions .note { font-size:var(--text-xs); margin:0 }
-.day-actions :is(select,.fleet-select) {
-  padding:4px 6px; background-color:var(--bg); color:var(--text);
-  border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-sm);
-}
 .day-inline input { flex:1 1 200px; width:auto }
-.day-log { list-style:none; margin:8px 0 0; padding:0 0 0 10px; border-left:1px solid var(--line); color:var(--muted); font-size:var(--text-xs); line-height:1.8 }
-.day-log time { color:var(--faint); font-variant-numeric:tabular-nums }
-.day-add { margin:0 0 14px }
-.day-add>summary, .day-rest>summary { cursor:pointer; color:var(--muted); padding:4px 0 }
-.day-rest>summary span { color:var(--faint) }
-.day-add-fields { display:grid; gap:6px; margin-top:6px }
-.day-rest ul { list-style:none; margin:4px 0 0; padding:0 }
-.day-rest li { padding:5px 0; border-bottom:1px solid var(--line) }
 .day-tag { color:var(--accent) }
-@media(max-width:720px) {
-  .day-actions .button { flex:1 1 auto }
-}
 
 /* ── The Today tab ───────────────────────────────────────────────────────────
    Two panels: the Day board, and the Day's console in the ordinary control panel.
@@ -3076,39 +2984,16 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .today-pane { display:flex; flex-direction:column; min-height:0; overflow:hidden; padding:0 }
 .today-pane[hidden] { display:none }
 #day-board { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; font-size:var(--text-sm) }
-.today-head {
-  display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-2) var(--space-4); flex-wrap:wrap;
-  min-height:var(--panel-head); padding:var(--space-3) var(--space-7); border-bottom:1px solid var(--divider);
-}
-/* The heading sits in the same --panel-head band as the console beside it, so the date
-   and the console title share a baseline; the active tab already names the view. */
-.today-head .modal-eyebrow { display:none }
-.today-head h2 { margin:0; font-size:20px; line-height:32px; font-weight:600; color:var(--text) }
-.today-stats { display:flex; align-items:center; min-height:var(--control-sm); gap:var(--space-3); color:var(--muted); font-variant-numeric:tabular-nums }
-.today-body { flex:1 1 auto; min-height:0; overflow:auto; padding:18px 28px 28px }
 .today-gathering { margin:0 0 16px }
-.today-empty { max-width:520px; margin:auto; padding:32px 28px; display:grid; gap:12px }
-.today-empty h2 { margin:0; font-size:24px; font-weight:600 }
-.today-empty .note { margin:0; line-height:1.7 }
 .today-empty textarea {
-  width:100%; box-sizing:border-box; padding:10px; resize:vertical;
-  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md);
-  font:var(--code)/1.6 var(--mono);
+  width:100%; box-sizing:border-box; padding:10px 12px; resize:vertical;
+  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg);
+  font:inherit; font-size:var(--text-lg);
 }
-.today-empty .button { justify-self:start }
 @media(max-width:720px) {
-  .today-head, .today-body { padding-left:16px; padding-right:16px }
   .today-pane { max-height:none; overflow:visible }
-  .today-body { overflow:visible }
+  .today-pane .page-body { overflow:visible }
 }
-.today-usage { display:flex; flex-wrap:wrap; align-items:center; min-height:var(--control-sm); gap:6px 16px; flex:1 1 320px; justify-content:flex-end; color:var(--muted); font-size:var(--text-xs); font-variant-numeric:tabular-nums }
-.today-meter { display:inline-flex; align-items:center; gap:6px; white-space:nowrap }
-.today-meter b { color:var(--faint); font-weight:500; text-transform:uppercase; letter-spacing:.06em }
-.today-meter small { color:var(--faint) }
-.today-meter .mini-bar { width:54px; height:4px; margin:0 }
-.today-meter.warn, .today-meter.warn b { color:var(--stale) }
-.today-meter.hot, .today-meter.hot b { color:var(--hot) }
-.today-meter.note { font-style:italic }
 .day-reply { display:flex; gap:6px; margin-top:8px }
 .day-reply input { flex:1 1 auto; width:auto }
 /* Launch questions and launched sessions on the Day board. */
@@ -3151,26 +3036,15 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-agent-head .note { margin:0 }
 @media(max-width:720px) { .day-launch-fields { grid-template-columns:1fr } }
 .conversation[hidden] { display:none!important }
-/* ── Today, second pass ─────────────────────────────────────────────────────── */
 .work-tabs #today-count:not(:empty) {
   display:inline-grid; place-items:center; min-width:16px; height:16px; padding:0 4px; margin-left:4px; box-sizing:border-box;
-  border-radius:999px; background:var(--raised); color:var(--text); font-size:10px; font-weight:600;
+  border-radius:999px; background:var(--raised); color:var(--text); font-size:var(--text-xs); font-weight:600;
 }
 .work-tabs #today-count[data-alert=true] { background:var(--stale); color:var(--bg) }
-.day-section>h4 .day-capacity { margin-left:auto; margin-right:0 }
-.day-section>h4>span:first-of-type { margin-right:0 }
 .day-capacity { display:inline-flex; align-items:center; gap:8px; color:var(--muted); text-transform:none; letter-spacing:0; font-variant-numeric:tabular-nums }
 .day-capacity .mini-bar { width:70px; height:4px; margin:0 }
 .day-capacity.is-over, .day-capacity.is-over .mini-bar i { color:var(--stale) }
 .day-capacity.is-over .mini-bar i { background:var(--stale) }
-.day-group { margin:0 0 10px }
-.day-group>h5 { margin:10px 0 2px; font-size:var(--text-xs); font-weight:600; color:var(--muted) }
-.day-group>h5>span { color:var(--faint); font-weight:400; font-variant-numeric:tabular-nums }
-.day-group[data-priority=must]>h5 { color:var(--hot) }
-.day-list { list-style:none; margin:0; padding:0 }
-.day-list summary::-webkit-details-marker { display:none }
-.day-rest li.is-done strong { color:var(--muted); font-weight:500 }
-.day-check { flex:none; color:var(--busy) }
 .day-check-state { color:var(--faint); font-size:var(--text-xs); display:inline-flex; align-items:center; gap:6px }
 .day-check-state.is-running { color:var(--accent) }
 .day-spinner { width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:day-spin .8s linear infinite }
@@ -3187,34 +3061,22 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .block-lines li.is-error { color:var(--hot) }
 #day-agents[hidden] { display:none }
 /* Item threads: ask from the item, follow it from a tab. */
-.day-ask { display:flex; gap:6px; margin:8px 0 0 18px }
-.day-ask input { flex:1 1 auto; min-width:0; box-sizing:border-box; padding:7px 9px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.4 var(--mono) }
-.day-ask input:focus { outline:0; border-color:var(--accent) }
 .day-thread-gist { display:flex; align-items:baseline; gap:8px; margin:6px 0 2px; color:var(--muted); font-size:var(--text-sm); line-height:1.6 }
 .day-thread-gist .day-launch-chip { flex:none }
 .day-agent-tab.is-thread { border-color:var(--line) }
 .day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }
 .day-carried { flex:none; padding:1px 6px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); white-space:nowrap }
-/* What each item is doing right now. */
 /* ── Projects ─────────────────────────────────────────────────────────────── */
 .projects-pane { display:flex; flex-direction:column }
-.project-ask .day-ask { margin-left:0 }
-.project-brief>summary { cursor:pointer; color:var(--muted) }
-.project-form { display:grid; gap:10px; max-width:720px }
-.project-form h3 { margin:0 }
-.project-form input, .project-form textarea { width:100%; box-sizing:border-box; padding:8px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.5 var(--mono); resize:vertical }
 .day-project { flex:none; padding:1px 6px; border-radius:999px; border:1px solid color-mix(in oklab,var(--accent) 40%,var(--line)); color:var(--accent); font-size:var(--text-xs); white-space:nowrap }
-/* Projects, second pass: created from a title, read from their Markdown file. */
-.project-setting { display:flex; align-items:center; gap:8px; margin:0 0 14px; color:var(--muted) }
+/* A project's Markdown, as the console renders replies. */
 .project-md { color:var(--text); font-size:var(--text-md); line-height:1.7 }
 .project-md > :first-child { margin-top:0 }
 .project-md ul, .project-md ol { padding-left:20px }
-details.project-brief>summary { cursor:pointer; color:var(--muted); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600 }
-details.project-brief[open]>summary { margin-bottom:8px }
 
 /* ── Touch: at narrow widths every control is at least a 44px target ───────── */
 @media(max-width:720px) {
-  .button, .topbar .refresh-info .button, .filter-trigger, .mode-picker :is(select,.fleet-select), .day-agent-tab, .project-tab, .day-launch-chip,
+  .button, .topbar .refresh-info .button, .filter-trigger, .mode-picker :is(select,.fleet-select), .day-agent-tab, .day-launch-chip,
   .session-children-toggle, select, input:not([type=checkbox]):not([type=radio]):not([type=range]) { min-height:var(--touch) }
   .topbar #refresh, .topbar .details-toggle { width:var(--touch) }
   .conversation .block-button { min-width:var(--touch); min-height:var(--touch) }
@@ -3224,10 +3086,7 @@ details.project-brief[open]>summary { margin-bottom:8px }
   .connection-tools summary, .connections-help summary { display:flex; align-items:center; min-height:var(--touch) }
 }
 
-/* ── Design QA sweep ──────────────────────────────────────────────────────── */
-/* Stat labels wrap between items, never inside one ("1 waiting on / you"). */
-.today-stats { flex-wrap:wrap }
-.today-stats > span { white-space:nowrap }
+/* ── Dialog and console details ───────────────────────────────────────────── */
 /* A dialog's action button stands as tall as the field beside it. */
 .connections-form .button { min-height:42px }
 /* The team editor's effort picker matches the 42px fields around it. */
@@ -3238,7 +3097,6 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .console-empty { display:grid; place-content:center; gap:var(--space-2); min-height:240px; height:100%; padding:var(--space-8); text-align:center; color:var(--faint); font-size:var(--text-md); line-height:1.7 }
 .console-empty strong { color:var(--muted); font-weight:500 }
 @media(max-width:720px) {
-  /* The Work queue's controls and rows need more than the session list's 260px. */
   .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
 }
 /* Turning a working connection off is rare; it should not look like the next step. */
@@ -3295,7 +3153,7 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .ui-label-aside { display:inline-flex; align-items:center; gap:8px; margin-left:auto; color:var(--muted); font-size:var(--text-md); font-weight:500; letter-spacing:0; text-transform:none }
 .ui-subgroup { margin:0 0 var(--space-5) }
 .ui-group { display:flex; align-items:center; gap:8px; margin:0 0 6px; padding:0 var(--row-pad); font-size:var(--text-md); font-weight:600; color:var(--text) }
-.ui-group i { width:7px; height:7px; border-radius:2px; background:var(--faint); flex:none }
+.ui-group i { width:7px; height:7px; border-radius:var(--radius-xs); background:var(--faint); flex:none }
 .ui-group[data-tone=must] i { background:var(--hot) }
 .ui-group[data-tone=should] i { background:var(--stale) }
 .ui-group[data-tone=could] i { background:var(--idle) }
@@ -3420,10 +3278,44 @@ details[open]>summary .ui-chevron { transform:rotate(45deg) }
 .detail:has(#composer) #detail-content .page-head { display:none }
 .detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
 
+/* A status badge (Working, Offline...) is a pill, wherever it appears. */
+.page-actions .badge, .ui-row .badge { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:var(--text-md); font-weight:500; line-height:16px }
+.page-actions .badge .dot { width:6px; height:6px }
+
+/* Facts: a label and its value on one line, in two columns. */
+.detail-body .facts { display:grid; grid-template-columns:minmax(96px,auto) minmax(0,1fr); gap:0; margin:0; font-size:var(--text-md) }
+.detail-body .facts :is(dt,dd) { margin:0; padding:9px 0; border-bottom:1px solid var(--divider) }
+.detail-body .facts dt { padding-right:var(--space-4); color:var(--faint) }
+.detail-body .facts dd { color:var(--text); overflow-wrap:anywhere }
+.detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
+.detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
+.detail:has(#composer) .detail-body .facts dd { padding-top:2px }
+
+/* Dialogs share one form: a section label like the pages', a 13px label over a 42px
+   field, a quiet note under it. The Launch dialog set the standard. */
+.settings-section h3 { margin:0 0 var(--space-2); font-size:var(--text-sm); letter-spacing:.1em }
+.settings-toggle { color:var(--text); font-size:var(--text-lg) }
+.settings-field { font-size:var(--text-lg) }
+.settings-field :is(select,.fleet-select) { min-height:42px; padding:0 12px; border-radius:var(--radius-lg); background-color:var(--bg); font-size:var(--text-md) }
+#gateway-status { padding:12px 14px; border-radius:var(--radius-xl); background:var(--panel); color:var(--muted); font-size:var(--text-md) }
+#gateway-form label { margin:var(--space-5) 0 var(--space-2); color:var(--text); font-size:var(--text-lg); font-weight:500 }
+#gateway-key { height:42px; border-radius:var(--radius-lg); font-size:var(--text-md) }
+#gateway-key:focus { outline:0; border-color:var(--faint) }
+
+/* Connections: the same labels as Launch, and the button only as wide as its words. */
+.connections-form label { color:var(--text); font-size:var(--text-lg) }
+.connections-form:has(#connections-project[hidden]) { grid-template-columns:minmax(0,1fr) auto }
+.connections-form #connections-check { padding-inline:var(--space-6) }
+/* Every disclosure in a dialog opens with the same chevron as the pages' folds. */
+.modal details>summary { display:flex; align-items:center; gap:10px; list-style:none }
+.modal details>summary::-webkit-details-marker { display:none }
+.modal details>summary::before { content:""; flex:none; width:6px; height:6px; border-right:1.5px solid var(--faint); border-bottom:1.5px solid var(--faint); transform:rotate(-45deg); transition:transform .15s ease }
+.modal details[open]>summary::before { transform:rotate(45deg) }
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }
-.day-source::before { content:""; width:6px; height:6px; border-radius:2px; background:var(--faint) }
+.day-source::before { content:""; width:6px; height:6px; border-radius:var(--radius-xs); background:var(--faint) }
 .day-source[data-source=linear]::before { background:var(--term-blue) }
 .day-source[data-source=slack]::before { background:var(--term-magenta) }
 .day-source[data-source=github]::before { background:var(--text) }
@@ -3451,4 +3343,5 @@ details[open]>summary .ui-chevron { transform:rotate(45deg) }
   .ui-add>summary, .ui-fold>summary, .button.ghost { min-height:var(--touch); box-sizing:border-box }
   .ui-actions .button { flex:1 1 auto }
   .ui-ask input { min-height:var(--touch) }
+  .page-actions :is(select,.fleet-select), .ui-row-side :is(select,.fleet-select) { min-height:var(--touch); padding-right:32px; background-position:right 12px center }
 }
