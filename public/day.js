@@ -3,6 +3,7 @@
 // one. An isolated scope, like teams.js.
 window.FleetDay=(()=>{
   const { esc, toast } = window.Fleet
+  const UI = window.FleetUI
   const control = () => window.FleetControl
   const api = (...args) => window.FleetControl.api(...args)
   const escape=value=>esc(String(value ?? ''))
@@ -46,25 +47,25 @@ window.FleetDay=(()=>{
   const replyHtml=(id,data)=>`<div class="day-reply">${keep(`reply:${id}`)}<button type="button" class="button" data-answer="reply" ${data}>Reply</button></div>`
   function needHtml(item,n) {
     const id=`${item.id}:${n.id}`,data=`data-item="${escape(item.id)}" data-need="${escape(n.id)}"`
-    if(n.kind==='approve') return `<div class="day-need" data-kind="approve"><p>${escape(n.question)}</p>${keep(`draft:${id}`,n.draft,Math.min(8,Math.max(3,String(n.draft).split('\n').length+1)))}<div class="day-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Approve</button><button type="button" class="button" data-answer="reject" ${data}>Reject</button><span class="note">Edit the text to approve your version, or reply to discuss it.</span></div>${replyHtml(id,data)}</div>`
-    if(n.kind==='choose') return `<div class="day-need" data-kind="choose"><p>${escape(n.question)}</p><div class="day-actions">${(n.options || []).map(o=>`<button type="button" class="button" data-answer-value="${escape(o)}" ${data}>${escape(o)}</button>`).join('')}</div>${replyHtml(id,data)}</div>`
+    if(n.kind==='approve') return `<div class="day-need" data-kind="approve"><p>${escape(n.question)}</p>${keep(`draft:${id}`,n.draft,Math.min(8,Math.max(3,String(n.draft).split('\n').length+1)))}<div class="ui-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Approve</button><button type="button" class="button" data-answer="reject" ${data}>Reject</button><span class="note">Edit the text to approve your version, or reply to discuss it.</span></div>${replyHtml(id,data)}</div>`
+    if(n.kind==='choose') return `<div class="day-need" data-kind="choose"><p>${escape(n.question)}</p><div class="ui-actions">${(n.options || []).map(o=>`<button type="button" class="button" data-answer-value="${escape(o)}" ${data}>${escape(o)}</button>`).join('')}</div>${replyHtml(id,data)}</div>`
     if(n.kind==='launch'){
       const plan=n.launch || {},teams=teamList()
-      return `<div class="day-need" data-kind="launch"><p>${escape(n.question)}</p><label class="day-field">Brief the new session starts from${keep(`draft:${id}`,n.draft,Math.min(10,Math.max(4,String(n.draft).split('\n').length+1)))}</label><div class="day-launch-fields"><label class="day-field">Repository<input data-launch="cwd" value="${escape(plan.cwd || '')}" maxlength="4096"></label><label class="day-field">Who<select data-launch="teamId"><option value="">Single agent</option>${teams.map(t=>`<option value="${escape(t.id)}" ${t.id===plan.teamId ? 'selected':''}>${escape(t.name)}</option>`).join('')}${plan.teamId && !teams.some(t=>t.id===plan.teamId) ? `<option value="${escape(plan.teamId)}" selected>${escape(plan.teamId)}</option>`:''}</select></label></div><div class="day-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Launch ↗</button><button type="button" class="button" data-answer="reject" ${data}>Not now</button><span class="note">Starts a Fleet session like the Work queue does. It shows up in Sessions.</span></div>${replyHtml(id,data)}</div>`
+      return `<div class="day-need" data-kind="launch"><p>${escape(n.question)}</p><label class="day-field">Brief the new session starts from${keep(`draft:${id}`,n.draft,Math.min(10,Math.max(4,String(n.draft).split('\n').length+1)))}</label><div class="day-launch-fields"><label class="day-field">Repository<input data-launch="cwd" value="${escape(plan.cwd || '')}" maxlength="4096"></label><label class="day-field">Who<select data-launch="teamId"><option value="">Single agent</option>${teams.map(t=>`<option value="${escape(t.id)}" ${t.id===plan.teamId ? 'selected':''}>${escape(t.name)}</option>`).join('')}${plan.teamId && !teams.some(t=>t.id===plan.teamId) ? `<option value="${escape(plan.teamId)}" selected>${escape(plan.teamId)}</option>`:''}</select></label></div><div class="ui-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Launch ↗</button><button type="button" class="button" data-answer="reject" ${data}>Not now</button><span class="note">Starts a Fleet session like the Work queue does. It shows up in Sessions.</span></div>${replyHtml(id,data)}</div>`
     }
-    return `<div class="day-need" data-kind="info"><p>${escape(n.question)}</p><div class="day-actions day-inline">${keep(`info:${id}`)}<button type="button" class="button resume" data-answer="info" ${data}>Answer</button></div></div>`
+    return `<div class="day-need" data-kind="info"><p>${escape(n.question)}</p><div class="ui-actions day-inline">${keep(`info:${id}`)}<button type="button" class="button resume" data-answer="info" ${data}>Answer</button></div></div>`
   }
   function waitingHtml(items) {
     const waiting=items.filter(i=>open(i).length).sort((a,b)=>open(a)[0].at-open(b)[0].at)
     if(!waiting.length) return ''
-    return `<section class="day-section day-waiting"><h4>Waiting on you <span>${waiting.reduce((n,i)=>n+open(i).length,0)}</span></h4>${waiting.map(item=>`<article class="day-card">${`<div class="day-card-head">${head(item)}</div>`}${open(item).map(n=>needHtml(item,n)).join('')}${linksHtml(item)}</article>`).join('')}</section>`
+    return UI.section('Waiting on you',waiting.map(item=>`<article class="ui-card" data-tone="needs"><div class="day-card-head">${head(item)}</div>${open(item).map(n=>needHtml(item,n)).join('')}${linksHtml(item)}</article>`).join(''),{count:waiting.reduce((n,i)=>n+open(i).length,0),cls:'day-waiting'})
   }
   function triageHtml(items) {
     const proposed=items.filter(i=>i.status==='proposed')
     if(!proposed.length) return ''
     const order={must:0,should:1,could:2}
     proposed.sort((a,b)=>order[a.priority]-order[b.priority])
-    return `<section class="day-section"><h4>To triage <span>${proposed.length}</span><button type="button" class="button day-small" data-triage-all="must">Take all Must</button></h4>${proposed.map(item=>`<article class="day-card" data-card="${escape(item.id)}" data-proposed><div class="day-card-head">${head(item)}</div>${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}<div class="day-actions"><select data-field="priority" aria-label="Priority">${options(PRIORITY,item.priority)}</select><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button resume" data-triage="today">Today</button><button type="button" class="button" data-triage="later">Later</button><button type="button" class="button" data-triage="dropped">Drop</button></div></article>`).join('')}</section>`
+    return UI.section('To triage',proposed.map(item=>`<article class="ui-card" data-card="${escape(item.id)}" data-proposed><div class="day-card-head">${head(item)}</div>${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}<div class="ui-actions"><select data-field="priority" aria-label="Priority">${options(PRIORITY,item.priority)}</select><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button resume" data-triage="today">Today</button><button type="button" class="button" data-triage="later">Later</button><button type="button" class="button" data-triage="dropped">Drop</button></div></article>`).join(''),{count:proposed.length,aside:'<button type="button" class="button ghost" data-triage-all="must">Take all Must</button>'})
   }
   // Sessions an item launched, with their live state from the session list.
   const LAUNCH_STATE={starting:'starting',running:'working',approval:'needs you',stopping:'stopping',stopped:'stopped',error:'failed',idle:'ready',queued:'queued'}
@@ -125,19 +126,24 @@ window.FleetDay=(()=>{
       const latest=item.log.at(-1)?.text,live=liveStatus(item)
       const tone=['working','running','needs'].includes(live?.[0]) ? live[0] : item.status==='waiting_on_you' ? 'needs' : item.status==='in_progress' ? 'progress' : live?.[0] || 'todo'
       const icon=STATE_ICON[item.status]
-      const meta=`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}${projectHtml(item)}${live ? `<span class="day-live" data-live="${live[0]}">${escape(live[1])}</span>`:''}${latest ? `<span class="day-latest" title="${escape(latest)}">${escape(latest)}</span>`:''}`
-      return `<li data-card="${escape(item.id)}" data-tone="${tone}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-orb" data-tone="${tone}" title="${escape(icon?.[1] || live?.[1] || 'Not started')}"></span><span class="day-row-body"><strong class="day-row-title">${escape(item.title)}</strong><span class="day-row-meta">${meta}</span></span><span class="day-row-side">${item.estimateMin ? `<small class="day-estimate">${duration(item.estimateMin)}</small>`:''}<span class="day-mode" data-mode="${escape(item.mode)}">${escape(MODE_SHORT[item.mode] || MODE[item.mode])}</span><span class="day-chevron" aria-hidden="true"></span></span></summary><div class="day-row-detail">${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${(window.FleetProjects?.list() || []).length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${window.FleetProjects.list().map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></div></details></li>`
+      const meta=`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}${projectHtml(item)}${live ? UI.pill(escape(live[1]),live[0]):''}${latest ? `<span class="ui-row-latest" title="${escape(latest)}">${escape(latest)}</span>`:''}`
+      const side=`${item.estimateMin ? `<small class="ui-row-figure">${duration(item.estimateMin)}</small>`:''}${UI.pill(escape(MODE_SHORT[item.mode] || MODE[item.mode]),item.mode==='agent' ? 'agent' : item.mode==='me' ? 'me' : 'outline')}`
+      const projects=window.FleetProjects?.list() || []
+      const detail=`${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${UI.log(item.log.slice(-6).map(l=>[new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),escape(l.text)]))}<div class="ui-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="ui-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${projects.length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${projects.map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div>`
+      return UI.row({tone,orbTitle:icon?.[1] || live?.[1] || 'Not started',title:escape(item.title),meta,side,detail,open:opened.has(item.id),key:item.id,attrs:`data-card="${escape(item.id)}"`})
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
-    return `<section class="day-section"><h4>Today <span>${today.length}</span>${capacityHtml(minutes(today),b)}</h4>${today.length ? groups.map(([p,list])=>`<div class="day-group" data-priority="${p}"><h5><i aria-hidden="true"></i>${PRIORITY[p]}<span>${list.length}</span>${minutes(list) ? `<small>${duration(minutes(list))}</small>`:''}</h5><ol class="day-list">${list.map(row).join('')}</ol></div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
+    const body=today.length ? groups.map(([p,list])=>`<div class="ui-subgroup">${UI.group(PRIORITY[p],{count:list.length,end:minutes(list) ? duration(minutes(list)) : '',tone:p})}${UI.list(list.map(row).join(''))}</div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'
+    return UI.section('Today',body,{count:today.length,aside:capacityHtml(minutes(today),b)})
   }
   function restHtml(items) {
     const later=items.filter(i=>i.status==='later'),done=items.filter(i=>i.status==='done')
     if(!later.length && !done.length) return ''
-    const list=(title,list,action)=>list.length ? `<details class="day-rest" data-evidence="rest-${title}"><summary><span class="day-chevron" aria-hidden="true"></span>${title}<span class="day-count">${list.length}</span></summary><ul>${list.map(i=>`<li data-card="${escape(i.id)}" ${action ? '':'class="is-done"'}>${action ? '':'<span class="day-check" aria-hidden="true">✓</span>'}${head(i)}${action ? `<button type="button" class="button day-small" data-triage="today">Today</button>`:''}</li>`).join('')}</ul></details>`:''
-    return `<section class="day-section">${list('Later',later,true)}${list('Done',done,false)}</section>`
+    const rows=(list,isDone)=>UI.list(list.map(i=>UI.row({tone:isDone ? 'done' : 'todo',orbTitle:isDone ? 'Done' : 'Later',title:escape(i.title),meta:`<span class="day-source" data-source="${escape(i.source)}">${escape(SOURCE[i.source] || i.source)}</span>${carriedHtml(i)}${projectHtml(i)}`,side:`${i.estimateMin ? `<small class="ui-row-figure">${duration(i.estimateMin)}</small>`:''}${isDone ? '' : '<button type="button" class="button ghost" data-triage="today">Today</button>'}`,attrs:`data-card="${escape(i.id)}"`})).join(''),'is-compact')
+    const fold=(title,list,isDone)=>list.length ? UI.fold({title,count:list.length,body:rows(list,isDone),key:`rest-${title}`}):''
+    return `<div class="ui-folds">${fold('Later',later,false)}${fold('Done',done,true)}</div>`
   }
-  const addHtml=()=>`<details class="day-add" data-evidence="add"><summary><span class="day-add-plus" aria-hidden="true">+</span>Add something<span class="note">a task, a follow-up, a reminder</span></summary><div class="day-add-fields">${keep('add:title')}<textarea data-keep="add:context" rows="3" maxlength="8000" placeholder="Context, links, who is waiting. The agent fills in the rest."></textarea><div class="day-actions"><select data-add="priority" aria-label="Priority">${options(PRIORITY,'should')}</select><select data-add="mode" aria-label="How">${options(MODE,'me')}</select><button type="button" class="button resume" data-add-item>Add to today</button></div></div></details>`
+  const addHtml=()=>`<details class="ui-add" data-evidence="add"><summary><span class="ui-add-plus" aria-hidden="true">+</span>Add something<span class="note">a task, a follow-up, a reminder</span></summary><div class="ui-add-fields">${keep('add:title')}<textarea data-keep="add:context" rows="3" maxlength="8000" placeholder="Context, links, who is waiting. The agent fills in the rest."></textarea><div class="ui-actions"><select data-add="priority" aria-label="Priority">${options(PRIORITY,'should')}</select><select data-add="mode" aria-label="How">${options(MODE,'me')}</select><button type="button" class="button resume" data-add-item>Add to today</button></div></div></details>`
   // The Today tab: the board in a pane of its own, beside the Day's console. The console
   // is the ordinary control panel, so talking to the Day works like any agent.
   const pane=()=>document.getElementById('today-pane')
@@ -200,7 +206,7 @@ window.FleetDay=(()=>{
     const waiting=items.reduce((n,i)=>n+open(i).length,0)
     const when=new Date(`${b.date}T12:00:00`).toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})
     const gathering=!items.length && control().isWorking(s) ? '<p class="note today-gathering">Gathering your day from Slack, Linear, Granola, GitHub and your calendar…</p>':''
-    panel.innerHTML=`<header class="today-head"><div class="today-title"><span class="modal-eyebrow">TODAY</span><h2>${escape(when)}</h2></div><div class="today-stats">${waiting ? `<span class="day-alert">${waiting} waiting on you</span>`:''}${checkHtml(s)}</div><div class="today-strip">${progressHtml(done,triaged)}<div class="today-usage" id="today-usage">${usageHtml(s)}</div></div></header><div class="today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened,b)}${addHtml()}${restHtml(items)}</div>`
+    panel.innerHTML=`${UI.pageHead({title:escape(when),actions:`${waiting ? UI.pill(`${waiting} waiting on you`,'needs'):''}${checkHtml(s)}`,strip:`${UI.stat('Done',`${UI.ring(done,triaged)}${done} <small>of ${triaged}</small>`,{title:`${done} of ${triaged} triaged items done`})}<div class="page-strip-group" id="today-usage">${usageHtml(s)}</div>`})}<div class="page-body today-body">${gathering}${waitingHtml(items)}${triageHtml(items)}${todayHtml(items,opened,b)}${addHtml()}${restHtml(items)}</div>`
     for(const el of panel.querySelectorAll('details[data-evidence]'))if(opened.has(el.dataset.evidence))el.open=true
     for(const el of panel.querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
     panel.querySelector('[data-keep="add:title"]').placeholder='What needs doing?'
@@ -208,11 +214,6 @@ window.FleetDay=(()=>{
     for(const el of panel.querySelectorAll('[data-keep^="ask:"]'))el.placeholder='Ask about this item: why, what if, change the plan…'
     panel.querySelector('.today-body').scrollTop=scrollTop
     if(focused)panel.querySelector(`[data-keep="${CSS.escape(focused)}"]`)?.focus({preventScroll:true})
-  }
-  // How much of the day is done, as a small ring and a count.
-  function progressHtml(done,total) {
-    const share=total ? done/total : 0,c=2*Math.PI*7
-    return `<span class="today-meter today-progress" title="${done} of ${total} triaged items done"><b>Done</b><span class="today-meter-value"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7"/><circle cx="9" cy="9" r="7" class="is-done" stroke-dasharray="${(share*c).toFixed(2)} ${c.toFixed(2)}"/></svg>${done} <small>of ${total}</small></span></span>`
   }
   // When the Day last looked at your sources and when it will next, so a greyed-out
   // button is never the only clue that something is (or is not) happening.
@@ -234,7 +235,7 @@ window.FleetDay=(()=>{
       const morning=new Date();morning.setDate(morning.getDate()+1);morning.setHours(from,0,0,0)
       when=`Checked ${clock(c.lastAt)} · next ${later ? `tomorrow ${clock(morning)}` : next.getHours()<from ? clock(new Date(next).setHours(from,0,0,0)) : clock(next)}`
     }
-    return `<span class="day-check-state">${when}</span><button type="button" class="button day-small day-sweep" data-sweep ${working ? 'disabled title="The Day agent is busy"':''}>↻ Check now</button>`
+    return `<span class="day-check-state">${when}</span><button type="button" class="button ghost" data-sweep ${working ? 'disabled title="The Day agent is busy"':''}>↻ Check now</button>`
   }
   // What today has used: this Day's own tokens and context, then the account's plan
   // windows, which every session on the machine draws from, the Day included.
@@ -244,15 +245,16 @@ window.FleetDay=(()=>{
     const t=s.tokenUsage,parts=[]
     if(t){
       const total=t.input+t.output+t.cacheRead+t.cacheCreation
-      parts.push(`<span class="today-meter" title="${escape(`Input ${t.input.toLocaleString()} · output ${t.output.toLocaleString()} · cache read ${t.cacheRead.toLocaleString()} · cache write ${t.cacheCreation.toLocaleString()}. All models, scouts included.`)}"><b>This Day</b><span class="today-meter-value">${compactTokens(total)} <small>tokens</small></span></span>`)
+      parts.push(UI.stat('This Day',`${compactTokens(total)} <small>tokens</small>`,{title:`Input ${t.input.toLocaleString()} · output ${t.output.toLocaleString()} · cache read ${t.cacheRead.toLocaleString()} · cache write ${t.cacheCreation.toLocaleString()}. All models, scouts included.`}))
     }
-    if(s.contextTokens){const share=Math.round(s.contextTokens/(s.contextLimit || 200000)*100);parts.push(`<span class="today-meter ${share>=90 ? 'hot':share>=75 ? 'warn':''}" title="${s.contextTokens.toLocaleString()} tokens in the Day's conversation"><b>Context</b><span class="today-meter-value"><span class="mini-bar"><i style="width:${share}%"></i></span>${share}%</span></span>`)}
+    const heat=n=>n>=90 ? 'hot' : n>=75 ? 'warn' : undefined
+    if(s.contextTokens){const share=Math.round(s.contextTokens/(s.contextLimit || 200000)*100);parts.push(UI.stat('Context',`${UI.bar(share)}${share}%`,{tone:heat(share),title:`${s.contextTokens.toLocaleString()} tokens in the Day's conversation`}))}
     const usage=window.Fleet.snapshot()?.usage
     if(usage?.available && usage.known)for(const w of usage.windows.filter(w=>WINDOW[w.name])){
       const reset=w.resetsAt ? ` · resets ${new Date(w.resetsAt).toLocaleString([],w.name==='five_hour' ? {hour:'2-digit',minute:'2-digit'}:{weekday:'short',hour:'2-digit',minute:'2-digit'})}`:''
-      parts.push(`<span class="today-meter ${w.utilization>=90 ? 'hot':w.utilization>=75 ? 'warn':''}"><b>${WINDOW[w.name]}</b><span class="today-meter-value"><span class="mini-bar"><i style="width:${w.utilization}%"></i></span>${w.utilization}%<small>${reset}</small></span></span>`)
+      parts.push(UI.stat(WINDOW[w.name],`${UI.bar(w.utilization)}${w.utilization}%<small>${reset}</small>`,{tone:heat(w.utilization)}))
     }
-    else parts.push('<span class="today-meter note"><b>Plan limits</b><span class="today-meter-value">After the next run</span></span>')
+    else parts.push(UI.stat('Plan limits','After the next run',{tone:'quiet'}))
     return parts.join('')
   }
   // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
@@ -272,7 +274,7 @@ window.FleetDay=(()=>{
     if(day){if(!document.getElementById('day-board'))pane().querySelector('.today-empty')?.remove();return}
     document.getElementById('day-board')?.remove()
     if(pane().querySelector('.today-empty'))return
-    pane().insertAdjacentHTML('beforeend',`<div class="today-empty"><span class="modal-eyebrow">TODAY</span><h2>Good morning.</h2><p class="note">One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
+    pane().insertAdjacentHTML('beforeend',`<div class="today-empty ui-empty"><h3>Good morning.</h3><p>One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
     document.getElementById('start-day').addEventListener('click',start)
   }
   // The Day's console, told in its own terms. An automatic run is a marker, not a
