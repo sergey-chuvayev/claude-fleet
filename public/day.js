@@ -137,7 +137,7 @@ window.FleetDay=(()=>{
   // The Today tab: the board in a pane of its own, beside the Day's console. The console
   // is the ordinary control panel, so talking to the Day works like any agent.
   const pane=()=>document.getElementById('today-pane')
-  const active=()=>window.FleetQueue?.view?.()==='today' && !!pane()
+  const active=()=>window.FleetViews?.view()==='today' && !!pane()
   // The console shows the Day agent, or one item's thread. The board always shows the Day,
   // so while a thread is open the Day's own detail is fetched beside it.
   let shownThread=null,dayDetail=null,dayFetchAt=0
@@ -368,7 +368,7 @@ window.FleetDay=(()=>{
         .catch(error=>{toast(error.message);askItem.disabled=false})
     }
     const opener=target.closest('[data-open-session]')
-    if(opener){event.preventDefault();window.FleetQueue?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
+    if(opener){event.preventDefault();window.FleetViews?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const answer=target.closest('[data-answer],[data-answer-value]')
     if(answer){
       const {item,need}=answer.dataset,key=`${item}:${need}`
@@ -419,7 +419,7 @@ window.FleetDay=(()=>{
     }catch(error){toast(error.message);button.disabled=false}
   }
   function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-  // Mounted before work-queue.js runs, which owns switching between the views.
+  // Mounted before views.js runs, which owns switching between the views.
   function mount() {
     const tabs=document.querySelector('.work-tabs'),sessions=document.getElementById('sessions-pane')
     if(!tabs || !sessions || document.getElementById('view-today'))return

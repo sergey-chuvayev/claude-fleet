@@ -277,25 +277,15 @@ conversation on every question.
 
 </details>
 
-### Work queue
+### The agent queue
 
-The **Work queue** tab sits beside **Sessions** in the installed app. It shows real
-Fleet-managed requests grouped into **Needs you**, **Ready to review**, **Running**,
-**Queued**, and **Ready**. External terminal sessions remain in Sessions. Select a
-task to use its existing conversation, approval forms, review evidence and composer.
-An idle single agent appears as Ready; it is not automatically verified or merged.
-
-Use **Add task** to open the normal launch form, with a single agent by default and
-Owner + review or existing teams available. Click **Enable queue** to hold work when
-all slots are occupied. **Pause queue** holds new turns, including follow-up messages;
-running turns can finish. Set **Concurrent tasks** from 1 to 8. These settings persist
-across restart; interrupted or previously queued sessions need a message to resume.
-Select queued work and use **Cancel queued task** to remove it from dispatch.
-
-Queue controls use Fleet's existing authenticated API. The tab ships in `public/`
-and the npm package; the older interactive simulation stays under `docs/prototypes/`.
-There are no simulated acceptance or integration checks in the live tab. Independent
-review evidence and any PR links remain available in the conversation.
+Fleet runs up to a set number of agents at once. In **Settings → Agents**, choose
+**Concurrent agents** from 1 to 8 and turn on **Queue tasks over the limit** to hold new
+work when every slot is busy instead of refusing it. **Pause queue** holds new turns,
+including follow-up messages, while running turns finish. These settings persist across
+restart; interrupted or previously queued sessions need a message to resume. A queued
+session shows its place in line in Sessions, and **Cancel queued task** in its console
+removes it from dispatch.
 
 ### An initiative is a team behind one conversation
 
@@ -410,7 +400,7 @@ directory; task history and team snapshots live with the initiative in `sessions
 
 ### A Day is one agent that runs your whole day
 
-Open the **Today** tab, next to Sessions and Work queue, and press **Start my day**. Fleet
+Open the **Today** tab, next to Projects and Sessions, and press **Start my day**. Fleet
 starts a *Day*: one Sonnet agent that keeps a board of what you should care about today and
 works through it with you until the evening. The tab is two panels, the board and the Day's
 console; a Day never shows up among your agents.
@@ -436,7 +426,7 @@ approval, whatever the approval mode. Read-only calls run freely.
 
 A Day cannot edit files or start sessions itself. For an *Agent does it* item it writes a brief
 and asks to launch it: you see the brief, the repository and the team, edit any of them, and
-press **Launch**. Fleet then starts that session the way the Work queue does, so it shows up in
+press **Launch**. Fleet then starts that session the way **New agent** does, so it shows up in
 Sessions with its own console; the item links to it and shows its live state.
 
 Every item on today says where it actually is: *Working now* (with which agent and for how
@@ -664,7 +654,7 @@ run and left in place.
 | `CLAUDE_FLEET_DIR` | Claude home to read sessions from, default `~/.claude` |
 | `CLAUDE_FLEET_EXECUTABLE` | Absolute path to the `claude` binary, or `bundled` for the SDK's own |
 | `CLAUDE_FLEET_WARP_DIR` | Warp configuration directory to theme from |
-| `CLAUDE_FLEET_QUEUE` | Startup override: `1` enables queuing, `0` disables it; otherwise use the saved Work queue setting |
+| `CLAUDE_FLEET_QUEUE` | Startup override: `1` enables queuing, `0` disables it; otherwise use the saved Settings → Agents choice |
 | `CLAUDE_FLEET_CONCURRENCY` | How many agents may run at once, 1 to 8, default 4 |
 | `CLAUDE_FLEET_SEARCH_DAYS` | How far back Ask indexes transcripts, default 60 |
 | `CLAUDE_FLEET_SEARCH_MODEL` | Model for the Ask answering turn |

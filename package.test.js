@@ -47,11 +47,12 @@ test('the bin entry point ships',()=>{
   }
 })
 
-test('the production Work queue tab and its script ship in npm, not just the prototype',()=>{
+test('the view switcher ships in npm, and the retired Work queue does not',()=>{
   const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8')
-  assert.match(html,/id="view-queue"/)
-  assert.match(html,/<script src="\/work-queue.js" defer>/)
+  assert.match(html,/<script src="\/views.js" defer>/)
+  assert.doesNotMatch(html,/view-queue|work-queue/)
   assert.ok(shipped.has('public/'))
-  assert.ok(fs.existsSync(path.join(root,'public/work-queue.js')))
+  assert.ok(fs.existsSync(path.join(root,'public/views.js')))
+  assert.ok(!fs.existsSync(path.join(root,'public/work-queue.js')))
   assert.doesNotMatch(html,/\/prototype\//)
 })

@@ -119,7 +119,8 @@ $('launch-form')?.addEventListener('submit',async event=>{
     closeModal()
     await tick()
     window.Fleet.setFilter('all')
-    window.FleetQueue?.reveal()
+    // A new agent lives in Sessions; launched from Today or Projects, go there to see it.
+    window.FleetViews?.switchView('sessions')
     window.Fleet.select(data.session.id)
     toast(data.session.status==='queued' ? 'Task queued' : form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})

@@ -2761,25 +2761,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
   .work-tabs { order:3; width:100%; margin:0 }
   .work-tabs .button { flex:1 }
 }
-.work-controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-size:var(--text-sm) }
-.work-controls label { display:flex;align-items:center;gap:8px;margin-left:auto }
-.work-controls :is(select,.fleet-select) { min-width:56px }
-.work-controls p { flex-basis:100%;margin:0 }
-.work-filters { display:flex;flex-wrap:wrap;gap:3px;padding:8px 12px 0 }
-.work-filters .filter { width:auto;gap:8px }
-.work-search { display:block;padding:8px 18px;border-bottom:1px solid var(--line) }
-.work-search input { width:100%;background:transparent;border:0;border-radius:0;color:var(--text);font:inherit;padding:6px 0 }
-.work-group { display:flex; gap:var(--space-2); padding:var(--space-4) var(--space-3) var(--space-2); margin:0; font-size:var(--text-xs); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
-.work-group[data-state=attention] { color:var(--stale) }
-.work-group[data-state=review] { color:var(--accent) }
-.work-group span { color:var(--faint) }
-.work-row { text-align:left;width:100% }
-.work-row .session-title { white-space:normal;overflow-wrap:anywhere }
-.work-row .session-meta { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.work-next { display:block;margin-top:7px;color:var(--muted);font-size:var(--text-sm);overflow-wrap:anywhere }
 @media(max-width:720px) {
-  .work-controls { padding:10px 12px }.work-controls label { margin-left:0 }
-  .work-pane { min-height:280px }
 }
 
 /* Connections use the same flat rows and separators as the session console. */
@@ -3025,9 +3007,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 }
 
 /* Keep the released queue rows and utility controls usable in the compact shell. */
-.work-row { grid-template-columns:minmax(0,1fr) 70px }
-.work-row .session-context { display:block }
-.work-row .session-meta { display:block }
 
 /* ── Day ─────────────────────────────────────────────────────────────────────
    The Day board reuses the initiative board's frame; these are its own parts. */
@@ -3302,9 +3281,19 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .console-empty strong { color:var(--muted); font-weight:500 }
 @media(max-width:720px) {
   /* The Work queue's controls and rows need more than the session list's 260px. */
-  .work-pane { max-height:70vh }
   .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
 }
 /* Turning a working connection off is rare; it should not look like the next step. */
 .connection-actions [data-connection-action=disable] { border-color:transparent; color:var(--faint); font-size:var(--text-xs) }
 .connection-actions [data-connection-action=disable]:hover { color:var(--text); border-color:var(--line) }
+
+/* Settings: one section per concern. */
+.settings-section + .settings-section { margin-top:var(--space-6); padding-top:var(--space-5); border-top:1px solid var(--divider) }
+.settings-section h3 { margin:0 0 var(--space-1); font-size:var(--text-xs); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
+.settings-section>.note:first-of-type { margin:0 0 var(--space-3) }
+.settings-row { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3) var(--space-5) }
+.settings-toggle { display:inline-flex; align-items:center; gap:var(--space-2); cursor:pointer }
+.settings-toggle input { accent-color:var(--accent); width:16px; height:16px; margin:0 }
+.settings-field { display:inline-flex; align-items:center; gap:var(--space-2); color:var(--muted) }
+.settings-field :is(select,.fleet-select) { min-width:64px }
+#queue-status { margin:var(--space-3) 0 0 }
