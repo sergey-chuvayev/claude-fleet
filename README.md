@@ -714,14 +714,21 @@ servers. Select a session for its live tool availability, or a project directory
 check connections without sending a model prompt. Idle sessions use a separate
 project check; it does not resume the task.
 
-The panel supports reconnecting and enabling/disabling existing servers. For servers
-that need sign-in, authorize Claude.ai connectors in the linked settings page, or
-run `/mcp` in Claude Code in that project for local server authentication. Then check
-again and reconnect. Already-running agents need their own live reconnect; a project
-check does not refresh other sessions. Fleet's internal task tools cannot be disabled.
+Servers are grouped by state (failed, connected, connecting, needs sign-in, off) with
+filters and a search. Servers still starting are checked again quietly until they settle.
 
-Server credentials and raw transport errors are never returned to the panel.
-Diagnostic connections expire after two minutes without a check.
+**Sign in** starts the server's own sign-in and opens the page in your default browser,
+where you are already signed in to your accounts (Fleet's app window is a separate
+browser profile). A Claude.ai connector opens its own authorization page; an OAuth server
+opens its provider's, with Claude listening on localhost for the callback. The row waits,
+checks every few seconds and turns connected by itself; after five minutes it offers to
+try again. Failed servers can be reconnected and others turned on or off. Already-running
+agents need their own live reconnect; a project check does not refresh other sessions.
+Fleet's internal task tools cannot be turned off.
+
+Server credentials and raw transport errors are never returned to the panel, and Fleet
+opens only `https` sign-in pages. Diagnostic connections expire after three minutes
+without a check.
 
 ## Automatic model selection with Jev
 

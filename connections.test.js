@@ -96,3 +96,29 @@ test('HTTP connection checks require same-origin control authorization and ship 
     assert.match(await (await fetch(base)).text(),/id="open-connections"/)
   }finally{await app.close();f.close()}
 })
+test('signing in opens the page Claude returns in the browser, and only an https one',async()=>{
+  const opened=[]
+  const f=fixture({openUrl:async url=>{opened.push(url);return true}})
+  try{
+    const r=await f.connections.request({cwd:f.dir}),target={cwd:f.dir,source:r.source,connectionId:r.connectionId}
+    const q=f.queries[0]
+    q.mcpAuthenticate=async name=>({authUrl:`https://claude.ai/api/organizations/o/mcp/start-auth/${name}`,requiresUserAction:true,callbackExpected:false})
+    const signed=await f.connections.request({...target,action:'authenticate',name:'linear'})
+    assert.deepEqual(signed.auth,{name:'linear',url:'https://claude.ai/api/organizations/o/mcp/start-auth/linear',opened:true,needsAction:true,callback:false})
+    assert.deepEqual(opened,['https://claude.ai/api/organizations/o/mcp/start-auth/linear'])
+    assert.equal(signed.servers.length,2,'the status comes back with it')
+    q.mcpAuthenticate=async()=>({authUrl:'http://evil.example/x',requiresUserAction:true})
+    await assert.rejects(f.connections.request({...target,action:'authenticate',name:'linear'}),{status:502,message:/will not open/})
+    assert.equal(opened.length,1,'a non-https address is never opened')
+    // A failed action closes the probe, so the next one starts from a fresh check.
+    const again=await f.connections.request({cwd:f.dir})
+    await assert.rejects(f.connections.request({cwd:f.dir,source:again.source,connectionId:again.connectionId,action:'authenticate',name:'nope'}),{status:404})
+  }finally{f.close()}
+})
+test('a runtime that cannot sign in says what to do instead',async()=>{
+  const f=fixture({openUrl:async()=>true})
+  try{
+    const r=await f.connections.request({cwd:f.dir})
+    await assert.rejects(f.connections.request({cwd:f.dir,source:r.source,connectionId:r.connectionId,action:'authenticate',name:'linear'}),{status:409,message:/run \/mcp/})
+  }finally{f.close()}
+})
