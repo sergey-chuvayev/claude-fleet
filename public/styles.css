@@ -3032,13 +3032,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-card-head, .day-list summary, .day-rest li { display:flex; align-items:baseline; gap:8px; min-width:0 }
 .day-card-head strong, .day-list summary strong, .day-rest li strong { flex:1 1 auto; min-width:0; overflow-wrap:anywhere }
 .day-card-head small, .day-list summary small, .day-rest li small { color:var(--muted); font-variant-numeric:tabular-nums; flex:none }
-.day-list summary { line-height:1.6 }
-.day-list summary small.day-mode { color:var(--faint) }
-.day-source {
-  flex:none; padding:1px 5px; border:1px solid var(--line); border-radius:var(--radius-sm);
-  color:var(--muted); font-size:var(--text-xs);
-}
-.day-source[data-source=me] { color:var(--accent); border-color:color-mix(in oklab,var(--accent) 40%,var(--line)) }
 .day-priority { flex:none; font-size:var(--text-xs); color:var(--faint) }
 .day-priority[data-priority=must] { color:var(--hot); font-weight:600 }
 .task-state[data-state=waiting_on_you] { color:var(--stale) }
@@ -3175,20 +3168,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-group>h5>span { color:var(--faint); font-weight:400; font-variant-numeric:tabular-nums }
 .day-group[data-priority=must]>h5 { color:var(--hot) }
 .day-list { list-style:none; margin:0; padding:0 }
-.day-list>li { border-bottom:1px solid var(--line) }
-.day-list summary { display:block; cursor:pointer; padding:9px 0 9px 18px; position:relative; list-style:none }
 .day-list summary::-webkit-details-marker { display:none }
-.day-list summary::before { content:"›"; position:absolute; left:2px; top:8px; color:var(--faint); transition:transform .15s }
-.day-list details[open]>summary::before { transform:rotate(90deg) }
-.day-row-main { display:flex; align-items:baseline; gap:8px; min-width:0 }
-.day-row-main strong { flex:1 1 auto; min-width:0; overflow-wrap:anywhere }
-.day-row-main small { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
-.day-latest { display:block; margin-top:3px; color:var(--faint); font-size:var(--text-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.day-state { flex:none; font-size:10px }
-.day-state[data-state=waiting_on_you] { color:var(--stale) }
-.day-state[data-state=in_progress] { color:var(--accent) }
-.day-list details>*:not(summary) { margin-left:18px }
-.day-list details>.day-actions { margin-bottom:10px }
 .day-rest li.is-done strong { color:var(--muted); font-weight:500 }
 .day-check { flex:none; color:var(--busy) }
 .day-check-state { color:var(--faint); font-size:var(--text-xs); display:inline-flex; align-items:center; gap:6px }
@@ -3216,12 +3196,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }
 .day-carried { flex:none; padding:1px 6px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); white-space:nowrap }
 /* What each item is doing right now. */
-.day-live { display:inline-flex; align-items:center; gap:5px; margin-right:8px; padding:0 7px; border-radius:999px; background:var(--raised); color:var(--muted) }
-.day-live[data-live=working] { color:var(--accent); background:color-mix(in oklab,var(--accent) 14%,var(--raised)) }
-.day-live[data-live=running] { color:var(--busy) }
-.day-live[data-live=needs] { color:var(--stale) }
-.day-live[data-live=idle] { color:var(--faint); background:transparent; padding:0 }
-.day-live .day-spinner { width:8px; height:8px; border-width:1.5px }
 /* ── Projects ─────────────────────────────────────────────────────────────── */
 .projects-pane { display:flex; flex-direction:column }
 .project-list { display:flex; gap:6px; overflow-x:auto; padding:14px 28px; border-bottom:1px solid var(--divider); flex:none; scrollbar-width:thin }
@@ -3303,3 +3277,154 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .settings-field { display:inline-flex; align-items:center; gap:var(--space-2); color:var(--muted) }
 .settings-field :is(select,.fleet-select) { min-width:64px }
 #queue-status { margin:var(--space-3) 0 0 }
+
+/* ── The Today board ─────────────────────────────────────────────────────────
+   A calm list: each item is a row with a status orb, its title, one line of where it
+   is, and how it gets done. Everything else waits behind the row until it is opened. */
+#day-board { --row-pad:14px; --orb-col:20px }
+
+/* Header: the date and the day's progress on one line, what the day has used below. */
+#day-board .today-head { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3) var(--space-5); padding-bottom:var(--space-4) }
+#day-board .today-title { flex:1 0 auto }
+#day-board .today-head h2 { white-space:nowrap }
+#day-board .today-stats { gap:var(--space-4); justify-content:flex-end }
+#day-board .day-alert { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; background:var(--warn-surface); color:var(--stale); font-size:var(--text-md); font-weight:600 }
+#day-board .day-alert::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor }
+.today-progress svg { width:14px; height:14px; transform:rotate(-90deg) }
+.today-progress circle { fill:none; stroke:var(--line); stroke-width:2.5 }
+.today-progress circle.is-done { stroke:var(--busy); stroke-linecap:round; transition:stroke-dasharray .4s ease }
+#day-board .day-check-state { font-size:var(--text-md) }
+#day-board .day-sweep { min-height:var(--control-sm); padding:0 var(--space-4); border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:var(--text-md) }
+#day-board .day-sweep:hover:not(:disabled) { color:var(--text); border-color:var(--faint); background:var(--hover) }
+#day-board .today-strip { flex:1 0 100%; display:flex; flex-wrap:wrap; align-items:stretch; row-gap:var(--space-3); margin-top:var(--space-1) }
+#day-board .today-strip>.today-meter { padding-left:0; border-left:0; padding-right:var(--space-5) }
+#day-board .today-usage { flex:1 1 auto; border-left:1px solid var(--divider); justify-content:flex-start; gap:0; min-height:0 }
+#day-board .today-meter { flex-direction:column; align-items:flex-start; gap:3px; padding:0 var(--space-5); border-left:1px solid var(--divider); font-style:normal }
+#day-board .today-usage .today-meter:first-child { border-left:0 }
+#day-board .today-meter b { font-size:var(--text-2xs); letter-spacing:.1em; font-weight:600; color:var(--faint) }
+.today-meter-value { display:inline-flex; align-items:center; gap:6px; height:18px; color:var(--text); font-size:var(--text-md) }
+.today-meter-value small { color:var(--faint); font-size:var(--text-sm) }
+#day-board .today-meter.note .today-meter-value { color:var(--faint) }
+#day-board .today-meter.warn .today-meter-value { color:var(--stale) }
+#day-board .today-meter.hot .today-meter-value { color:var(--hot) }
+#day-board .today-meter .mini-bar { width:44px; height:4px; border-radius:999px }
+
+/* Sections and priority groups. */
+#day-board .today-body { padding:var(--space-5) var(--space-7) var(--space-8) }
+#day-board .day-section>h4 { gap:10px; margin:0 0 var(--space-3); font-size:var(--text-sm); font-weight:600; letter-spacing:.1em; color:var(--muted) }
+#day-board .day-section>h4>span:first-of-type { padding:1px 7px; border-radius:999px; background:var(--raised); color:var(--muted); letter-spacing:0; font-size:var(--text-xs) }
+#day-board .day-capacity { font-size:var(--text-md); font-weight:500 }
+#day-board .day-capacity .mini-bar { width:96px; border-radius:999px }
+#day-board .day-capacity .mini-bar i { background:var(--busy); border-radius:999px }
+#day-board .day-group { margin:0 0 var(--space-5) }
+#day-board .day-group>h5 { display:flex; align-items:center; gap:8px; margin:0 0 6px; padding:0 var(--row-pad); font-size:var(--text-md); font-weight:600; color:var(--text) }
+#day-board .day-group>h5 i { width:7px; height:7px; border-radius:2px; background:var(--faint) }
+#day-board .day-group[data-priority=must]>h5 { color:var(--text) }
+#day-board .day-group[data-priority=must]>h5 i { background:var(--hot) }
+#day-board .day-group[data-priority=should]>h5 i { background:var(--stale) }
+#day-board .day-group[data-priority=could]>h5 i { background:var(--idle) }
+#day-board .day-group>h5>span { color:var(--faint); font-weight:500; font-variant-numeric:tabular-nums }
+#day-board .day-group>h5::after { content:""; flex:1 1 auto; min-width:24px; height:1px; margin-left:4px; background:var(--divider); order:1 }
+#day-board .day-group>h5>small { order:2; color:var(--faint); font-size:var(--text-sm); font-weight:500; font-variant-numeric:tabular-nums }
+
+/* Rows. */
+.day-list { display:grid; gap:2px }
+.day-list>li { border-radius:var(--radius-xl); transition:background-color .15s ease, box-shadow .15s ease }
+.day-list>li:hover { background:var(--hover) }
+.day-list>li:has(details[open]) { background:var(--panel); box-shadow:inset 0 0 0 1px var(--line) }
+.day-list summary { display:grid; grid-template-columns:var(--orb-col) minmax(0,1fr) auto; align-items:start; gap:0 12px; padding:12px var(--row-pad); cursor:pointer; list-style:none; border-radius:var(--radius-xl) }
+.day-list summary::-webkit-details-marker { display:none }
+.day-list summary:focus-visible { outline:2px solid color-mix(in oklab,var(--accent) 50%,transparent); outline-offset:-2px }
+.day-row-body { display:grid; gap:4px; min-width:0 }
+.day-row-title { color:var(--text); font-size:14px; line-height:20px; font-weight:600; overflow-wrap:anywhere }
+.day-list>li[data-tone=todo] .day-row-title { font-weight:500 }
+.day-row-meta { display:flex; align-items:center; gap:10px; min-width:0; color:var(--faint); font-size:var(--text-md); line-height:18px; white-space:nowrap }
+.day-row-meta>* { flex:none }
+.day-latest { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis }
+.day-row-side { display:flex; align-items:center; gap:10px; height:20px }
+.day-estimate { color:var(--muted); font-size:var(--text-md); font-variant-numeric:tabular-nums }
+.day-mode { padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); font-size:var(--text-sm); line-height:14px; white-space:nowrap }
+.day-mode[data-mode=me] { color:var(--text); border-color:color-mix(in oklab,var(--text) 30%,var(--line)) }
+.day-mode[data-mode=agent] { color:var(--busy); border-color:color-mix(in oklab,var(--busy) 35%,var(--line)) }
+.day-chevron { width:6px; height:6px; margin:0 2px 0 4px; border-right:1.5px solid var(--faint); border-bottom:1.5px solid var(--faint); transform:rotate(-45deg); transition:transform .15s ease; flex:none }
+details[open]>summary .day-chevron, .day-rest[open]>summary .day-chevron { transform:rotate(45deg) }
+.day-row-detail { padding:0 var(--row-pad) var(--row-pad) calc(var(--row-pad) + var(--orb-col) + 12px) }
+.day-row-detail>:first-child { margin-top:0 }
+.day-row-detail .day-ask { margin:12px 0 0 }
+.day-row-detail .day-actions { margin-top:10px }
+
+/* The status orb: where the item is, at a glance. */
+.day-orb { position:relative; width:10px; height:10px; margin:5px auto 0; border-radius:50%; box-sizing:border-box; border:1.5px solid var(--faint) }
+.day-orb[data-tone=queued] { border-style:dashed }
+.day-orb[data-tone=idle] { border-color:var(--line) }
+.day-orb[data-tone=progress] { border-color:var(--busy); background:linear-gradient(90deg,var(--busy) 50%,transparent 50%) }
+.day-orb[data-tone=running] { border:0; background:var(--idle) }
+.day-orb[data-tone=needs] { border:0; background:var(--stale); box-shadow:0 0 0 3px color-mix(in oklab,var(--stale) 22%,transparent) }
+.day-orb[data-tone=working] { border:0; background:var(--busy) }
+.day-orb[data-tone=working]::after { content:""; position:absolute; inset:-4px; border-radius:50%; border:1.5px solid var(--busy); opacity:0; animation:day-orb-pulse 1.8s ease-out infinite }
+@keyframes day-orb-pulse { 0% { transform:scale(.6); opacity:.7 } 100% { transform:scale(1.5); opacity:0 } }
+@media(prefers-reduced-motion:reduce) { .day-orb[data-tone=working]::after { animation:none; opacity:.4 } }
+
+/* Where an item came from, as a coloured mark, and the live state as a quiet pill. */
+.day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }
+.day-source::before { content:""; width:6px; height:6px; border-radius:2px; background:var(--faint) }
+.day-source[data-source=linear]::before { background:var(--term-blue) }
+.day-source[data-source=slack]::before { background:var(--term-magenta) }
+.day-source[data-source=github]::before { background:var(--text) }
+.day-source[data-source=granola]::before { background:var(--busy) }
+.day-source[data-source=calendar]::before { background:var(--stale) }
+.day-source[data-source=me]::before { background:var(--term-red) }
+.day-live { padding:1px 8px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-sm); line-height:16px }
+.day-live[data-live=working] { color:var(--busy); background:color-mix(in oklab,var(--busy) 14%,var(--raised)) }
+.day-live[data-live=running] { color:var(--idle); background:color-mix(in oklab,var(--idle) 12%,var(--raised)) }
+.day-live[data-live=needs] { color:var(--stale); background:color-mix(in oklab,var(--stale) 14%,var(--raised)) }
+.day-live:is([data-live=idle],[data-live=queued]) { background:transparent; padding:0; color:var(--muted) }
+.day-carried, .day-project { padding:1px 8px; line-height:16px }
+
+/* Cards that need an answer or a decision. */
+#day-board .day-card { padding:14px 16px; margin-bottom:8px; border-radius:var(--radius-xl); background:var(--panel) }
+#day-board .day-card-head { align-items:center; gap:10px }
+#day-board .day-card-head strong { font-size:14px; line-height:20px }
+
+/* Add something: a quiet dashed row that opens into the form. */
+#day-board .day-add { margin:var(--space-2) 0 var(--space-6) }
+#day-board .day-add>summary { display:flex; align-items:center; gap:10px; padding:11px var(--row-pad); border:1px dashed var(--line); border-radius:var(--radius-xl); color:var(--muted); font-size:var(--text-lg); list-style:none; transition:border-color .15s ease, color .15s ease, background-color .15s ease }
+#day-board .day-add>summary::-webkit-details-marker { display:none }
+#day-board .day-add>summary:hover { color:var(--text); border-color:var(--faint); background:var(--hover) }
+#day-board .day-add>summary .note { margin-left:auto; color:var(--faint); font-size:var(--text-md) }
+#day-board .day-add[open]>summary { border-style:solid; border-bottom-left-radius:0; border-bottom-right-radius:0; color:var(--text) }
+#day-board .day-add[open] .day-add-fields { margin:0; padding:var(--row-pad); border:1px solid var(--line); border-top:0; border-radius:0 0 var(--radius-xl) var(--radius-xl); background:var(--panel) }
+.day-add-plus { display:grid; place-items:center; width:var(--orb-col); height:var(--orb-col); border-radius:50%; background:var(--raised); color:var(--text); font-size:14px; line-height:1 }
+
+/* Later and Done: folded sections with a count. */
+#day-board .day-rest { margin:0 0 var(--space-2) }
+#day-board .day-rest>summary { display:flex; align-items:center; gap:10px; padding:10px var(--row-pad); border-radius:var(--radius-xl); color:var(--muted); font-size:var(--text-sm); font-weight:600; letter-spacing:.1em; text-transform:uppercase; list-style:none }
+#day-board .day-rest>summary::-webkit-details-marker { display:none }
+#day-board .day-rest>summary:hover { color:var(--text); background:var(--hover) }
+#day-board .day-rest>summary .day-chevron { margin:0 4px }
+.day-count { padding:1px 7px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); letter-spacing:0 }
+#day-board .day-rest ul { display:grid; gap:2px; margin:2px 0 var(--space-3) }
+#day-board .day-rest li { align-items:center; gap:10px; padding:9px var(--row-pad) 9px calc(var(--row-pad) + var(--orb-col) + 12px); border-bottom:0; border-radius:var(--radius-xl) }
+#day-board .day-rest li:hover { background:var(--hover) }
+#day-board .day-rest li strong { font-weight:500; font-size:var(--text-lg); color:var(--text) }
+#day-board .day-rest li .button { min-height:28px; padding:0 var(--space-3); border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--muted) }
+#day-board .day-rest li .button:hover { color:var(--text); border-color:var(--faint) }
+#day-board .day-rest li.is-done { position:relative }
+#day-board .day-rest li.is-done strong { color:var(--faint); text-decoration:line-through; text-decoration-color:color-mix(in oklab,var(--faint) 60%,transparent) }
+#day-board .day-rest li.is-done .day-check { position:absolute; left:calc(var(--row-pad) + 4px); color:var(--busy) }
+
+@media(max-width:720px) {
+  #day-board { --row-pad:10px }
+  #day-board .today-stats { justify-content:flex-start }
+  #day-board .today-meter { padding:0 var(--space-3) }
+  #day-board .today-usage { border-left:0 }
+  #day-board .today-usage .today-meter:first-child { padding-left:0 }
+  #day-board .today-usage { row-gap:var(--space-3) }
+  #day-board .today-body { padding:var(--space-4) 16px var(--space-6) }
+  .day-list summary { grid-template-columns:var(--orb-col) minmax(0,1fr); min-height:var(--touch) }
+  .day-row-side { grid-column:2; margin-top:8px }
+  .day-row-side .day-chevron { display:none }
+  .day-row-detail { padding-left:var(--row-pad) }
+  #day-board .day-add>summary .note { display:none }
+  #day-board .day-add>summary, #day-board .day-rest>summary { min-height:var(--touch); box-sizing:border-box }
+}
