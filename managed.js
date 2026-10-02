@@ -15,6 +15,8 @@ const routing = require('./routing')
 const tasks = require('./tasks')
 const ownerReview = require('./owner-review')
 const day = require('./day')
+const { ProjectStore, progress: projectProgress } = require('./projects')
+const projectAgent = require('./project-agent')
 const dayAgent = require('./day-agent')
 const worktrees = require('./worktree')
 
@@ -103,6 +105,7 @@ class ManagedSessions extends EventEmitter {
     this.acquireLock()
     try {
       this.teams = new TeamStore(directory)
+      this.projects = new ProjectStore(directory)
       if (fs.existsSync(this.file)) {
         const data = JSON.parse(fs.readFileSync(this.file, 'utf8'))
         if (data.version !== 1 || !Array.isArray(data.sessions)) throw new Error('Unsupported session store format')
@@ -202,7 +205,7 @@ class ManagedSessions extends EventEmitter {
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
       error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
-      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
+      kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, projectId:s.projectId || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
       // line" rather than the bare "queued" that tells the operator nothing.
@@ -267,7 +270,8 @@ class ManagedSessions extends EventEmitter {
     if (team && resume) fail('A resumed conversation cannot be given a team.',409)
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
-    const s = {id,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    const projectId = body.projectId ? this.projects.require(text(body.projectId,'Project',100)).id : null
+    const s = {id,projectId,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     if (ownerReview.enabled(s)) {
       try {s.reviewBaseCommit=ownerReview.snapshot(s).commit;s.ownerRequest=prompt || 'Implement the request in the attached images.'}
       catch(error) {worktrees.remove(worktree);throw error}
@@ -318,7 +322,10 @@ class ManagedSessions extends EventEmitter {
         result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer,body.decision)
         if (result.need.kind === 'launch' && ['approve','edit'].includes(result.need.decision)) this.launchFromDay(s,result,body)
       }
-      else if (body.op === 'triage') result = day.triage(s,text(body.itemId,'Item',100),body)
+      else if (body.op === 'triage') {
+        if (body.projectId) this.projects.require(text(body.projectId,'Project',100))
+        result = day.triage(s,text(body.itemId,'Item',100),body)
+      }
       else if (body.op === 'sweep') { this.dayRun(s,'sweep'); return {queued:true} }
       else if (body.op === 'thread') { const t = this.threadFor(s,body); this.changed(s,true); return {threadId:t.id} }
       else fail('Unknown Day action.')
@@ -338,7 +345,7 @@ class ManagedSessions extends EventEmitter {
     const prompt = need.decision === 'edit' ? need.answer : need.draft
     const cwd = typeof body.cwd === 'string' && body.cwd.trim() ? body.cwd.trim() : plan.cwd
     const teamId = body.teamId !== undefined ? body.teamId || null : plan.teamId || null
-    const launched = this.create({cwd,prompt,name:plan.name || item.title.slice(0,100),...(teamId ? {teamId} : {}),...(plan.model ? {model:plan.model} : {}),approvalMode:s.approvalMode,requestId:need.id})
+    const launched = this.create({cwd,prompt,name:plan.name || item.title.slice(0,100),...(item.projectId && this.projects.get(item.projectId) ? {projectId:item.projectId} : {}),...(teamId ? {teamId} : {}),...(plan.model ? {model:plan.model} : {}),approvalMode:s.approvalMode,requestId:need.id})
     need.launched = launched.id
     item.launched = [...(item.launched || []), launched.id].slice(-5)
     item.status = 'in_progress'
@@ -395,6 +402,66 @@ class ManagedSessions extends EventEmitter {
     try { this.changed(owner) } catch (error) { this.emit('storage-error',error) }
   }
   dayFor(t) { return t.kind === 'thread' ? this.sessions.get(t.parentDayId) || null : t.kind === 'day' ? t : null }
+  // ── Projects ──────────────────────────────────────────────────────────────
+  // Tag (or untag) a session with a project. A Day, a thread or a manager is not work
+  // that belongs to one project, so only agents and initiatives can be tagged.
+  setProject(id, body) {
+    const s = this.get(id)
+    if (!['agent','initiative'].includes(s.kind || 'agent')) fail('Only agents and initiatives belong to a project.')
+    s.projectId = body.projectId ? this.projects.require(text(body.projectId,'Project',100)).id : null
+    this.changed(s,true)
+    return s
+  }
+  members(projectId) {
+    return [...this.sessions.values()].filter(x => x.projectId === projectId && x.kind !== 'project')
+  }
+  managerOf(projectId) { return [...this.sessions.values()].find(x => x.kind === 'project' && x.projectId === projectId) || null }
+  // The project's manager: started on the first question, continued after that. It works
+  // in the project's first repository so it can read the code it reports on.
+  askProject(projectId, body) {
+    const project = this.projects.require(projectId)
+    const message = text(body.message,'Message',16000)
+    const rid = requestId(body.requestId || randomUUID())
+    const existing = this.managerOf(project.id)
+    if (existing) { this.send(existing.id,{message,runPrompt:projectAgent.OPENING(message),requestId:rid}); return existing }
+    this.checkCapacity()
+    let cwd = defaultCwd()
+    for (const repo of project.repos) {
+      const full = repo === '~' || repo.startsWith('~/') ? path.join(os.homedir(), repo.slice(1)) : repo
+      try { if (fs.statSync(full).isDirectory()) { cwd = fs.realpathSync(full); break } } catch {}
+    }
+    const id = randomUUID()
+    const pm = {id,projectId:project.id,sessionId:null,name:project.name,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:'auto',selectedModel:'',messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'project',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,worktree:null}
+    this.sessions.set(id,pm)
+    try { this.send(id,{message,runPrompt:projectAgent.OPENING(message),requestId:rid}) }
+    catch (error) { this.sessions.delete(id); throw error }
+    return pm
+  }
+  // What a manager reads: the project, its sessions as summaries, and today's Day items.
+  projectStatus(projectId) {
+    const p = this.projects.require(projectId)
+    const today = [...this.sessions.values()].filter(x => x.kind === 'day').sort((a,b) => b.createdAt-a.createdAt)[0]
+    return {
+      name:p.name, deadline:p.deadline, brief:p.brief, repos:p.repos, links:p.links,
+      deliverables:p.deliverables.map(d => ({id:d.id,title:d.title,state:d.state,note:d.note})), log:(p.log || []).slice(-15),
+      sessions:this.members(p.id).map(x => ({...this.launchedStatus(x.id),lastWords:[...x.messages].reverse().find(m => m.role === 'assistant')?.text?.replace(/\s+/g,' ').slice(0,500) || null,updatedAt:x.updatedAt})),
+      today:today?.dayBoard ? today.dayBoard.items.filter(i => i.projectId === p.id).map(i => ({title:i.title,status:i.status,mode:i.mode,lastLog:i.log.at(-1)?.text || null})) : [],
+    }
+  }
+  projectSession(projectId, sessionId) {
+    const x = this.sessions.get(sessionId)
+    if (!x || x.projectId !== projectId || x.kind === 'project') fail('That session is not part of this project.')
+    return {...this.launchedStatus(x.id),cwd:x.cwd,recent:x.messages.filter(m => m.role !== 'tool').slice(-8).map(m => ({role:m.role,text:String(m.text || '').slice(0,1500)}))}
+  }
+  // A manager's suggestion lands on today's Day as a proposal, tagged with the project.
+  suggestForProject(projectId, input) {
+    this.projects.require(projectId)
+    const today = [...this.sessions.values()].filter(x => x.kind === 'day' && x.dayBoard?.date === day.dateOf()).sort((a,b) => b.createdAt-a.createdAt)[0]
+    if (!today) fail('There is no Day running today. Ask the operator to start their day first.')
+    const result = day.act(today,{action:'add',source:'me',...input,projectId},'agent')
+    this.changed(today,true)
+    return result
+  }
   // What the Day sees of the sessions it launched: enough to follow them, not their transcripts.
   launchedStatus(id) {
     const x = this.sessions.get(id)
@@ -477,7 +544,7 @@ class ManagedSessions extends EventEmitter {
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
-    const queued = {message,attachments,references,...(['day','thread'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
+    const queued = {message,attachments,references,...(['day','thread','project'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
     // Mid-turn, the SDK session can't take a second prompt yet: hold this one and let
     // the run's own completion (see the `finally` in run()) start it the moment the
     // agent is free, instead of making the operator retry once it's idle.
@@ -577,6 +644,17 @@ class ManagedSessions extends EventEmitter {
         options.effort=manager.effort
         options.maxTurns=manager.maxTurns
       }
+      if (s.kind === 'project') {
+        if (!this.projects.get(s.projectId)) throw new Error('This project was deleted.')
+        options.systemPrompt = {type:'preset',preset:'claude_code',append:projectAgent.SYSTEM}
+        options.model = boundedModel(selectedModel,'sonnet')
+        options.disallowedTools = ['Edit','Write','NotebookEdit']
+        options.mcpServers = {fleet:await projectAgent.server(s.projectId,{projects:this.projects,status:id=>this.projectStatus(id),session:(id,sid)=>this.projectSession(id,sid),suggest:(id,input)=>this.suggestForProject(id,input)},()=>this.changed(s))}
+        options.hooks = {PreToolUse:[{hooks:[async input=>{
+          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+        }]}]}
+      }
       if (s.kind === 'thread') {
         const owner = this.dayFor(s)
         if (!owner) throw new Error('The Day this conversation belongs to was closed.')
@@ -595,7 +673,7 @@ class ManagedSessions extends EventEmitter {
         options.model = boundedModel(selectedModel,'sonnet')
         // Code is changed by initiatives the operator launches, never by the Day itself.
         options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers={fleet:await day.sdkServer(s,()=>{this.syncThreads(s);this.changed(s,true)},{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description}))})}
+        options.mcpServers={fleet:await day.sdkServer(s,()=>{this.syncThreads(s);this.changed(s,true)},{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description})),projects:()=>this.projects.list().map(p=>({id:p.id,name:p.name,repos:p.repos,deadline:p.deadline,open:p.deliverables.filter(d=>d.state!=='done').map(d=>d.title)}))})}
         // Scouts run in the foreground. A background subagent outlives the turn that
         // launched it, and once that turn's result arrives the SDK closes its input:
         // every permission check and every call to the in-process day tool after that
@@ -922,6 +1000,7 @@ class ManagedSessions extends EventEmitter {
     let reason=askReason(tool,input,s.approvalMode)
     // A Day reaches other people on the operator's behalf. Whatever the approval mode,
     // that happens only for content they approved on the board, or approve right here.
+    if (s.kind === 'project' && day.outward(tool)) reason='A project manager does not send anything outside Fleet'
     const owner=this.dayFor(s)
     if (owner && day.outward(tool)) {
       const approved=day.approvedFor(owner,input)

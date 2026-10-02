@@ -334,7 +334,8 @@ function render() {
   const days = live.filter(s => s.kind === 'day')
   // An item's thread belongs to Today while its item is open; once settled it is an
   // ordinary past conversation and shows up here, resumable like any other.
-  const agents = live.filter(s => s.kind !== 'day' && !(s.kind === 'thread' && s.threadOpen))
+  // A project's manager lives in the Projects tab, like a Day lives in Today.
+  const agents = live.filter(s => s.kind !== 'day' && s.kind !== 'project' && !(s.kind === 'thread' && s.threadOpen))
   const background = agents.filter(s => s.background)
   // How many spawned sessions each visible session is running, for its row badge.
   const spawnCounts = new Map()
@@ -348,7 +349,7 @@ function render() {
   // Ordering comes from the server (approval, then busy, then most recent) and
   // finding a specific session is what the Ask modal is for.
   // The Today tab shows exactly one conversation, today's Day, or none before it starts.
-  const today = window.FleetDay?.active() ? window.FleetDay.current(days, live) : undefined
+  const today = window.FleetDay?.active() ? window.FleetDay.current(days, live) : window.FleetProjects?.active() ? window.FleetProjects.current(live) : undefined
   const shown = today !== undefined ? (today ? [today] : []) : window.FleetQueue?.active() ? window.FleetQueue.visible(agents) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
   if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
@@ -386,6 +387,7 @@ function render() {
   syncDetails()
   window.FleetQueue?.render(snapshot,selected)
   window.FleetDay?.render(days)
+  window.FleetProjects?.render(live)
 }
 // ── The archive ──────────────────────────────────────────────────────────────
 // Putting a session away hides its row and nothing else: the transcript stays in
@@ -699,7 +701,8 @@ const SPLIT_DEFAULT = 22, LIST_MIN = 240, DETAIL_MIN = 480
 // Today is two working panels, not a list beside a console, so its divider has its own
 // range and its own remembered position: dragging one never moves the other.
 const TODAY_DEFAULT = 56, BOARD_MIN = 420, CONSOLE_MIN = 380
-const todayView = () => document.querySelector('.workspace')?.dataset.view === 'today'
+// Today and Projects are both a working pane beside a console, so they share a divider.
+const todayView = () => ['today','projects'].includes(document.querySelector('.workspace')?.dataset.view)
 const splitKey = () => todayView() ? LAYOUT.today : LAYOUT.split
 const splitDefault = () => todayView() ? TODAY_DEFAULT : SPLIT_DEFAULT
 const splitBounds = width => todayView()
@@ -894,7 +897,7 @@ function syncDetails() {
   const toggle = $('details-toggle'), content = $('detail-content'), hasConsole = !!$('composer')
   if (!toggle || !content) return
   // Today is two panels, the board and the console; the inspector has nothing to add.
-  if (window.FleetDay?.active()) { toggle.hidden = true; content.hidden = true; return }
+  if (window.FleetDay?.active() || window.FleetProjects?.active()) { toggle.hidden = true; content.hidden = true; return }
   toggle.hidden = !hasConsole
   const preference = store.get(DETAILS_KEY)
   const open = !hasConsole || (preference === null ? matchMedia('(min-width:1200px)').matches : preference === '1')

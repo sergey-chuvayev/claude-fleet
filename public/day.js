@@ -27,13 +27,16 @@ window.FleetDay=(()=>{
     if(/slack\.com/.test(url))return 'Slack'
     try{return new URL(url).hostname.replace(/^www\./,'')}catch{return 'Link'}
   }
+  // The project an item belongs to, by name.
+  const projectName=id=>(window.FleetProjects?.list() || []).find(p=>p.id===id)?.name
+  const projectHtml=item=>{const name=item.projectId && projectName(item.projectId);return name ? `<span class="day-project" title="Project: ${escape(name)}">${escape(name.length>24 ? name.slice(0,23)+'…' : name)}</span>`:''}
   // Work from an earlier Day says so, with the day it first came from.
   const carriedHtml=item=>{
     if(!item.carriedFrom)return ''
     const day=new Date(`${item.carriedFrom}T12:00:00`).toLocaleDateString([],{weekday:'short'})
     return `<span class="day-carried" title="Carried over from ${escape(item.carriedFrom)}">from ${escape(day)}</span>`
   }
-  const head=item=>`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}<strong>${escape(item.title)}</strong>${item.estimateMin ? `<small>${duration(item.estimateMin)}</small>`:''}`
+  const head=item=>`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}${projectHtml(item)}<strong>${escape(item.title)}</strong>${item.estimateMin ? `<small>${duration(item.estimateMin)}</small>`:''}`
   // An answer is typed into the board while the board keeps refreshing under it. Every
   // field that holds the operator's words is keyed, read back before a render and put
   // back after, so a poll never eats a half-written reply.
@@ -119,7 +122,7 @@ window.FleetDay=(()=>{
     today.sort((a,b)=>a.createdAt-b.createdAt)
     const row=item=>{
       const icon=STATE_ICON[item.status],latest=item.log.at(-1)?.text,live=liveStatus(item)
-      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${live || latest ? `<span class="day-latest">${live ? `<span class="day-live" data-live="${live[0]}">${live[0]==='working' ? '<span class="day-spinner" aria-hidden="true"></span>':''}${escape(live[1])}</span>`:''}${latest ? escape(latest):''}</span>`:''}</summary>${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
+      return `<li data-card="${escape(item.id)}"><details data-evidence="${escape(item.id)}" ${opened.has(item.id) ? 'open':''}><summary><span class="day-row-main">${icon ? `<span class="day-state" data-state="${escape(item.status)}" title="${icon[1]}">${icon[0]}</span>`:''}${head(item)}<small class="day-mode">${escape(MODE[item.mode])}</small></span>${live || latest ? `<span class="day-latest">${live ? `<span class="day-live" data-live="${live[0]}">${live[0]==='working' ? '<span class="day-spinner" aria-hidden="true"></span>':''}${escape(live[1])}</span>`:''}${latest ? escape(latest):''}</span>`:''}</summary>${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${item.log.length ? `<ol class="day-log">${item.log.slice(-6).map(l=>`<li><time>${new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</time> ${escape(l.text)}</li>`).join('')}</ol>`:''}<div class="day-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="day-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${(window.FleetProjects?.list() || []).length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${window.FleetProjects.list().map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div></details></li>`
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
     return `<section class="day-section"><h4>Today <span>${today.length}</span>${capacityHtml(minutes(today),b)}</h4>${today.length ? groups.map(([p,list])=>`<div class="day-group" data-priority="${p}"><h5>${PRIORITY[p]} <span>${list.length}${minutes(list) ? ` · ${duration(minutes(list))}`:''}</span></h5><ol class="day-list">${list.map(row).join('')}</ol></div>`).join('') : '<p class="note">Nothing on today yet. Triage the proposals, or add your own.</p>'}</section>`
@@ -158,7 +161,7 @@ window.FleetDay=(()=>{
     })
     // On a proposal the choices travel with Today/Later/Drop; on a triaged item a new
     // mode is the instruction, so it goes at once.
-    panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])');if(card && event.target.dataset.field==='mode')triage(panel.dataset.sessionId,card.dataset.card,{mode:event.target.value},'Updated')})
+    panel.addEventListener('change',event=>{const card=event.target.closest('[data-card]:not([data-proposed])'),field=event.target.dataset.field;if(card && ['mode','projectId'].includes(field))triage(panel.dataset.sessionId,card.dataset.card,{[field]:event.target.value},field==='projectId' ? (event.target.value ? 'Added to the project' : 'Removed from the project') : 'Updated')})
   }
   function board(s) {
     if(s.kind==='day')dayDetail=s

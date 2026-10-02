@@ -13,7 +13,7 @@
   }
   function visible(sessions,filter='all',search='') {
     const query=search.trim().toLowerCase()
-    return sessions.filter(s=>s.managed && !s.archived && !s.background && s.kind!=='day' && !(s.kind==='thread' && s.threadOpen) && (filter==='all' || state(s)===filter) &&
+    return sessions.filter(s=>s.managed && !s.archived && !s.background && s.kind!=='day' && s.kind!=='project' && !(s.kind==='thread' && s.threadOpen) && (filter==='all' || state(s)===filter) &&
       [s.title,s.name,s.cwd,s.teamName,s.worktreeBranch].filter(Boolean).join(' ').toLowerCase().includes(query))
       .sort((a,b)=>groups.findIndex(([id])=>id===state(a))-groups.findIndex(([id])=>id===state(b)) ||
         (state(a)==='queued' ? (a.queuePosition || 0)-(b.queuePosition || 0) : (b.lastActivity || 0)-(a.lastActivity || 0)))
@@ -32,7 +32,7 @@
   // The grouping rules are shared with Node tests; no browser dependency is needed.
   if (typeof module!=='undefined' && module.exports) {module.exports={state,visible,nextAction};return}
   const { $,esc,update,store,toast,key,money }=window.Fleet
-  const VIEWS=['sessions','queue','today']
+  const VIEWS=['sessions','queue','today','projects']
   let mode=VIEWS.includes(store.get('fleet:view')) ? store.get('fleet:view'):'sessions',filter='all',search='',busy=false
   const mounted=()=>!!$('work-pane')
   function active() {return mode==='queue' && mounted()}
@@ -40,13 +40,15 @@
   // them before this file runs; without them the Today view simply is not offered.
   function switchView(next) {
     if (next==='today' && !$('today-pane')) next='sessions'
+    if (next==='projects' && !$('projects-pane')) next='sessions'
     mode=next;store.set('fleet:view',mode)
     $('sessions-pane').hidden=mode!=='sessions';$('work-pane').hidden=mode!=='queue'
     if ($('today-pane')) $('today-pane').hidden=mode!=='today'
+    if ($('projects-pane')) $('projects-pane').hidden=mode!=='projects'
     for (const view of VIEWS) $(`view-${view}`)?.setAttribute('aria-pressed',String(mode===view))
     const workspace=document.querySelector('.workspace')
     workspace.dataset.view=mode
-    workspace.setAttribute('aria-label',mode==='queue' ? 'Work queue':mode==='today' ? 'Today':'Sessions')
+    workspace.setAttribute('aria-label',{queue:'Work queue',today:'Today',projects:'Projects'}[mode] || 'Sessions')
     window.Fleet.syncSplit?.()
     window.Fleet.render()
   }
@@ -104,6 +106,7 @@
   $('view-sessions').addEventListener('click',()=>switchView('sessions'))
   $('view-queue').addEventListener('click',()=>switchView('queue'))
   $('view-today')?.addEventListener('click',()=>switchView('today'))
+  $('view-projects')?.addEventListener('click',()=>switchView('projects'))
   $('work-add').addEventListener('click',()=>window.FleetControl.openLaunch())
   $('work-enable').addEventListener('click',()=>changeQueue({enabled:true}))
   $('work-pause').addEventListener('click',()=>changeQueue({paused:!window.Fleet.snapshot()?.queue?.paused}))

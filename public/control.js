@@ -197,8 +197,8 @@ function renderControl() {
   window.FleetTeams?.board(s)
   window.FleetDay?.board(s)
   // A thread is held to the Day's outward gate too, so it reads the same way.
-  const day=s.kind==='day',thread=s.kind==='thread',gated=day || thread
-  $('conversation-title').textContent=day ? 'Day agent' : thread ? `About: ${s.name}` : s.aiTitle || s.name
+  const day=s.kind==='day',thread=s.kind==='thread',pm=s.kind==='project',gated=day || thread || pm
+  $('conversation-title').textContent=day ? 'Day agent' : thread ? `About: ${s.name}` : pm ? `Project manager · ${s.name}` : s.aiTitle || s.name
   const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
   const tool=s.currentTool && (window.FleetBlocks?.toolLabel(s.currentTool) || s.currentTool)
   $('agent-state').textContent=(tool && s.status==='running' ? (day && tool==='Board' ? 'Updating the board…' : `Using ${tool}`) : managedLabels[s.status])+queueNote
@@ -206,8 +206,14 @@ function renderControl() {
   // picker would only suggest a choice that is not really there.
   $('approval-mode').closest('.mode-picker').hidden=gated
   let gate=$('day-gate-note')
-  if(gated && !gate){gate=document.createElement('span');gate.id='day-gate-note';gate.className='subtle day-gate-note';gate.textContent='Sends need your approval';gate.title='Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.';$('approval-mode').closest('.mode-picker').after(gate)}
-  if(gate)gate.hidden=!gated
+  if(gated && !gate){gate=document.createElement('span');gate.id='day-gate-note';gate.className='subtle day-gate-note';$('approval-mode').closest('.mode-picker').after(gate)}
+  if(gate){
+    gate.hidden=!gated
+    gate.textContent=pm ? 'Sends nothing outside Fleet' : 'Sends need your approval'
+    gate.title=pm ? 'A project manager reads and reports. Next steps go to your Day as proposals.' : 'Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.'
+  }
+  projectPicker(s)
+  if(pm && $('message-input'))$('message-input').placeholder='Ask about this project: status, blockers, are we on track…'
   const routing=$('model-routing'),decision=s.modelRouting
   routing.hidden=s.selectedModel!=='auto-jev'
   routing.textContent=decision ? `Jev → ${decision.model} · Pinned for this session. ${decision.description}${decision.signals ? ` Complexity: ${decision.signals.complexity} (${Math.round(decision.signals.probability*100)}% choice probability).`:''}` : 'Jev will select a model from this task’s brief. If unavailable, Fleet uses the preset.'
@@ -255,6 +261,24 @@ function renderControl() {
   const queue=$('queued-messages')
   queue.hidden=!s.queue?.length
   if(s.queue?.length) queue.innerHTML=s.queue.map((q,i)=>`<li class="queued-message"><span class="queued-index">#${i+1}</span><span class="queued-text">${esc(q.message || `${q.attachments?.length || 0} image${q.attachments?.length===1 ? '':'s'}`)}</span><span class="queued-label">Queued</span></li>`).join('')
+}
+// An agent or initiative can belong to one of the operator's projects; the picker tags it.
+function projectPicker(s) {
+  let picker=$('project-choice')
+  const taggable=['agent','initiative'].includes(s.kind || 'agent'),projects=window.FleetProjects?.list() || []
+  if(!taggable || (!projects.length && !s.projectId)){picker?.closest('label')?.remove();return}
+  if(!picker){
+    $('approval-mode').closest('.mode-picker').insertAdjacentHTML('beforebegin','<label class="mode-picker"><span class="sr-only">Project</span><select id="project-choice" title="Which of your projects this work belongs to"></select></label>')
+    picker=$('project-choice')
+    picker.addEventListener('change',async event=>{
+      const id=controlId
+      try{await api(`/api/managed/${id}/project`,{projectId:event.target.value || null});await refreshControl();window.FleetProjects?.load(true);toast(event.target.value ? 'Added to the project' : 'Removed from the project')}
+      catch(error){toast(error.message);refreshControl()}
+    })
+  }
+  const options=`<option value="">No project</option>${projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}`
+  if(picker.dataset.options!==options){picker.innerHTML=options;picker.dataset.options=options}
+  if(picker!==document.activeElement)picker.value=s.projectId || ''
 }
 function renderApprovals(approvals) {
   $('approvals').innerHTML=approvals.map(p=>{

@@ -30,6 +30,8 @@
     "connections.js",
     "day.js",
     "day-agent.js",
+    "project-agent.js",
+    "projects.js",
     "dispatch.js",
     "fleet.js",
     "managed.js",

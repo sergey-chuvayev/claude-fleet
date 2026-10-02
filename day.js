@@ -45,7 +45,7 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=(item,ctx={})=>({...(item.carriedFrom ? {carriedFrom:item.carriedFrom} : {}),...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
+const compact=(item,ctx={})=>({...(item.projectId ? {projectId:item.projectId} : {}),...(item.carriedFrom ? {carriedFrom:item.carriedFrom} : {}),...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
   const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
@@ -60,7 +60,7 @@ function add(s,input,by) {
     priority:oneOf(input.priority ?? 'should',PRIORITIES,'Priority'),
     // The operator's own items are already decided; the agent's are proposals until triaged.
     status:by==='operator' ? 'today' : 'proposed',
-    mode:oneOf(input.mode ?? 'me',MODES,'Mode'),estimateMin:minutes(input.estimateMin),needs:[],log:[],createdAt:Date.now(),by}
+    mode:oneOf(input.mode ?? 'me',MODES,'Mode'),estimateMin:minutes(input.estimateMin),...(input.projectId ? {projectId:str(input.projectId,'Project',100)} : {}),needs:[],log:[],createdAt:Date.now(),by}
   board.items.push(item);return {merged:false,item}
 }
 function minutes(value) {
@@ -80,6 +80,7 @@ function update(s,input,by) {
   if (input.priority!==undefined) item.priority=oneOf(input.priority,PRIORITIES,'Priority')
   if (input.mode!==undefined) item.mode=oneOf(input.mode,MODES,'Mode')
   if (input.estimateMin!==undefined) item.estimateMin=minutes(input.estimateMin)
+  if (input.projectId!==undefined) item.projectId=input.projectId ? str(input.projectId,'Project',100) : undefined
   if (input.links!==undefined) item.links=[...new Set([...item.links,...links(input.links)])].slice(0,MAX_LINKS)
   if (status) item.status=status
   if (input.note) log(item,input.note)
@@ -124,8 +125,9 @@ function answer(s,itemId,needId,value,decision) {
   return {item,need}
 }
 // The operator's triage of proposed items, in one call from the UI.
-function triage(s,itemId,{status,priority,mode}={}) {
+function triage(s,itemId,{status,priority,mode,projectId}={}) {
   const item=itemFor(s,itemId)
+  if (projectId!==undefined) item.projectId=projectId ? str(projectId,'Project',100) : undefined
   if (status!==undefined) {
     oneOf(status,['today','later','dropped','proposed','done'],'Triage')
     // Done by hand still respects an approval the agent is waiting on: closing the item
@@ -155,10 +157,12 @@ function act(s,input,by='agent',ctx={}) {
     return {date:board.date,cursors:board.cursors,items,closed:board.items.filter(i=>['done','dropped'].includes(i.status)).length}
   }
   if (input.action==='inspect') {const item=itemFor(s,input.itemId);return item}
+  if ((input.action==='add' || input.action==='update') && input.projectId && ctx.projects && !ctx.projects().some(p=>p.id===input.projectId)) fail('Unknown project. Use the projects action to list them.')
   if (input.action==='add') return add(s,input,by)
   if (input.action==='update') return update(s,input,by)
   if (input.action==='ask') return ask(s,input,ctx)
   if (input.action==='teams') return ctx.teams ? ctx.teams() : []
+  if (input.action==='projects') return ctx.projects ? ctx.projects() : []
   // What the Day is working on itself right now, so the board can say so. Cleared when
   // the run ends; subagents are linked to their item separately, by their prompt.
   if (input.action==='focus') {
@@ -266,8 +270,8 @@ async function threadServer(s,itemId,changed) {
 async function sdkServer(s,changed,ctx={}) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options; launch needs the brief in draft plus cwd and optional teamId, and Fleet starts that session itself once approved), then move on to other items. teams: the teams a launch can use. capacity: record freeMinutes of focus time left today, from the calendar. focus: say which item you are working on yourself now (call it before you start on an item). cursor: get or set the last-seen point for a source.',{
-    action:z.enum(['list','inspect','add','update','ask','cursor','teams','capacity','focus']),freeMinutes:z.number().optional(),cwd:z.string().optional(),teamId:z.string().optional(),name:z.string().optional(),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('day','The operator\'s Day board. list: compact open items, their open questions and any new answers (read this first, every run). inspect: one item with its full context and log. add: a new item (deduplicated by link). update: change status/priority/mode/estimate, append links, or log a note of what you did. ask: record a question the operator must answer on an item (approve needs the exact draft; choose needs options; launch needs the brief in draft plus cwd and optional teamId, and Fleet starts that session itself once approved), then move on to other items. teams: the teams a launch can use. capacity: record freeMinutes of focus time left today, from the calendar. focus: say which item you are working on yourself now (call it before you start on an item). projects: the operator\'s projects; tag items that clearly belong to one with projectId on add or update. cursor: get or set the last-seen point for a source.',{
+    action:z.enum(['list','inspect','add','update','ask','cursor','teams','capacity','focus','projects']),projectId:z.string().optional(),freeMinutes:z.number().optional(),cwd:z.string().optional(),teamId:z.string().optional(),name:z.string().optional(),itemId:z.string().optional(),title:z.string().optional(),source:z.enum(SOURCES).optional(),links:z.array(z.string()).optional(),context:z.string().optional(),
     priority:z.enum(PRIORITIES).optional(),status:z.enum(STATUSES).optional(),mode:z.enum(MODES).optional(),estimateMin:z.number().optional(),note:z.string().optional(),
     kind:z.enum(NEED_KINDS).optional(),question:z.string().optional(),options:z.array(z.string()).optional(),draft:z.string().optional(),value:z.string().optional(),includeClosed:z.boolean().optional(),
   },async input=>{
