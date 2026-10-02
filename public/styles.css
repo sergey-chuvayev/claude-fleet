@@ -3265,3 +3265,10 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .day-agent-tab.is-thread { border-color:var(--line) }
 .day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }
 .day-carried { flex:none; padding:1px 6px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); white-space:nowrap }
+/* What each item is doing right now. */
+.day-live { display:inline-flex; align-items:center; gap:5px; margin-right:8px; padding:0 7px; border-radius:999px; background:var(--raised); color:var(--muted) }
+.day-live[data-live=working] { color:var(--accent); background:color-mix(in oklab,var(--accent) 14%,var(--raised)) }
+.day-live[data-live=running] { color:var(--busy) }
+.day-live[data-live=needs] { color:var(--stale) }
+.day-live[data-live=idle] { color:var(--faint); background:transparent; padding:0 }
+.day-live .day-spinner { width:8px; height:8px; border-width:1.5px }

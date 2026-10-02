@@ -354,3 +354,35 @@ test('the next Day closes yesterday\'s threads, and a new thread starts from the
     assert.match(calls.at(-1).prompt,/carried over from 2026-01-01[\s\S]*Agreed to drop comment 4/)
   } finally { await manager.close() }
 })
+
+test('a subagent named for an item is tied to it, and the Day\'s own focus lasts only the run',async()=>{
+  let item,focusSeen
+  const {directory,manager}=setup(async()=>{})
+  manager.queryFactory=async({options})=>({close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:'main',model:'claude-sonnet'}
+    if (item) {
+      yield {type:'assistant',message:{content:[
+        {type:'tool_use',id:'sub-a',name:'Agent',input:{subagent_type:'general-purpose',description:'Attio sync',prompt:`Fleet item: ${item.id}\nFind out why the summary does not sync.`}},
+        {type:'tool_use',id:'sub-b',name:'Agent',input:{subagent_type:'general-purpose',description:'Unknown',prompt:'Fleet item: 00000000-not-an-item\nx'}},
+      ]}}
+      const s=[...manager.sessions.values()].find(x=>x.kind==='day')
+      day.act(s,{action:'focus',itemId:item.id})
+      focusSeen=structuredClone(s.dayBoard.focus)
+      yield {type:'user',message:{content:[{type:'tool_result',tool_use_id:'sub-a',content:'Webhook missing'},{type:'tool_result',tool_use_id:'sub-b',content:'x'}]}}
+    }
+    yield {type:'result',result:'Done',is_error:false}
+  }})
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    item=day.act(s,{action:'add',title:'Investigate Attio sync',source:'granola'},'operator').item
+    manager.send(s.id,{message:'go',requestId:randomUUID()})
+    await until(()=>s.status==='idle' && s.subagents?.length===2)
+    assert.equal(s.subagents[0].itemId,item.id)
+    assert.equal(s.subagents[1].itemId,null,'an id that is not on the board links nothing')
+    assert.equal(focusSeen.itemId,item.id)
+    assert.equal(item.status,'in_progress','starting work on an item moves it along')
+    assert.equal(s.dayBoard.focus,null,'focus ends with the run')
+    assert.throws(()=>day.act(s,{action:'focus',itemId:'nope'}),/Item not found/)
+  } finally { await manager.close() }
+})
