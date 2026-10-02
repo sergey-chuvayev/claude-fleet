@@ -70,7 +70,7 @@ const intake=()=>`Morning intake for today.
 ${timeframe()}
 1. Call day list. Note each source's cursor. Items with "carriedFrom" are unfinished work from an earlier Day: review them first. Drop nothing yourself, but note on each (day update note) whether it still looks current from what you know, and correct estimates that look wrong. Do not add them again.
 2. In ONE message, delegate to slack-scout, linear-scout, granola-scout, github-scout and calendar-scout as foreground calls (never run_in_background), giving each its cursor or the start above. They run side by side.
-3. Add every returned item with day add and its source. Duplicates merge by link; that is expected.
+3. Add every returned item with day add and its source. Duplicates merge by link; that is expected. Call day projects once: when an item clearly belongs to one of the operator's projects (its repo, ticket or subject matches), set projectId on it.
 4. Add one calendar item per meeting that needs preparation (mode "me", with the prep in context). Record freeMinutes with day capacity.
 5. Set each source's cursor to the current time (ISO) with day cursor.
 6. Finish with a short message to the operator. Open with what carried over (how many items, how many still waiting on them, anything that looks stale), then how many new items were proposed per source, the free focus time today vs. the estimated minutes of the "must" items, and the top 3 you would put on today. Do not start working items until the operator has triaged.`

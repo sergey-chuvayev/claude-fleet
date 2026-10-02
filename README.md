@@ -468,6 +468,25 @@ a carried item starts a fresh thread that knows where the last one ended. A Day 
 The Day's directory decides which project-scoped connectors it can reach. It reuses the
 previous Day's, or set `CLAUDE_FLEET_DAY_CWD`.
 
+### Projects group work by outcome
+
+A Day is organised by time; a project by outcome. In the **Projects** tab, define a project in
+your own words: a name, a deadline, a brief (paste a roadmap section, or write it), the
+deliverables that make it done, its repositories and links. Fleet does not sync with a roadmap
+tool; the brief is the context.
+
+Work belongs to a project when you tag it: from an agent's or initiative's console (the project
+picker in its header), or on a Day item, whose launches then inherit the project. The project
+shows its deliverables (to do, doing, in review, done), the sessions tagged to it with their live
+state, its log and its brief.
+
+Each project has a manager you can ask: "where are we", "what is blocking", "are we on track for
+the 30th". It reads the project's sessions as summaries (state, branch, PR and ticket links,
+last words), can look closer at one, reads code in the project's repositories and Linear,
+GitHub and Slack to check facts, keeps the deliverables' state and notes honest, and logs
+decisions and risks. It never starts work or sends anything outside Fleet: next steps go onto
+your Day as proposals, where launches still need your approval.
+
 ### Inspect individual agents
 
 Select a subagent row beneath a managed initiative to see its assignment, actual model,
@@ -605,6 +624,8 @@ for the app itself.
 | [`tasks.js`](tasks.js) | The task board: tasks, delegations, and the initiative's verification ledger |
 | [`day.js`](day.js) | The Day board: items, the questions each waits on, dedupe, cursors, carry-over, and the outward-call gate |
 | [`day-agent.js`](day-agent.js) | The Day agent's instructions, its read-only scouts, and the prompt each kind of run starts from |
+| [`projects.js`](projects.js) | Projects: the brief, deadline, deliverables with their state, repositories, links and log |
+| [`project-agent.js`](project-agent.js) | A project's manager: its instructions and the project tool it reads and updates the project with |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |

@@ -14,6 +14,7 @@ const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./se
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
 const { defaultCwd } = require('./paths.js')
+const { progress: projectProgress } = require('./projects')
 const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
@@ -145,6 +146,16 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         }
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
+        if(url.pathname==='/api/projects'){const project=manager.projects.save(data);manager.emit('change','projects');return json(res,200,{project})}
+        const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask)$/)
+        if(projectAction){
+          const [,pid,act]=projectAction
+          const result=act==='archive' ? {project:manager.projects.archive(pid,data.archived!==false)}
+            : act==='deliverable' ? {deliverable:manager.projects.deliverable(pid,String(data.deliverableId || ''),{state:data.state,note:data.note})}
+            : {session:manager.detail(manager.askProject(pid,data).id)}
+          manager.emit('change','projects')
+          return json(res,200,result)
+        }
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
@@ -160,10 +171,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{update:{...update,restarting:!!restart}})
         }
-        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|approvals\/([\w-]+))$/)
+        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|project|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
+        if(action==='project') return json(res,200,{session:manager.detail(manager.setProject(id,data).id)})
         if(action==='day') return json(res,200,{result:manager.dayAction(id,data),session:manager.detail(id)})
         if(action==='messages') manager.send(id,data)
         else if(action==='stop') manager.stop(id)
@@ -198,6 +210,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
+      // Each project with its progress, how many sessions are tagged to it, and its manager.
+      if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,managerId:manager.managerOf(p.id)?.id || null}))})
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
       if(url.pathname==='/api/sessions') return json(res,200,getSnapshot())
@@ -226,7 +240,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return json(res,200,{session})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/work-queue.js':'work-queue.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))
