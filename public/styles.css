@@ -155,19 +155,65 @@ kbd {
   border-radius:var(--radius-sm);
   font-size:var(--text-xs);
 }
-select {
+/* ── Dropdowns ─────────────────────────────────────────────────────────────
+   Every <select> gets a .fleet-select trigger from select.js and stays in the page
+   as the source of truth. A context rule is written once, as :is(select,
+   .fleet-select), so it styles the trigger and the native select that touch widths
+   use instead. */
+select, .fleet-select {
   font:inherit;
-  max-width:145px;
-  height:100%;
-  appearance:none;
-  -webkit-appearance:none;
-  background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238a93a6' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  font-size:var(--text-sm);
+  max-width:100%;
+  min-height:var(--control-sm);
   border:1px solid var(--line);
   border-radius:var(--radius-md);
+  background-color:var(--panel);
   color:var(--muted);
-  padding:0 24px 0 9px;
-  font-size:var(--text-sm);
 }
+select {
+  appearance:none;
+  -webkit-appearance:none;
+  padding:0 28px 0 10px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238a93a6' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+}
+.fleet-select {
+  display:inline-flex; align-items:center; justify-content:space-between; gap:var(--space-2);
+  padding:0 var(--space-2) 0 10px; text-align:left; cursor:pointer; white-space:nowrap;
+}
+.fleet-select:hover:not(:disabled) { color:var(--text); background-color:var(--raised) }
+.fleet-select:disabled { opacity:.5; cursor:default }
+.fleet-select.is-block { display:flex; width:100% }
+.fleet-select-value { min-width:0; overflow:hidden; text-overflow:ellipsis }
+.fleet-select-chevron { flex:none; color:var(--faint); transition:transform .12s ease }
+.fleet-select[aria-expanded=true] .fleet-select-chevron { transform:rotate(180deg) }
+/* The native select is kept for its value and events, out of sight on desktop. */
+select.fleet-select-native { position:absolute; opacity:0; pointer-events:none; clip-path:inset(50%); width:1px; min-height:0; height:1px; padding:0; border:0 }
+@media(max-width:720px), (pointer:coarse) {
+  .fleet-select { display:none!important }
+  select.fleet-select-native { position:static; opacity:1; pointer-events:auto; clip-path:none; width:auto; min-height:var(--touch); height:auto; padding:0 28px 0 10px; border:1px solid var(--line) }
+}
+/* The open list: the filter menu's surface, one row per option, a check on the
+   selected one and an optional description under it. */
+.fleet-select-menu {
+  /* Above dialogs (z-index 100): a menu can open from inside one. */
+  position:fixed; z-index:200; max-height:min(320px, 60vh); max-width:min(420px, calc(100vw - 16px)); overflow:auto;
+  padding:var(--space-2); display:flex; flex-direction:column; gap:2px;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md); box-shadow:0 12px 34px #0009;
+  outline:0; scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+}
+.fleet-select-menu[hidden] { display:none }
+.fleet-select-group { padding:var(--space-1) 9px 2px; font-size:var(--text-2xs); letter-spacing:.6px; text-transform:uppercase; color:var(--faint) }
+.fleet-select-option { display:flex; align-items:flex-start; gap:var(--space-2); min-height:var(--control-sm); padding:7px 9px; border-radius:var(--radius-md); color:var(--muted); font-size:var(--text-sm); cursor:pointer }
+.fleet-select-option.is-active { background:var(--raised); color:var(--text) }
+.fleet-select-option[aria-selected=true] { color:var(--text) }
+.fleet-select-option[aria-disabled=true] { opacity:.45; cursor:default }
+.fleet-select-check { flex:none; margin-top:4px; visibility:hidden; color:var(--text) }
+.fleet-select-option[aria-selected=true] .fleet-select-check { visibility:visible }
+.fleet-select-text { display:grid; gap:2px; min-width:0 }
+.fleet-select-text small { color:var(--faint); font-size:var(--text-xs); line-height:1.5; white-space:normal }
+@media(prefers-reduced-motion:reduce) { .fleet-select-chevron { transition:none } }
 .filter {
   border:1px solid transparent;
   background:transparent;
@@ -894,17 +940,9 @@ body[data-resizing] { cursor:col-resize; user-select:none }
 }
 /* Approval mode */
 .mode-picker { margin:0 }
-.mode-picker select {
-  font-family:var(--mono);
-  font-size:var(--text-xs);
-  padding:3px 18px 3px 6px;
-  height:auto;
-  max-width:none;
-  background-color:var(--raised);
-  background-position:right 6px center;
-  background-size:8px 5px;
-}
-.mode-picker select[data-mode="all"] {
+.mode-picker :is(select,.fleet-select) { min-height:var(--control-sm); border-color:transparent; background-color:transparent; font-family:inherit; font-size:11px; color:var(--muted); max-width:155px }
+.mode-picker :is(select,.fleet-select):hover { background-color:var(--raised) }
+.mode-picker :is(select,.fleet-select)[data-mode="all"] {
   color:var(--term-yellow);
   border-color:color-mix(in oklab,var(--term-yellow) 50%,var(--line));
 }
@@ -1997,7 +2035,7 @@ body[data-modal] { overflow:hidden }
   padding-left:26px;
   border-left:1px solid var(--line);
 }
-.modal-launch .launch-fields input, .modal-launch .launch-fields select {
+.modal-launch .launch-fields input, .modal-launch .launch-fields :is(select,.fleet-select) {
   max-width:none;
   width:100%;
   height:42px;
@@ -2094,14 +2132,7 @@ body[data-modal] { overflow:hidden }
   color:var(--muted);
 }
 .archive-text { min-width:0 }
-.archive-days {
-  max-width:96px;
-  height:26px;
-  padding:0 18px 0 6px;
-  background-position:right 6px center;
-  background-size:8px 5px;
-  font-size:var(--text-sm);
-}
+.archive-days { max-width:120px; font-size:11px }
 .archive-bar .button { padding:5px 10px; font-size:var(--text-sm) }
 .archive-none { color:var(--faint) }
 .archive-auto {
@@ -2646,7 +2677,6 @@ body[data-modal] { overflow:hidden }
    away is the thing you came to do: under Offline, and inside Archived itself. */
 .archive-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);background:color-mix(in oklab,var(--panel) 80%,var(--bg));font-size:11px;color:var(--muted)}
 .archive-text{min-width:0}
-.archive-days{max-width:96px;height:26px;padding:0 18px 0 6px;background-position:right 6px center;background-size:8px 5px;font-size:11px}
 .archive-bar .button{padding:5px 10px;font-size:11px}
 .archive-none{color:var(--faint)}
 .archive-auto{display:flex;align-items:center;gap:6px;margin-left:auto;color:var(--faint);white-space:nowrap;cursor:pointer}
@@ -2732,7 +2762,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 }
 .work-controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-size:var(--text-sm) }
 .work-controls label { display:flex;align-items:center;gap:8px;margin-left:auto }
-.work-controls select { min-width:48px;padding:5px 20px 5px 8px }
+.work-controls :is(select,.fleet-select) { min-width:56px }
 .work-controls p { flex-basis:100%;margin:0 }
 .work-filters { display:flex;flex-wrap:wrap;gap:3px;padding:8px 12px 0 }
 .work-filters .filter { width:auto;gap:8px }
@@ -2756,7 +2786,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .modal-connections .modal-body{padding:0 32px 28px}
 .connections-form{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
 .connections-form label{display:flex;flex-direction:column;gap:8px;min-width:0}
-.connections-form input,.connections-form select{width:100%;max-width:none;min-width:0;height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--text);font:inherit;font-size:12px}
+.connections-form input,.connections-form :is(select,.fleet-select){width:100%;max-width:none;min-width:0;height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--text);font:inherit;font-size:12px}
 #connections-context{margin-top:16px;line-height:1.6}
 .connections-form [hidden]{display:none}
 .connections-summary,.connection-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -2886,8 +2916,6 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
 .detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
 .detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:0 var(--space-5) var(--space-7); border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
-.mode-picker select { min-height:var(--control-sm); border-color:transparent; background-color:transparent; font-family:inherit; font-size:11px; color:var(--muted); max-width:155px }
-.mode-picker select:hover { background-color:var(--raised) }
 .close-agent { font-size:11px; padding:0 var(--space-3); color:var(--muted) }
 .detail:has(#composer) .conversation { padding:20px 0 24px; background:transparent; min-height:120px; font:14px/1.7 "Avenir Next","Segoe UI",sans-serif; scrollbar-width:thin; scrollbar-color:var(--line) transparent }
 .conversation .block { max-width:780px; margin:0 auto 22px; border:0; border-radius:16px; overflow:hidden; background:var(--panel) }
@@ -2939,7 +2967,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .modal-head { background:transparent }
 .modal-spark { background:var(--raised); color:var(--text); border-color:var(--line) }
 .modal-backdrop { background:#08080ba8; backdrop-filter:blur(10px) }
-.modal input, .modal textarea, .modal select { border-radius:10px }
+.modal input, .modal textarea, .modal :is(select,.fleet-select) { border-radius:10px }
 #initiative-board { border-bottom:1px solid var(--divider); font-size:12px }
 @media(min-width:721px) and (max-width:1199px) {
   .workspace { grid-template-columns:clamp(240px,var(--split,25%),300px) 1px minmax(0,1fr) }
@@ -3019,7 +3047,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 }
 .day-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px }
 .day-actions .note { font-size:var(--text-xs); margin:0 }
-.day-actions select {
+.day-actions :is(select,.fleet-select) {
   padding:4px 6px; background:var(--bg); color:var(--text);
   border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-sm);
 }
@@ -3083,7 +3111,7 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 /* Launch questions and launched sessions on the Day board. */
 .day-field { display:grid; gap:4px; color:var(--muted); font-size:var(--text-xs) }
 .day-launch-fields { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:8px; margin-top:8px }
-.day-launch-fields input, .day-launch-fields select {
+.day-launch-fields input, .day-launch-fields :is(select,.fleet-select) {
   width:100%; box-sizing:border-box; padding:7px 8px; background:var(--bg); color:var(--text);
   border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.4 var(--mono);
 }
@@ -3198,10 +3226,10 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .project-deliverable { display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line) }
 .project-deliverable span { display:grid; gap:2px; min-width:0 }
 .project-deliverable small { color:var(--muted); font-size:var(--text-xs) }
-.project-deliverable select { flex:none; padding:3px 6px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-xs) }
+.project-deliverable :is(select,.fleet-select) { flex:none; padding:3px 6px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); font-size:var(--text-xs) }
 .project-deliverable[data-state=done] strong { color:var(--muted); font-weight:500 }
-.project-deliverable[data-state=done] select { color:var(--busy) }
-.project-deliverable[data-state=doing] select, .project-deliverable[data-state=review] select { color:var(--accent) }
+.project-deliverable[data-state=done] :is(select,.fleet-select) { color:var(--busy) }
+.project-deliverable[data-state=doing] :is(select,.fleet-select), .project-deliverable[data-state=review] :is(select,.fleet-select) { color:var(--accent) }
 .project-ask .day-ask { margin-left:0 }
 .project-brief>summary { cursor:pointer; color:var(--muted) }
 .project-form { display:grid; gap:10px; max-width:720px }
@@ -3224,7 +3252,7 @@ details.project-brief[open]>summary { margin-bottom:8px }
 
 /* ── Touch: at narrow widths every control is at least a 44px target ───────── */
 @media(max-width:720px) {
-  .button, .topbar .refresh-info .button, .filter-trigger, .mode-picker select, .day-agent-tab, .project-tab, .day-launch-chip,
+  .button, .topbar .refresh-info .button, .filter-trigger, .mode-picker :is(select,.fleet-select), .day-agent-tab, .project-tab, .day-launch-chip,
   .session-children-toggle, select, input:not([type=checkbox]):not([type=radio]):not([type=range]) { min-height:var(--touch) }
   .topbar #refresh, .topbar .details-toggle { width:var(--touch) }
   .conversation .block-button { min-width:var(--touch); min-height:var(--touch) }
