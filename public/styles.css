@@ -2783,32 +2783,55 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 }
 
 /* Connections use the same flat rows and separators as the session console. */
-.modal-connections{width:min(900px,calc(100vw - 32px))}
-.modal-connections .modal-body{padding:0 32px 28px}
-.connections-form{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
-.connections-form label{display:flex;flex-direction:column;gap:8px;min-width:0}
-.connections-form input,.connections-form :is(select,.fleet-select){width:100%;max-width:none;min-width:0;height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-lg);background-color:var(--bg);color:var(--text);font:inherit;font-size:12px}
-#connections-context{margin-top:16px;line-height:1.6}
-.connections-form [hidden]{display:none}
-.connections-summary,.connection-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
-.connections-summary{padding:20px 0 12px;border-bottom:1px solid var(--line);font-size:12px}
-.connections-summary>span,.connection-heading small{color:var(--muted)}
-.connections-list{list-style:none;padding:0;margin:0}
-.connection-row{padding:20px 0;border-bottom:1px solid var(--line)}
-.connection-heading strong{overflow-wrap:anywhere}
-.connection-heading small{display:block;margin-top:6px;font-size:12px}
-.connection-status{font-size:12px;white-space:nowrap;color:var(--muted)}
-.connection-status[data-status=connected]{color:var(--term-green)}
-.connection-status[data-status=failed],.connection-status[data-status=needs-auth]{color:var(--term-yellow)}
-.connection-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.connection-auth{margin-top:12px}
-.connection-tools{margin-top:12px;font-size:12px}
-.connection-tools ul{padding-left:20px;max-height:180px;overflow:auto;overflow-wrap:anywhere}
-.connections-empty{padding:30px 0;color:var(--muted)}
-.connections-help{margin-top:24px;font-size:13px;line-height:1.6}
-.connections-help summary,.connection-tools summary{cursor:pointer}
-.connections-help a{color:var(--term-green)}
-@media(max-width:650px){.modal-connections .modal-body{padding:0 20px 20px}.connections-form{grid-template-columns:1fr}.connection-heading{align-items:flex-start}.modal-connections{width:calc(100vw - 16px)}}
+.modal-connections { width:min(860px, calc(100vw - 32px)) }
+.modal-connections .modal-body { padding:0 32px 28px }
+.connections-form { display:grid; grid-template-columns:1fr 1fr auto; gap:var(--space-4); align-items:end }
+.connections-form label { display:flex; flex-direction:column; gap:var(--space-2); min-width:0 }
+.connections-form input, .connections-form :is(select,.fleet-select) { width:100%; max-width:none; min-width:0; height:42px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-lg); background-color:var(--bg); color:var(--text); font-size:var(--text-md) }
+.connections-form [hidden] { display:none }
+#connections-context { margin-top:var(--space-3); line-height:1.6 }
+/* Status filters on the left, search on the right, one summary line under them. */
+.connections-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-4); margin-top:var(--space-5); padding-top:var(--space-4); border-top:1px solid var(--divider) }
+.connections-filters { display:flex; flex-wrap:wrap; gap:var(--space-1) }
+.connections-filters .filter { display:inline-flex; align-items:center; gap:6px; min-height:var(--control-sm) }
+#connections-search { flex:0 1 220px; min-height:var(--control-sm); padding:0 var(--space-3); background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:999px; font:inherit; font-size:var(--text-sm) }
+.connections-checked { margin:var(--space-3) 0 0; color:var(--faint); font-size:var(--text-xs) }
+.connections-group { margin-top:var(--space-4) }
+.connections-group>h3 { margin:0 0 var(--space-1); font-size:var(--text-xs); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
+.connections-group>h3 span { color:var(--faint); margin-left:4px }
+.connections-list { list-style:none; padding:0; margin:0 }
+/* A row: who it is and its state on the left, the one thing to do on the right. */
+.connection-row { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:center; gap:var(--space-3); padding:var(--space-3) 0; border-bottom:1px solid var(--divider) }
+.connection-avatar { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; background:var(--raised); color:var(--muted); font-size:13px; font-weight:600 }
+.connection-row[data-status=connected] .connection-avatar { background:color-mix(in oklab,var(--busy) 20%,var(--raised)); color:var(--busy) }
+.connection-row[data-status=needs-auth] .connection-avatar, .connection-row[data-status=signing-in] .connection-avatar { background:color-mix(in oklab,var(--stale) 18%,var(--raised)); color:var(--stale) }
+.connection-row[data-status=failed] .connection-avatar { background:color-mix(in oklab,var(--hot) 18%,var(--raised)); color:var(--hot) }
+.connection-main { display:grid; gap:2px; min-width:0 }
+.connection-name { display:flex; align-items:baseline; gap:var(--space-2); min-width:0 }
+.connection-name strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--text-md); font-weight:600 }
+.connection-kind { flex:none; padding:0 6px; border:1px solid var(--line); border-radius:999px; color:var(--faint); font-size:var(--text-2xs); line-height:16px }
+.connection-status { font-size:var(--text-xs); white-space:nowrap; color:var(--muted) }
+.connection-status[data-status=connected] { color:var(--busy) }
+.connection-status[data-status=failed] { color:var(--hot) }
+.connection-status[data-status=needs-auth] { color:var(--stale) }
+.connection-main .note { margin:2px 0 0; font-size:var(--text-xs) }
+.connection-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--space-2) }
+.connection-wait { display:inline-flex; align-items:center; gap:6px; color:var(--stale); font-size:var(--text-xs) }
+.connection-tools { margin-top:2px; font-size:var(--text-xs); color:var(--faint) }
+.connection-tools summary { cursor:pointer; width:fit-content }
+.connection-tools ul { margin:6px 0 0; padding-left:18px; max-height:160px; overflow:auto; overflow-wrap:anywhere }
+.connections-empty { padding:var(--space-8) 0; color:var(--muted) }
+.connections-help { margin-top:var(--space-6); font-size:var(--text-sm); line-height:1.6; color:var(--muted) }
+.connections-help summary { cursor:pointer; color:var(--text) }
+.connections-help a { color:#b8cee6 }
+@media(max-width:650px) {
+  .modal-connections { width:calc(100vw - 16px) }
+  .modal-connections .modal-body { padding:0 20px 20px }
+  .connections-form { grid-template-columns:1fr }
+  #connections-search { flex:1 1 100% }
+  .connection-row { grid-template-columns:32px minmax(0,1fr) }
+  .connection-actions { grid-column:2; justify-content:flex-start }
+}
 
 .model-routing{font-size:12px;color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere}
 
@@ -3258,6 +3281,10 @@ details.project-brief[open]>summary { margin-bottom:8px }
   .session-children-toggle, select, input:not([type=checkbox]):not([type=radio]):not([type=range]) { min-height:var(--touch) }
   .topbar #refresh, .topbar .details-toggle { width:var(--touch) }
   .conversation .block-button { min-width:var(--touch); min-height:var(--touch) }
+  .modal .button, .modal-close, .connections-filters .filter, #connections-search, .connections-form .button { min-height:var(--touch) }
+  .modal-close { min-width:var(--touch) }
+  .connections-form #connections-check { min-height:var(--touch) }
+  .connection-tools summary, .connections-help summary { display:flex; align-items:center; min-height:var(--touch) }
 }
 
 /* ── Design QA sweep ──────────────────────────────────────────────────────── */
@@ -3278,3 +3305,6 @@ details.project-brief[open]>summary { margin-bottom:8px }
   .work-pane { max-height:70vh }
   .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
 }
+/* Turning a working connection off is rare; it should not look like the next step. */
+.connection-actions [data-connection-action=disable] { border-color:transparent; color:var(--faint); font-size:var(--text-xs) }
+.connection-actions [data-connection-action=disable]:hover { color:var(--text); border-color:var(--line) }
