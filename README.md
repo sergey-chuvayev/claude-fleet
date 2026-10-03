@@ -6,9 +6,8 @@
 
 **A local control room for Claude Code.**
 
-See every session running on your machine, launch agents you can talk to, hand a
-bigger job to a manager-led team whose work an independent verifier checks before
-it ships, and ask one question across everything you have ever worked on.
+See every Claude Code session on your machine, run agents and teams from one window,
+and plan your day around what needs you.
 
 <img src="https://img.shields.io/badge/node-%E2%89%A522-2aa889?style=flat-square&labelColor=0c1014" alt="Node 22+">
 <img src="https://img.shields.io/badge/binds-127.0.0.1-2aa889?style=flat-square&labelColor=0c1014" alt="Binds to localhost">
@@ -18,37 +17,53 @@ it ships, and ask one question across everything you have ever worked on.
 <br>
 <br>
 
-<img src="docs/dashboard.png" alt="The Fleet dashboard: a list of Claude Code sessions on the left with status, context usage and a per-turn activity strip, and a terminal-style conversation on the right showing a syntax-highlighted diff and a failed test run.">
+<img src="docs/day-board.png" alt="The Today view in Fleet. The left side is the Day board with two items waiting on you, three proposals to triage and the items planned for today. The right side is the conversation with the Day agent. All names and data are demo data.">
 
 </div>
 
 ---
 
+## What it does
+
 Claude Code is happiest in a terminal, which is fine until you have six of them.
-Fleet gives that sprawl one window: what each session is doing, which one failed,
-which one is about to run out of context, and which one has been waiting on you
-for twenty minutes.
+Fleet gives that sprawl one window.
 
-Terminal sessions are watched read-only. Fleet never injects keystrokes and never
-kills a process it did not start. Agents you launch *from* Fleet are different:
-those you can message, approve, interrupt and resume.
+- **Watch every session.** Each row shows what a session is doing, which one failed,
+  which one is close to running out of context, and which one has been waiting on you.
+  Sessions you started in a terminal are watched read-only.
+- **Launch agents and talk to them.** Start an agent from Fleet, then message it,
+  approve its commands, interrupt it or resume it later.
+- **Hand bigger jobs to a team.** A manager plans and delegates, roles implement, and
+  an independent verifier checks the work before it counts as done.
+- **Plan your day.** The Today tab keeps a board of what needs your attention from
+  Slack, Linear, GitHub, meetings and your calendar, and works through it with you.
+- **Ask across everything.** One search box answers questions over every transcript
+  on your machine.
 
-Everything runs on `127.0.0.1` against the Claude account already configured on
-your machine. There is no service, no account, and no telemetry.
+Everything runs on `127.0.0.1` against the Claude account already configured on your
+machine. There is no service, no account, and no telemetry. Fleet never injects
+keystrokes into a terminal and never kills a process it did not start.
 
-## Install
+## Install and quick start
+
+You need **Node 22+** and a working `claude` on your PATH.
 
 ```bash
 npm install -g @sergeychuvayev/claude-fleet
 claude-fleet
 ```
 
-That prints the URL it bound to and opens it. If port 7777 is taken, Fleet tries
-the next ten. To try it without installing anything:
+That prints the URL it bound to and opens it. To try it without installing anything,
+run `npx @sergeychuvayev/claude-fleet`.
 
-```bash
-npx @sergeychuvayev/claude-fleet
-```
+Then:
+
+1. Open **Sessions**. Your running and recent Claude Code sessions are already there.
+2. Press **New agent**, pick a folder, write a task and send it. Pick a team instead of
+   a single agent for bigger work.
+3. Open **Today** and press **Start my day** to build your board.
+
+The [user guide](docs/user-guide.md) walks through each of these.
 
 ```bash
 claude-fleet start        # no browser window
@@ -59,7 +74,7 @@ claude-fleet service on   # start Fleet at login and keep it running (macOS)
 claude-fleet --help       # every command and variable
 ```
 
-Requires **Node 22+** and a working `claude` on your PATH.
+If port 7777 is taken, Fleet tries the next ten.
 
 Fleet checks npm for a newer version a few times a day and shows a pill in the
 top bar when there is one. Clicking it installs the update and reloads; nothing
@@ -80,7 +95,7 @@ both prefer the `claude` already on your PATH over the one bundled with the SDK.
 
 </details>
 
-## What it does
+## Features in depth
 
 ### The session list reads like a CI job
 
@@ -193,7 +208,7 @@ refresh cannot quietly undo the decision you just made.
 
 ### The conversation is a stack of blocks
 
-![The Fleet console showing a rendered Markdown answer with an inline table, above a composer](docs/console.png)
+![A Fleet session: the agent list on the left, and on the right a conversation where each tool call is its own block, including a failed test run, followed by a rendered Markdown answer with a table](docs/session-view.png)
 
 Each message, tool call and tool result is its own block, the way a terminal
 groups a command with its output. A block shows what ran, how long it took and
