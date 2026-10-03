@@ -2713,6 +2713,9 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .session-top .badge .dot { display:none }
 .session-name { font-size:var(--text-xs); color:var(--faint) }
 .session-context, .session-meta, .session .turn { display:none }
+/* The unseen dot lives in the row's left gutter, level with the title, so it never
+   shifts the status line off the text column. */
+.session>.session-summary .unseen { position:absolute; left:4px; top:26px }
 .session .initiative-tag { display:block; margin-top:5px; width:fit-content; max-width:100%; white-space:normal; font-size:var(--text-xs) }
 .detail { background:var(--bg); padding:28px; }
 .detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
