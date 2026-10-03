@@ -18,6 +18,9 @@ const HELP = `
   claude-fleet --browser       open a normal browser tab instead of an app window
   claude-fleet install-app     put a "Claude Fleet" app in ~/Applications (macOS)
   claude-fleet update          install the latest published version
+  claude-fleet service on      start Fleet at login and keep it running (macOS)
+  claude-fleet service off     stop starting it at login
+  claude-fleet service status  is it on, and is it running
   claude-fleet --version       print the version
   claude-fleet --help          this
 
@@ -97,13 +100,37 @@ function update() {
   }).catch(error => { console.error(`  ${error.message}`); process.exitCode = 1 })
 }
 
-const [command] = process.argv.slice(2).filter(argument => !argument.startsWith('-'))
+// Start at login, from the terminal. Settings → Startup does the same from the app.
+function service(action) {
+  const { Service } = require(path.join(ROOT, 'service.js'))
+  const svc = new Service()
+  if (!svc.supported) { console.error('  Starting at login is only available on macOS.'); process.exitCode = 1; return }
+  try {
+    if (action === 'on') {
+      svc.enable()
+      // launchd starts it at once; give it a moment, then say which Fleet is running.
+      setTimeout(() => {
+        if (svc.running()) console.log(`  Fleet starts at login now, and is running as a service.\n  Log: ${svc.log}`)
+        else console.log(`  Fleet starts at login now. A Fleet server is already running, so the service takes over at your next login.\n  To switch now: stop that server, then run  launchctl kickstart ${svc.target}`)
+      }, 2000)
+    } else if (action === 'off') {
+      svc.disable()
+      console.log('  Fleet no longer starts at login.')
+    } else {
+      const s = svc.status()
+      console.log(`  Start at login: ${s.enabled ? 'on' : 'off'}${s.enabled ? `\n  Running as a service: ${svc.running() ? 'yes' : 'no'}\n  Log: ${s.log}` : ''}`)
+    }
+  } catch (error) { console.error(`  ${error.message}`); process.exitCode = 1 }
+}
+
+const [command, subcommand] = process.argv.slice(2).filter(argument => !argument.startsWith('-'))
 const flags = new Set(process.argv.slice(2).filter(argument => argument.startsWith('-')))
 
 if (flags.has('--help') || flags.has('-h') || command === 'help') console.log(HELP)
 else if (flags.has('--version') || flags.has('-v') || command === 'version') console.log(pkg.version)
 else if (command === 'install-app') installApp()
 else if (command === 'update') update()
+else if (command === 'service') service(subcommand || 'status')
 else if (command === 'start') start({ open: false })
 else if (!command) start({ open: !flags.has('--no-open') })
 else { console.error(`Unknown command: ${command}\n${HELP}`); process.exit(1) }

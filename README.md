@@ -55,6 +55,7 @@ claude-fleet start        # no browser window
 PORT=8080 claude-fleet    # pick a port
 claude-fleet install-app  # put "Claude Fleet" in ~/Applications (macOS)
 claude-fleet update       # install the latest published version
+claude-fleet service on   # start Fleet at login and keep it running (macOS)
 claude-fleet --help       # every command and variable
 ```
 
@@ -577,6 +578,24 @@ to Fleet's entry point — which npm keeps stable, so updates do not break it. I
 later switch Node versions with a version manager, rerun `claude-fleet install-app`;
 until you do, the app says so in a notification rather than failing silently.
 
+### It can run without a terminal
+
+**Settings → Startup → Start Fleet at login and keep it running** (or
+`claude-fleet service on`) makes Fleet a macOS LaunchAgent,
+`~/Library/LaunchAgents/local.claude.fleet.server.plist`. The server starts when you
+log in, comes back on its own if it crashes, and logs to
+`~/Library/Logs/claude-fleet.log`. Close the window and your agents keep working;
+the app or a bookmark brings the window back. Turning it on from Settings hands the
+running server over to macOS in a second or so, on the same port.
+
+Updates still go through the **Update** button. Under the service Fleet does not
+spawn its own replacement (launchd ends what a job spawned): it installs the new
+version and exits with code 75, and launchd, told to restart the job after any
+unclean exit, starts the new code. A clean stop (logout, `launchctl bootout`) stays
+stopped. `claude-fleet service off` takes it out of login; `claude-fleet service
+status` says whether it is on and running. Like the app, the job records the path to
+node, so after switching Node versions turn it off and on again.
+
 Fleet also serves a web app manifest, so you can install it from the browser
 instead: in Chrome, **⋮ → Cast, Save and Share → Install page as app**; in Safari,
 **File → Add to Dock**.
@@ -636,7 +655,8 @@ for the app itself.
 | [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
 | [`update.js`](update.js) | The npm version check, its cache, and the self-install |
 | [`open.js`](open.js) | Opens the dashboard as a Chromium app window, falling back across browsers |
-| [`bin/claude-fleet.js`](bin/claude-fleet.js) | The installed command: start, install-app, update |
+| [`service.js`](service.js) | Start at login: the LaunchAgent, its handover, and restarts under launchd |
+| [`bin/claude-fleet.js`](bin/claude-fleet.js) | The installed command: start, install-app, update, service |
 | `build/` | Vendored browser bundle, icon drawing, macOS launcher |
 
 Fleet keeps its own state — conversations, attachments, the archive, the process
