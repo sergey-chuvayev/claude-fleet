@@ -143,11 +143,13 @@ function blockHtml(message, { streaming = false } = {}) {
     const stateLabel = state === 'is-done' ? isDelegation(message.tool) ? 'done' : '' : state.slice(3)
     const target = message.target ? `<span class="block-target" title="${escapeHtml(message.target)}">${escapeHtml(message.target)}</span>` : ''
     const auto = message.approval === 'auto' ? '<span class="block-auto" title="Fleet approved this automatically">auto</span>' : ''
-    return `<div class="block-head"><span class="block-icon" aria-hidden="true">${icon}</span><span class="block-tool" title="${escapeHtml(message.tool)}">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.label || toolLabel(message.tool))}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
+    // A step that is running right now wears the pixel mark instead of its icon.
+    const lead = state === 'is-running' && window.FleetUI ? `<span class="block-icon is-live">${window.FleetUI.running('Running now')}</span>` : `<span class="block-icon" aria-hidden="true">${icon}</span>`
+    return `<div class="block-head">${lead}<span class="block-tool" title="${escapeHtml(message.tool)}">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.label || toolLabel(message.tool))}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
   }
   const who = message.role === 'user' ? 'YOU' : 'CLAUDE'
   const icon = message.role === 'user' ? '›' : '✳'
-  const live = streaming ? '<span class="block-state is-running">streaming</span>' : ''
+  const live = streaming ? `<span class="block-state is-running is-live">${window.FleetUI ? window.FleetUI.running('Writing now') : ''}writing</span>` : ''
   const attachments = Array.isArray(message.attachments) && message.attachments.length
     ? `<div class="block-attachments">${message.attachments.map(a => `<a href="/api/attachments/${escapeHtml(a.id)}" target="_blank" rel="noreferrer noopener" title="${escapeHtml(a.mediaType)} · ${Math.round((a.bytes || 0) / 1024)} KB"><img src="/api/attachments/${escapeHtml(a.id)}" alt="Attached image" loading="lazy"></a>`).join('')}</div>`
     : ''

@@ -494,6 +494,15 @@ a launch brief; approve it and the work runs as a Fleet session in that project.
 deliverable then shows **On Today ↗**, which opens the item on the board. On Today, an
 item's project tag opens the project.
 
+### Working is easy to spot
+
+A session that is working has a bright avatar: its pixels twinkle, it glows in its own
+colour and a band of light sweeps across it. Resting avatars are muted. In the
+conversation the same pixels, as a small 3×3 matrix, mark the step that is running and
+the reply being written, and a line above the composer says what is happening right
+now (running a command and for how long, thinking, writing, waiting for you), for Fleet
+sessions and for sessions working in a terminal alike.
+
 ### Continue a terminal session in Fleet
 
 Select a session you started with `claude` in a terminal and it opens in the same

@@ -165,7 +165,7 @@ function selectControl(session) {
   window.Fleet.watchConversation(null)
   $('control-panel').innerHTML=''
   if(next){
-    $('control-panel').innerHTML=`<div class="conversation-header"><div class="header-title"><h3 id="conversation-title">Conversation</h3><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div class="header-controls"><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto" data-description="Asks only for destructive or networked shell commands">Auto approvals</option><option value="ask" data-description="Every tool waits for you">Ask every time</option><option value="all" data-description="Nothing waits, destructive commands included">Approve everything</option></select></label><button type="button" id="agent-connections" class="button">Connections</button><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button></div></div><p id="model-routing" class="model-routing note" role="status" hidden></p><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><ul id="queued-messages" class="queued-messages" aria-label="Messages waiting to send" hidden></ul><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="reference-tray" class="reference-tray" aria-label="Referenced sessions" hidden></div><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="Message your agent…  @ references · / commands" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
+    $('control-panel').innerHTML=`<div class="conversation-header"><div class="header-title"><h3 id="conversation-title">Conversation</h3><span id="agent-context" class="subtle context-chip"></span><span id="agent-state" class="subtle">Connecting…</span></div><div class="header-controls"><label class="mode-picker"><span class="sr-only">Model for this agent</span><select id="model-choice" title="Applies from your next message"></select></label><label class="mode-picker"><span class="sr-only">Approvals for this agent</span><select id="approval-mode"><option value="auto" data-description="Asks only for destructive or networked shell commands">Auto approvals</option><option value="ask" data-description="Every tool waits for you">Ask every time</option><option value="all" data-description="Nothing waits, destructive commands included">Approve everything</option></select></label><button type="button" id="agent-connections" class="button">Connections</button><button type="button" id="close-agent" class="button close-agent" title="Remove this conversation from Fleet">Close</button></div></div><p id="model-routing" class="model-routing note" role="status" hidden></p><div id="conversation" class="conversation" role="log" aria-label="Agent conversation" aria-live="off"><p class="note">Loading conversation…</p></div><div id="now-line" class="now-line" role="status" hidden></div><ul id="queued-messages" class="queued-messages" aria-label="Messages waiting to send" hidden></ul><div id="agent-error" class="form-error" role="status" hidden></div><div id="approvals"></div><form id="composer" class="composer"><label class="sr-only" for="message-input">Message this agent</label><ul id="slash-picker" class="slash-picker" role="listbox" aria-label="Commands and skills" hidden></ul><div id="reference-tray" class="reference-tray" aria-label="Referenced sessions" hidden></div><div id="attach-tray" class="attach-tray" hidden></div><textarea id="message-input" rows="3" maxlength="16000" placeholder="Message your agent…  @ references · / commands" role="combobox" aria-expanded="false" aria-controls="slash-picker" aria-autocomplete="list"></textarea><div class="composer-footer"><span id="composer-hint" class="note">Enter to send · Shift + Enter for a new line</span><button id="stop-agent" type="button" class="button stop" hidden>■ Stop</button><button id="send-message" class="button resume" type="submit">Send ↗</button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
     window.Fleet.watchConversation($('conversation'))
     catalog=[];catalogFor=null;closePicker();renderTray();renderReferences()
     window.Fleet.syncDetails()
@@ -221,7 +221,7 @@ function openOutside() {
   const s=outsideSession
   const title=s.title || s.name || 'Untitled session'
   const able=!!(s.sessionId && s.cwd)
-  $('control-panel').innerHTML=`<div class="conversation-header" id="outside-console"><div class="header-title"><h3>${esc(title)}</h3><span id="outside-state" class="subtle"></span></div></div><div id="conversation" class="conversation" role="log" aria-label="Conversation from the terminal" aria-live="off"><p class="note">Loading the conversation…</p></div><form id="composer" class="composer outside-composer"><label class="sr-only" for="message-input">Continue this conversation</label><textarea id="message-input" rows="3" maxlength="16000" ${able ? '' : 'disabled'}></textarea><div class="composer-footer"><span id="composer-hint" class="note"></span><button id="send-message" class="button resume" type="submit" ${able ? '' : 'disabled'}></button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
+  $('control-panel').innerHTML=`<div class="conversation-header" id="outside-console"><div class="header-title"><h3>${esc(title)}</h3><span id="outside-state" class="subtle"></span></div></div><div id="conversation" class="conversation" role="log" aria-label="Conversation from the terminal" aria-live="off"><p class="note">Loading the conversation…</p></div><div id="now-line" class="now-line" role="status" hidden></div><form id="composer" class="composer outside-composer"><label class="sr-only" for="message-input">Continue this conversation</label><textarea id="message-input" rows="3" maxlength="16000" ${able ? '' : 'disabled'}></textarea><div class="composer-footer"><span id="composer-hint" class="note"></span><button id="send-message" class="button resume" type="submit" ${able ? '' : 'disabled'}></button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
   window.Fleet.watchConversation($('conversation'))
   $('message-input').addEventListener('keydown',event=>{if(event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();if(!$('send-message').disabled)$('composer').requestSubmit()}})
   $('composer').addEventListener('submit',continueOutside)
@@ -234,6 +234,8 @@ function refreshOutside() {
   if(!s || !$('outside-state'))return
   const busy=s.state==='busy'
   $('outside-state').textContent=s.alive ? (busy ? 'Working in a terminal' : 'Open in a terminal') : 'From a terminal · stopped'
+  const step=busy && s.turn?.current
+  setNow(step ? `Running ${toolName(step.t)}${step.target ? ` · ${step.target}` : ''}` : busy ? 'Working in the terminal' : '',{since:step?.at || s.turn?.turnStartedAt || null})
   $('send-message').textContent=s.alive ? 'Continue a copy here ↗' : 'Continue here ↗'
   $('composer-hint').textContent=!(s.sessionId && s.cwd) ? 'This session has no saved conversation to continue.' : s.alive ? 'Sends to a copy in Fleet. The terminal keeps the original.' : 'Your message continues this conversation in Fleet.'
   $('message-input').placeholder=s.alive ? 'Continue a copy of this conversation…' : 'Continue this conversation…'
@@ -264,6 +266,38 @@ async function continueOutside(event) {
     window.Fleet.select(data.session.id)
     toast(s.alive ? 'Continuing a copy in Fleet. The terminal keeps the original.' : 'Continuing in Fleet')
   }catch(error){if($('send-error')){$('send-error').textContent=error.message;$('send-error').hidden=false};button.disabled=false}
+}
+// What is happening this second, under the conversation, in the avatars' pixel style:
+// the step that is running and for how long, or thinking, writing, waiting for you.
+const toolName=tool=>window.FleetBlocks?.toolLabel(tool) || tool
+const shortElapsed=ms=>{const t=Math.max(0,Math.round(ms/1000));return t<60 ? `${t}s` : `${Math.floor(t/60)}m ${String(t%60).padStart(2,'0')}s`}
+function setNow(text,{since=null,tone=''}={}) {
+  const line=$('now-line')
+  if(!line)return
+  if(!text){line.hidden=true;line.dataset.key='';return}
+  const key=`${text}|${since || ''}|${tone}`
+  if(line.dataset.key!==key){
+    line.dataset.key=key;line.dataset.tone=tone
+    line.innerHTML=`${window.FleetUI ? window.FleetUI.running(text) : ''}<span class="now-text">${esc(text)}</span>${since ? `<span class="now-time" data-since="${Number(since)}"></span>` : ''}`
+  }
+  line.hidden=false
+  tickNow()
+}
+function tickNow() {const time=document.querySelector('#now-line:not([hidden]) .now-time');if(time)time.textContent=shortElapsed(Date.now()-Number(time.dataset.since))}
+setInterval(tickNow,1000)
+function managedNow(s) {
+  if(s.openElsewhere || !isWorking(s))return setNow('')
+  if(s.status==='approval')return setNow('Waiting for your approval',{tone:'needs'})
+  if(s.status==='starting')return setNow('Starting Claude')
+  if(s.status==='stopping')return setNow('Stopping')
+  const tool=[...s.messages].reverse().find(m=>m.role==='tool' && m.status==='running')
+  if(tool){
+    const what=['Agent','Task'].includes(tool.tool) ? `Delegating to ${tool.input?.subagent_type || 'a sub-agent'}` : `Running ${toolName(tool.tool)}`
+    return setNow(`${what}${tool.target ? ` · ${tool.target}` : ''}`,{since:tool.at})
+  }
+  const last=s.messages[s.messages.length-1]
+  if(last?.role==='assistant')return setNow('Writing a reply',{since:last.at})
+  return setNow('Thinking',{since:last?.at || null})
 }
 async function refreshControl() {
   const id=controlId,version=controlVersion
@@ -336,6 +370,7 @@ function renderControl() {
   // Approval DOM is independent of the streamed response so answers keep their focus and values.
   const ids=s.approvals.map(p=>p.id).join(',')
   if($('approvals').dataset.ids!==ids){$('approvals').dataset.ids=ids;renderApprovals(s.approvals)}
+  managedNow(s)
   const working=isWorking(s)
   const held=s.openElsewhere
   const heldText=held ? `Open ${held.entrypoint==='cli' ? 'in a terminal' : 'in another program'}${held.name ? ' · '+held.name : ''}${held.startedAt ? ' · since '+new Date(held.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}. Close it there to continue here.` : null

@@ -319,18 +319,21 @@ function pixelAvatar(seed, initial, tone, working) {
     const inGlyph = !!glyph && x > 0 && x < 6 && y > 0 && y < 6 && glyph[(y - 1) * 5 + (x - 1)] === '1'
     const r = rand()
     // Dim field, brighter towards the right; a few lit "stars"; the letter on top.
-    const base = inGlyph ? 0.95 : Math.min(0.5, 0.06 + r * 0.12 + (x / 6) * 0.12 + (r > 0.94 ? 0.28 : 0))
+    const base = inGlyph ? 0.95 : Math.min(0.5, 0.06 + r * 0.12 + (x / 6) * 0.12 + (r > 0.94 ? 0.28 : 0)) + (working && !inGlyph ? 0.08 : 0)
     let motion = ''
     if (working) {
       const length = 1.4 + rand() * 1.8, phase = rand() * length
-      // Most of the field breathes softly and a few pixels flare like stars; the letter
-      // only dims a little, so it stays readable while everything around it moves.
-      const high = inGlyph ? 0.7 : rand() > 0.75 ? 0.6 : Math.min(0.32, base * 1.8 + 0.05)
+      // The field breathes and many pixels flare like stars, bright enough to read as
+      // "working" from across the list; the letter pulses within a readable range.
+      const high = inGlyph ? 0.72 : rand() > 0.6 ? 0.95 : Math.min(0.55, base * 2.4 + 0.1)
       motion = ` style="--o:${base.toFixed(2)};--hi:${high.toFixed(2)};animation-duration:${length.toFixed(2)}s;animation-delay:-${((now + phase) % length).toFixed(2)}s"`
     }
     cells.push(`<rect x="${(3.5 + x * 4.6).toFixed(1)}" y="${(3.5 + y * 4.6).toFixed(1)}" width="3.2" height="3.2" rx=".6" opacity="${base.toFixed(2)}"${motion}/>`)
   }
-  return `<svg class="avatar-pixels" viewBox="0 0 38 38" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}</svg>`
+  // Working, a band of light also sweeps across the pixels. Its phase comes from the
+  // clock too, so the list redrawing does not restart it.
+  const sweep = working ? `<defs><linearGradient id="sweep-${tone}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect class="avatar-sweep" x="-38" y="0" width="38" height="38" fill="url(#sweep-${tone})" style="animation-delay:-${(now % 2.8).toFixed(2)}s"/>` : ''
+  return `<svg class="avatar-pixels" viewBox="0 0 38 38" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}${sweep}</svg>`
 }
 // A new agent starts as a draft: one row at the top of the list that is not a session
 // yet. Nothing exists on the server until its first message is sent, so discarding it
@@ -349,7 +352,7 @@ function sessionRowHtml(s, spawnCounts) {
   const initial = (s.title || s.name || 'F').trim().slice(0, 1).toUpperCase()
   const tone = [...key(s)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5
   const working = isWorkingRow(s)
-  const avatar = `<span class="agent-avatar avatar-${tone}${working ? ' is-working' : ''}" aria-hidden="true">${pixelAvatar(key(s), initial, tone, working)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
+  const avatar = `<span class="agent-avatar avatar-${tone}${working ? ' is-working' : ''}" style="--tone:${AVATAR_TONES[tone]}${working ? `;animation-delay:-${((Date.now() / 1000) % 2.4).toFixed(2)}s` : ''}" aria-hidden="true">${pixelAvatar(key(s), initial, tone, working)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
   const body = `<span class="session-title-row">${title}</span><span class="session-preview">${esc(preview)}</span>${top}${initiativeTag(s)}${rowMeta(s)}${turnRow(s)}`
   return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${avatar}<span class="session-summary">${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
