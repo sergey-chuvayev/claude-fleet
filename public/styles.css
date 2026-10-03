@@ -3191,9 +3191,10 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
    matrix, mark the step or reply that is live and the line saying what is happening. */
 .agent-avatar:not(.is-working) .avatar-pixels { filter:saturate(.45) brightness(.8) }
 .agent-avatar.is-working { animation:avatar-glow 2.4s ease-in-out infinite }
+/* A soft halo that breathes, not a hard ring around the tile. */
 @keyframes avatar-glow {
-  0%, 100% { box-shadow:0 0 0 1px color-mix(in oklab,var(--tone) 30%,transparent), 0 0 6px -2px color-mix(in oklab,var(--tone) 45%,transparent) }
-  50% { box-shadow:0 0 0 1px color-mix(in oklab,var(--tone) 70%,transparent), 0 0 18px -1px color-mix(in oklab,var(--tone) 70%,transparent) }
+  0%, 100% { box-shadow:0 0 8px -3px color-mix(in oklab,var(--tone) 45%,transparent) }
+  50% { box-shadow:0 0 16px -2px color-mix(in oklab,var(--tone) 65%,transparent) }
 }
 .avatar-sweep { animation:avatar-sweep 2.8s ease-in-out infinite; mix-blend-mode:screen; opacity:.55 }
 @keyframes avatar-sweep { 0% { transform:translateX(0) } 55%, 100% { transform:translateX(76px) } }
