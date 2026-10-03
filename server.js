@@ -283,11 +283,11 @@ function relaunch({entry,args,port,why,log=serverLog(),watchMs=4000,spawn=requir
   const child=spawn(process.execPath,[entry,...args],{detached:true,stdio:['ignore',fd,fd],env:{...process.env,PORT:String(port)}})
   fs.closeSync(fd)
   const note=text=>{try{fs.appendFileSync(log,`[${new Date().toISOString()}] ${text}\n`)}catch{}}
-  const watching=setTimeout(()=>{},watchMs)
+  // One timer, kept referenced, so this process stays alive exactly as long as it watches.
   const settled=new Promise(resolve=>{
+    const watching=setTimeout(()=>{child.removeAllListeners('exit');child.removeAllListeners('error');resolve(true)},watchMs)
     child.once('exit',(code,signal)=>{clearTimeout(watching);note(`The new Fleet exited before it was up (${signal || `code ${code}`}). Start it again with claude-fleet, or open the Claude Fleet app.`);resolve(false)})
     child.once('error',error=>{clearTimeout(watching);note(`Could not start the new Fleet: ${error.message}`);resolve(false)})
-    setTimeout(()=>{child.removeAllListeners('exit');resolve(true)},watchMs).unref()
   })
   child.unref()
   return {child,settled,log}
