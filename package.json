@@ -1,6 +1,6 @@
 {
   "name": "@sergeychuvayev/claude-fleet",
-  "version": "0.41.1",
+  "version": "0.42.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
     "claude",
