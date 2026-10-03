@@ -11,7 +11,10 @@ window.FleetSettings=(()=>{
       <div class="modal-body">
       <section class="settings-section" aria-labelledby="queue-title"><h3 id="queue-title">Agents</h3><p class="note">With queuing on, a task over the limit waits for a free slot instead of being refused.</p>
       <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="queue-enabled"> Queue tasks over the limit</label><label class="settings-field">Concurrent agents<select id="queue-limit">${Array.from({length:8},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select></label><button class="button" id="queue-pause" type="button">Pause queue</button></div>
-      <p class="note" id="queue-status" role="status"></p><p class="form-error" id="queue-error" role="alert" hidden></p></section>
+      <p class="note" id="queue-status" role="status"></p><p class="form-error" id="queue-error" role="alert" hidden></p>
+      <div class="settings-row"><label class="settings-field">Default approval mode for new agents<select id="default-approval-mode"><option value="all">Approve everything</option><option value="auto">Auto · ask for risky commands</option><option value="ask">Ask every time</option></select></label></div>
+      <p class="note" id="approval-status" role="status">Applies to agents you create from now on. Existing agents keep their mode, and you can still pick another when you launch one.</p><p class="form-error" id="approval-error" role="alert" hidden></p>
+      </section>
       <section class="settings-section" aria-labelledby="startup-title"><h3 id="startup-title">Startup</h3><p class="note">Run Fleet in the background, without a terminal: it starts when you log in, comes back if it ever stops, and updates from the Update button.</p>
       <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="service-enabled"> Start Fleet at login and keep it running</label></div>
       <p class="note" id="service-status" role="status"></p><p class="form-error" id="service-error" role="alert" hidden></p></section>
@@ -23,6 +26,7 @@ window.FleetSettings=(()=>{
     $('queue-enabled').addEventListener('change',event=>queue({enabled:event.target.checked}))
     $('queue-limit').addEventListener('change',event=>queue({limit:Number(event.target.value)}))
     $('queue-pause').addEventListener('click',()=>queue({paused:!state?.paused}))
+    $('default-approval-mode').addEventListener('change',event=>saveApprovalMode(event.target.value))
     $('service-enabled').addEventListener('change',event=>toggleService(event.target.checked))
   }
   // Start at login (/api/service). Turning it on hands this server to macOS, which
@@ -57,6 +61,21 @@ window.FleetSettings=(()=>{
     }
     serviceBusy=false;renderService()
     $('service-error').textContent=`Fleet did not come back. Open the Claude Fleet app, or see ~/Library/Logs/claude-fleet.log.`;$('service-error').hidden=false
+  }
+  // The mode a new agent starts with (/api/settings/approval-mode). The launch form
+  // preselects it; the server applies it when a create request names no mode.
+  let approvalMode=null
+  function renderApprovalMode(mode) {
+    approvalMode=mode || approvalMode
+    if(approvalMode && $('default-approval-mode'))$('default-approval-mode').value=approvalMode
+  }
+  async function saveApprovalMode(mode) {
+    $('approval-error').hidden=true
+    try{
+      const result=await window.FleetControl.api('/api/settings/approval-mode',{mode})
+      renderApprovalMode(result.defaultApprovalMode)
+      if($('launch-mode'))$('launch-mode').value=result.defaultApprovalMode
+    }catch(error){$('approval-error').textContent=error.message;$('approval-error').hidden=false;renderApprovalMode()}
   }
   // The agent queue, formerly its own Work queue tab. The server owns it (/api/queue);
   // this shows what it says and sends one change at a time.
@@ -105,6 +124,8 @@ window.FleetSettings=(()=>{
     for(const el of $('gateway-form').elements)el.disabled=true
     renderQueue()
     renderService()
+    renderApprovalMode()
+    window.FleetControl.api('/api/settings/approval-mode').then(result=>renderApprovalMode(result.defaultApprovalMode)).catch(()=>{})
     window.FleetControl.api('/api/service').then(result=>renderService(result.service)).catch(()=>{})
     openModal('settings-backdrop','.modal-close')
     $('open-settings')?.setAttribute('aria-expanded','true')

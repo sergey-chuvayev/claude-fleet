@@ -8,6 +8,9 @@
 
 const MODES = ['ask', 'auto', 'all']
 const DEFAULT_MODE = 'auto'
+// What a newly created agent starts with until the operator changes the setting. It is
+// separate from DEFAULT_MODE, which stays the fallback for a saved value nobody can read.
+const DEFAULT_NEW_MODE = 'all'
 
 // Mirrors the command_denylist in ~/.warp/settings.toml, plus a few commands that
 // destroy data outright. Edit this list to change what still stops for approval.
@@ -70,4 +73,4 @@ function askReason(tool, input, mode = DEFAULT_MODE) {
 }
 const normaliseMode = value => (MODES.includes(value) ? value : DEFAULT_MODE)
 
-module.exports = { MODES, DEFAULT_MODE, DENIED, ALWAYS_ASK, askReason, deniedCommand, normaliseMode }
+module.exports = { MODES, DEFAULT_MODE, DEFAULT_NEW_MODE, DENIED, ALWAYS_ASK, askReason, deniedCommand, normaliseMode }

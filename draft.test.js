@@ -18,3 +18,9 @@ test('every control the draft form posts has a field in the pane',()=>{
     assert.ok(form.includes(`name="${name}"`),`no field named ${name}`)
   assert.ok(!form.includes('name="name"'),'a new agent no longer asks for a name')
 })
+
+test('the launch form opens on Approve everything, the default for new agents',()=>{
+  const select=html.match(/<select name="approvalMode"[\s\S]*?<\/select>/)[0]
+  assert.match(select,/<option value="all" selected/)
+  assert.equal((select.match(/ selected/g) || []).length,1)
+})

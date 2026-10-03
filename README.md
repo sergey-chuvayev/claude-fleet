@@ -532,9 +532,11 @@ describe recorded usage across messages, not current context size.
 ### Approvals that stay out of the way
 
 Every agent runs in one of three modes, chosen at launch and changeable from the
-conversation header.
+conversation header. New agents start in **Approve everything** unless you pick
+another mode at launch or change **Default approval mode for new agents** in
+Settings. Agents that already exist keep the mode they have.
 
-- **Auto** (the default) answers ordinary requests for you and still stops for
+- **Auto** answers ordinary requests for you and still stops for
   anything that destroys data (`rm`, `shred`, `dd`), reaches another host
   (`curl`, `wget`, `ssh`, `rsync`), runs an unreviewable script (`sh -c`, `eval`),
   escalates (`sudo`, `doas`), or publishes (`git push`, `npm publish`).

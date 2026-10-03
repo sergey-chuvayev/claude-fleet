@@ -6,7 +6,7 @@ const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget, transcriptFor, transcriptFile } = require('./fleet')
 const { history, clampInput, resultText, MAX_TOOL_RESULT, QUIET_RESULT } = require('./history')
-const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
+const { askReason, normaliseMode, MODES, DEFAULT_MODE, DEFAULT_NEW_MODE } = require('./permissions')
 const { stateDir, defaultCwd } = require('./paths')
 const { getTeam, compile, boundedModel } = require('./teams')
 const { TeamStore } = require('./team-store')
@@ -87,6 +87,7 @@ class ManagedSessions extends EventEmitter {
     this.queueing = queue ?? process.env.CLAUDE_FLEET_QUEUE === '1'
     this.dispatch = new Dispatcher({ limit: process.env.CLAUDE_FLEET_CONCURRENCY })
     this.models = null
+    this.defaultApprovalMode = DEFAULT_NEW_MODE
     this.saveTimer = null
     // Plan windows belong to the account, so one tracker serves every session and
     // outlives all of them. It is deliberately not persisted: a utilisation figure from
@@ -112,6 +113,7 @@ class ManagedSessions extends EventEmitter {
           if (process.env.CLAUDE_FLEET_CONCURRENCY===undefined) this.dispatch.setLimit(data.queueSettings.limit)
           this.dispatch.setPaused(this.queueing && data.queueSettings.paused===true)
         }
+        if (MODES.includes(data.defaultApprovalMode)) this.defaultApprovalMode = data.defaultApprovalMode
         for (const s of data.sessions) {
           if (!s.id || !Array.isArray(s.messages)) throw new Error('Invalid saved session')
           if (ACTIVE.has(s.status)) { s.status = 'stopped'; s.error = 'Fleet restarted. Send a message to continue this conversation.' }
@@ -174,7 +176,7 @@ class ManagedSessions extends EventEmitter {
   save() {
     clearTimeout(this.saveTimer); this.saveTimer = null
     const tmp = `${this.file}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify({version:1,queueSettings:{enabled:this.queueing,limit:this.dispatch.limit,paused:this.dispatch.paused},sessions:[...this.sessions.values()].map(s => ({...s,approvals:[]}))}), {mode:0o600})
+    fs.writeFileSync(tmp, JSON.stringify({version:1,queueSettings:{enabled:this.queueing,limit:this.dispatch.limit,paused:this.dispatch.paused},defaultApprovalMode:this.defaultApprovalMode,sessions:[...this.sessions.values()].map(s => ({...s,approvals:[]}))}), {mode:0o600})
     fs.renameSync(tmp, this.file)
   }
   changed(s, immediate = false) {
@@ -235,6 +237,15 @@ class ManagedSessions extends EventEmitter {
     this.emit('change','queue')
     return this.queueState()
   }
+  // What a new agent starts with when the operator does not pick a mode at launch.
+  // Agents that already exist keep the mode they have.
+  setDefaultApprovalMode({ mode } = {}) {
+    if (!MODES.includes(mode)) fail('Choose ask, auto, or all.')
+    const previous = this.defaultApprovalMode
+    this.defaultApprovalMode = mode
+    try {this.save()} catch(error) {this.defaultApprovalMode = previous; throw error}
+    return this.defaultApprovalMode
+  }
   create(body) {
     const rid = requestId(body.requestId)
     const previous = [...this.sessions.values()].find(s => s.createRequestId === rid)
@@ -281,7 +292,7 @@ class ManagedSessions extends EventEmitter {
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
     const projectId = body.projectId ? this.projects.require(text(body.projectId,'Project',100)).id : null
-    const s = {id,projectId,sessionId:resume,...(fork ? {forkPending:true,forkedFrom:resume} : {}),...(resume ? {continuedFrom:resume} : {}),name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    const s = {id,projectId,sessionId:resume,...(fork ? {forkPending:true,forkedFrom:resume} : {}),...(resume ? {continuedFrom:resume} : {}),name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:body.approvalMode===undefined ? this.defaultApprovalMode : normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     if (ownerReview.enabled(s)) {
       try {s.reviewBaseCommit=ownerReview.snapshot(s).commit;s.ownerRequest=prompt || 'Implement the request in the attached images.'}
       catch(error) {worktrees.remove(worktree);throw error}
@@ -302,7 +313,7 @@ class ManagedSessions extends EventEmitter {
     if (days.some(s => s.dayBoard?.date === date)) fail('Today already has a Day. Open it from the list.',409)
     this.checkCapacity()
     const id = randomUUID()
-    const s = {id,sessionId:null,name:body.name?.trim() ? text(body.name,'Session name',100) : `Day ${date}`,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'day',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,dayBoard:days[0]?.dayBoard ? day.carryOver(days[0].dayBoard,date) : {date,items:[],cursors:{}},worktree:null}
+    const s = {id,sessionId:null,name:body.name?.trim() ? text(body.name,'Session name',100) : `Day ${date}`,cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:body.approvalMode===undefined ? this.defaultApprovalMode : normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:'day',teamId:null,teamName:null,teamSnapshot:null,taskBoard:null,dayBoard:days[0]?.dayBoard ? day.carryOver(days[0].dayBoard,date) : {date,items:[],cursors:{}},worktree:null}
     this.sessions.set(s.id,s)
     const note = (body.prompt || '').trim() ? `\n\nThe operator adds: ${text(body.prompt,'Message',8000)}` : ''
     // Yesterday's threads stay with yesterday's board: close the ones on carried items so

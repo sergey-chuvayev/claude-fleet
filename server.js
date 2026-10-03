@@ -185,6 +185,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(url.pathname==='/api/archive/rule') return json(res,200,{rule:archive.setRule(data)})
         // Raising the limit or resuming can start waiting work, so this answers with the
         // queue as it stands after the change rather than with what was asked for.
+        if(url.pathname==='/api/settings/approval-mode') return json(res,200,{defaultApprovalMode:manager.setDefaultApprovalMode(data)})
         if(url.pathname==='/api/queue') return json(res,200,{queue:manager.setQueue(data)})
         if(url.pathname==='/api/update'){
           const update=await updater.apply()
@@ -222,7 +223,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,defaultApprovalMode:manager.defaultApprovalMode,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
       if(url.pathname==='/api/update'){
         // Answer from the cache and refresh behind the request: a page load should
         // never wait on npm's registry, and the dashboard asks again shortly after.
@@ -254,6 +255,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return respond(req,res,{...history(file,{alive:!!row.alive}),alive:!!row.alive},{paths:['messages']})
       }
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
+      if(url.pathname==='/api/settings/approval-mode')return json(res,200,{defaultApprovalMode:manager.defaultApprovalMode})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
       // Each project with its progress, how many sessions are tagged to it, and its manager.
