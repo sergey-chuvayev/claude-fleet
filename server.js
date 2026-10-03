@@ -13,6 +13,7 @@ const { collect: collectCatalog } = require('./catalog.js')
 const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./search.js')
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
+const { Service, RESTART_CODE } = require('./service.js')
 const { defaultCwd } = require('./paths.js')
 const { progress: projectProgress } = require('./projects')
 const { TOOL_OPTIONS } = require('./team-store.js')
@@ -28,7 +29,7 @@ const MODEL_FALLBACK = [
 const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null} = {}) {
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null} = {}) {
   const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
@@ -171,6 +172,19 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(restart) setTimeout(()=>{restart().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{update:{...update,restarting:!!restart}})
         }
+        // Start at login. Turning it on from a server launchd did not start hands this
+        // process over to launchd, so the service is what runs from now on.
+        if(url.pathname==='/api/service'){
+          if(data.enabled===false) return json(res,200,{service:service.disable(),restarting:false})
+          const handing=!service.managed && !!handover
+          // Handing over, the job is loaded only after this server lets go of the port,
+          // so launchd's first start is the real one.
+          if(handing) service.write({port:req.socket.localPort})
+          const status=handing ? service.status() : service.enable({port:req.socket.localPort})
+          try{service.refreshApp()}catch{}
+          if(handing) setTimeout(()=>{handover().catch(error=>console.error(error.message))},250).unref()
+          return json(res,200,{service:status,restarting:handing})
+        }
         const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|project|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
@@ -207,6 +221,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         res.writeHead(200,{'content-type':TYPES['.css'],'cache-control':'no-cache'})
         return res.end(themeCss(currentTheme()))
       }
+      if(url.pathname==='/api/service')return json(res,200,{service:service.status()})
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
@@ -258,10 +273,14 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
 // pointing at the installed command that a restart needs to re-run.
 function main(){
   let app
+  const service=new Service()
   // Hand the port to the version that was just installed. argv[1] is the entry npm
   // put on PATH; the update replaced what it points at, so re-running it runs the
   // new code. The session lock and the port are both released by close() first.
   const restart=async()=>{
+    // launchd ends whatever its job spawned, so under the service the new version is
+    // launchd's to start: exit with the code it restarts on.
+    if(service.managed){await app.close();process.exit(RESTART_CODE)}
     const entry=process.argv[1]
     const held=app.server.address()?.port || port
     // The page that asked for this is already open and waiting to be reloaded, so
@@ -274,7 +293,18 @@ function main(){
     child.unref()
     setTimeout(()=>process.exit(0),100).unref()
   }
-  try{app=createApp({restart})}catch(error){
+  // Turning the service on from here: let go of the lock and the port, then load the
+  // job, which launchd starts at once. If launchd will not, come back as we were.
+  const handover=async()=>{
+    await app.close()
+    try{service.load();process.exit(0);return}
+    catch(error){console.error(`${error.message} Starting Fleet again without the service.`)}
+    const held=app.server.address()?.port || port
+    const child=require('node:child_process').spawn(process.execPath,[process.argv[1],...process.argv.slice(2).filter(a=>a!=='--open'),'--no-open'],{detached:true,stdio:'ignore',env:{...process.env,PORT:String(held)}})
+    child.unref()
+    setTimeout(()=>process.exit(0),100).unref()
+  }
+  try{app=createApp({restart,service,handover})}catch(error){
     // Already running is the everyday case, not a crash: put the window the operator
     // asked for on screen and leave quietly. Exiting 1 with no window was the whole
     // reason a second `claude-fleet` looked like a broken one.

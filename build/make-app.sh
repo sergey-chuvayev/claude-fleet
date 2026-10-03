@@ -69,7 +69,12 @@ if ! listening; then
   # The GUI PATH is too small to find the claude CLI, node or npm; widen it so the
   # server can prefer your installed Claude and can install its own updates.
   export PATH="\$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:\$(dirname "\$NODE"):\$PATH"
-  PORT="\$PORT" CLAUDE_FLEET_DEFAULT_CWD="\$DEFAULT_CWD" nohup "\$NODE" "\$FLEET" start >>"\$LOG" 2>&1 &
+  # With start at login on, the server is launchd's to run: ask it rather than
+  # starting a second Fleet it would not know about.
+  SERVICE="\$HOME/Library/LaunchAgents/local.claude.fleet.server.plist"
+  if [ -f "\$SERVICE" ] && launchctl kickstart "gui/\$(id -u)/local.claude.fleet.server" >/dev/null 2>&1; then :
+  else PORT="\$PORT" CLAUDE_FLEET_DEFAULT_CWD="\$DEFAULT_CWD" nohup "\$NODE" "\$FLEET" start >>"\$LOG" 2>&1 &
+  fi
   for _ in \$(seq 1 40); do listening && break; sleep 0.25; done
   listening || { note "The server did not start. See \$LOG"; exit 1; }
 fi
