@@ -1001,6 +1001,15 @@ class ManagedSessions extends EventEmitter {
     this.changed(s,true)
     return s
   }
+  // A name you chose stays: Claude's own title no longer replaces it (see server.js).
+  setName(id,body) {
+    const s=this.get(id)
+    if (!['agent','initiative'].includes(s.kind || 'agent')) fail('Only agents and initiatives can be renamed.')
+    s.name=text(body.name,'Name',100)
+    s.renamed=true
+    this.changed(s,true)
+    return s
+  }
   setMode(id,body) {
     const s=this.get(id)
     if (!MODES.includes(body.mode)) fail('Choose ask, auto, or all.')

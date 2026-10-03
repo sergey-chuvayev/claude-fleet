@@ -11,7 +11,7 @@ window.FleetTeams=(()=>{
     if(document.getElementById('team-editor'))return
     const container=document.createElement('section')
     container.id='team-editor';container.hidden=true;container.setAttribute('aria-label','Team editor')
-    container.innerHTML='<div class="team-editor-head"><div><span class="modal-eyebrow">YOUR TEAM, YOUR WAY</span><h3>Shape the team.</h3><p class="note">Choose the specialists. Fleet handles task tracking and independent verification.</p></div><button type="button" class="button" id="team-editor-back">Back to task</button></div><div id="team-editor-fields"></div><p id="team-editor-error" class="form-error" role="alert" hidden></p><div class="team-editor-actions"><button type="button" class="button" id="team-add-role">+ Add role</button><button type="button" class="button resume" id="team-save">Save team</button></div>'
+    container.innerHTML='<div class="team-editor-head"><div><span class="modal-eyebrow">YOUR TEAM, YOUR WAY</span><h3>Shape the team.</h3><p class="note">Choose the specialists. Fleet handles task tracking and independent verification.</p></div><button type="button" class="button" id="team-editor-back">Back to draft</button></div><div id="team-editor-fields"></div><p id="team-editor-error" class="form-error" role="alert" hidden></p><div class="team-editor-actions"><button type="button" class="button" id="team-add-role">+ Add role</button><button type="button" class="button resume" id="team-save">Save team</button></div>'
     document.getElementById('launch-form').append(container)
     container.querySelector('#team-editor-back').addEventListener('click',()=>toggle(false))
     container.querySelector('#team-add-role').addEventListener('click',()=>{try{read();if(Object.keys(draft.roles).length>=8)throw new Error('A team can have up to eight roles.');let key='specialist';while(draft.roles[key])key+='x';draft.roles[key]={description:'A specialist for this task',prompt:'Describe this specialist’s responsibility and expected output.',model:'sonnet',maxTurns:30,effort:'medium',tools:['Read','Glob','Grep']};render()}catch(error){showError(error)}})
@@ -25,7 +25,7 @@ window.FleetTeams=(()=>{
   function toggle(editing) {
     const form=document.getElementById('launch-form')
     form.noValidate=editing
-    document.querySelector('.modal-launch').classList.toggle('is-editing-team',editing)
+    document.getElementById('draft-panel').classList.toggle('is-editing-team',editing)
     for(const child of form.children)child.hidden=editing ? child.id!=='team-editor' : child.id==='team-editor' || child.id==='launch-error'
     // Hidden editor fields must not participate in the launch form's validation.
     document.querySelectorAll('#team-editor input,#team-editor textarea,#team-editor select').forEach(el=>el.disabled=!editing)

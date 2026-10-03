@@ -3,10 +3,11 @@
 // app.js is destructured once, here, instead of being picked out of a global scope
 // the two files happened to share.
 ;(() => {
-const { $, esc, update, toast, tick, modalIsOpen, openModal, closeModal } = window.Fleet
+const { $, esc, update, toast, tick, store } = window.Fleet
 let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
 const drafts=new Map()
 const inFlight=new Set()
+const LAST_CWD='fleet:launch-cwd'
 let launchRequestId=null, resumeSource=null, fallbackWarned=false, referencesAvailable=false
 const managedLabels={starting:'Starting Claude…',running:'Working on your task',approval:'Your input is needed',stopping:'Stopping the agent…',stopped:'Stopped · ready to continue',error:'Turn failed',idle:'Ready for your next message',queued:'Queued · waiting for a free slot'}
 const isWorking=s=>['starting','running','approval','stopping'].includes(s.status)
@@ -27,7 +28,7 @@ async function initializeControls() {
   // update, and without this the difference is invisible until something 404s.
   if(data.version) $('app-version').textContent=`v${data.version}`
   referencesAvailable=data.supportsSessionReferences===true
-  if(!$('launch-cwd').value) $('launch-cwd').value=data.defaultCwd
+  if(!$('launch-cwd').value) $('launch-cwd').value=store.get(LAST_CWD) || data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
 // The terminal session the inspector is showing, for its "Continue in Fleet" button.
@@ -36,20 +37,25 @@ document.addEventListener('click',event=>{if(event.target.closest?.('#resume-in-
 function updateLaunchTeam() {
   const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
   const ownerReview=team?.mode==='owner-review'
-  $('launch-title').textContent=resumeSource ? 'Continue this conversation in Fleet.' : ownerReview ? 'Give your owner a task.' : team ? 'Give your team a brief.' : 'Give your next task a home.'
-  document.querySelector('label[for="launch-prompt"]').textContent=ownerReview ? 'Task for the owner' : team ? 'Brief for the manager' : 'What are we working on?'
-  document.querySelector('.launch-task-note').textContent=ownerReview ? 'Your owner implements, tests and finishes the request. One independent reviewer checks the changes.' : team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'Big ideas, small fixes. Every task starts here.'
-  $('launch-prompt').placeholder=ownerReview ? 'Describe the task, the expected behavior, and any constraints. Your owner will implement it and request independent review.' : team ? 'Describe what you want to accomplish. Your manager will work out the tasks and bring back any questions.' : 'There’s something I’d love your help with…\n\nDescribe the task, what a good result looks like, and anything your agent should know.'
+  const heading=resumeSource ? 'Continue this conversation in Fleet.' : ownerReview ? 'Give your owner a task.' : team ? 'Give your team a brief.' : 'What are we working on?'
+  $('draft-title').textContent=heading
+  $('launch-prompt-label').textContent=ownerReview ? 'Task for the owner' : team ? 'Brief for the manager' : 'What are we working on?'
+  $('draft-lead').textContent=resumeSource ? 'Your next message picks up where it left off.' : ownerReview ? 'Your owner implements, tests and finishes the request. One independent reviewer checks the changes.' : team ? `You talk to the ${team.manager || 'manager'}. They delegate to the team and bring the reports back here.` : 'One agent, one task. Pick a team to hand it to a manager instead.'
+  $('launch-prompt').placeholder=resumeSource ? 'Pick up where you left off…' : ownerReview ? 'Describe the task, the expected behavior, and any constraints. Your owner will implement it and request independent review.' : team ? 'Describe what you want to accomplish. Your manager will work out the tasks and bring back any questions.' : 'Describe the task and what a good result looks like…'
   if(!$('launch-submit').disabled) $('launch-submit').textContent=team ? 'Launch initiative ↗' : 'Launch agent ↗'
-  if($('customize-team')) $('customize-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
+  $('customize-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
+  $('customize-team').hidden=!!resumeSource
   $('launch-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
-  $('launch-team-note').textContent=resumeSource ? 'Continuing with the existing agent.' : team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? 'No team keeps this a single-agent conversation.' : 'Teams unavailable. Reopen this dialog to retry; single agents are still available.'
+  $('launch-team').closest('label').hidden=!!resumeSource
+  $('launch-team-note').textContent=team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? '' : 'Teams unavailable. Reopen New agent to retry; single agents still work.'
+  $('launch-model-note').hidden=$('launch-model').value!=='auto-jev'
 }
 async function loadLaunchTeams() {
-  if(!$('launch-team')) {
-    document.querySelector('.launch-fields').insertAdjacentHTML('afterbegin','<label for="launch-team">Team<select id="launch-team" name="teamId" aria-describedby="launch-team-note"><option value="">No team · single agent</option></select><span class="note" id="launch-team-note" role="status"></span></label><button type="button" class="button" id="customize-team">Customize team…</button>')
+  if(!$('customize-team').dataset.wired) {
+    $('customize-team').dataset.wired='1'
     $('customize-team').addEventListener('click',()=>window.FleetTeams.open())
     $('launch-team').addEventListener('change',()=>{launchRequestId=null;updateLaunchTeam()})
+    $('launch-model').addEventListener('change',updateLaunchTeam)
   }
   if(launchTeams || launchTeamsLoading){updateLaunchTeam();return}
   launchTeamsLoading=true;updateLaunchTeam()
@@ -61,21 +67,34 @@ async function loadLaunchTeams() {
   } catch { launchTeams=null }
   finally {launchTeamsLoading=false;updateLaunchTeam()}
 }
+// A new agent is a draft row, not a dialog. Opening it again keeps whatever was typed;
+// only continuing an existing conversation starts the form over, because that one is
+// pinned to a directory and a transcript.
 function openLaunch(source=null) {
-  window.FleetTeams?.reset()
-  resumeSource=source
-  // Leftover text, a picked team, a swapped model or approval mode from a task that
-  // was never launched should not greet the next one. The remembered project
-  // directory is the one thing worth carrying forward, so it survives the reset.
-  const form=$('launch-form'), cwd=form.elements.cwd.value
-  form.reset()
-  form.elements.cwd.value=cwd
-  $('launch-title').textContent=source ? 'Continue this conversation in Fleet.' : 'Give your next task a home.'
-  if(source){$('launch-cwd').value=source.cwd || '';form.elements.name.value=source.title || source.name || ''}
+  const views=window.FleetViews
+  if(views && views.view()!=='sessions') views.switchView('sessions')
+  if(!window.Fleet.draft() || source) {
+    window.FleetTeams?.reset()
+    resumeSource=source
+    const form=$('launch-form'), cwd=form.elements.cwd.value
+    form.reset()
+    form.elements.cwd.value=source ? source.cwd || '' : cwd || store.get(LAST_CWD) || ''
+    $('launch-error').hidden=true
+    launchRequestId=null
+    $('launch-cwd').readOnly=!!source
+  }
+  window.Fleet.setDraft(true)
   loadLaunchTeams()
   fillLaunchModels()
-  $('launch-cwd').readOnly=!!source
-  openModal('launch-backdrop', '[name=prompt]')
+  if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
+  $('launch-prompt').focus()
+}
+function discardDraft() {
+  window.FleetTeams?.reset()
+  $('launch-form').reset()
+  resumeSource=null;launchRequestId=null
+  $('launch-error').hidden=true
+  window.Fleet.setDraft(false)
 }
 // ── What the rest of the page may use ───────────────────────────────────────
 // Published before the boot wiring below, for the same reason app.js does it there:
@@ -99,36 +118,44 @@ window.FleetControl = {
 }
 
 // ── Boot ────────────────────────────────────────────────────────────────────
-$('new-session')?.addEventListener('click',()=>modalIsOpen('launch-backdrop') ? closeModal() : openLaunch())
+$('new-session')?.addEventListener('click',()=>openLaunch())
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'n') {
     event.preventDefault()
-    if (modalIsOpen('launch-backdrop')) $('launch-form').elements.prompt.focus()
-    else openLaunch()
+    openLaunch()
   }
 })
+$('draft-discard')?.addEventListener('click',discardDraft)
 $('launch-form')?.addEventListener('input',()=>{launchRequestId=null})
+// Enter launches, as it sends in a conversation; Shift + Enter and IME composition do not.
+$('launch-prompt')?.addEventListener('keydown',event=>{
+  if(event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();$('launch-form').requestSubmit()}
+})
 $('launch-form')?.addEventListener('submit',async event=>{
   event.preventDefault()
   if(window.FleetTeams?.isEditing()){window.FleetTeams.save();return}
   const button=$('launch-submit'); if(button.disabled)return
-  button.disabled=true;button.textContent='Launching…';$('launch-error').hidden=true
   const form=event.currentTarget
+  if(!form.elements.prompt.value.trim()){form.elements.prompt.focus();return}
+  if(!form.elements.cwd.value.trim()){$('launch-error').textContent='Choose the directory this agent works in.';$('launch-error').hidden=false;form.elements.cwd.focus();return}
+  button.disabled=true;button.textContent='Launching…';$('launch-error').hidden=true
   form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=true)
   launchRequestId ||= crypto.randomUUID()
   try{
-    const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource ? {teamId:form.elements.teamId.value}: {}),cwd:form.elements.cwd.value,name:form.elements.name.value,prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
-    form.elements.prompt.value='';launchRequestId=null
-    closeModal()
+    const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource ? {teamId:form.elements.teamId.value}: {}),cwd:form.elements.cwd.value,name:resumeSource ? resumeSource.title || resumeSource.name || '' : '',prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
+    const team=form.elements.teamId?.value && !resumeSource
+    if(!resumeSource)store.set(LAST_CWD,form.elements.cwd.value.trim())
+    form.elements.prompt.value='';launchRequestId=null;resumeSource=null
     await tick()
+    window.Fleet.setDraft(false)
     window.Fleet.setFilter('all')
     // A new agent lives in Sessions; launched from Today or Projects, go there to see it.
     window.FleetViews?.switchView('sessions')
     window.Fleet.select(data.session.id)
-    toast(data.session.status==='queued' ? 'Task queued' : form.elements.teamId?.value && !resumeSource ? 'Initiative launched' : 'Agent launched')
+    toast(data.session.status==='queued' ? 'Task queued' : team ? 'Initiative launched' : 'Agent launched')
     if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
   }catch(error){$('launch-error').textContent=error.message;$('launch-error').hidden=false}
-  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=!!el.closest('#team-editor'));if($('launch-team'))updateLaunchTeam()}
+  finally{button.disabled=false;button.textContent='Launch agent ↗';form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=!!el.closest('#team-editor'));$('launch-cwd').readOnly=!!resumeSource;updateLaunchTeam()}
 })
 function selectControl(session) {
   const next=session?.managedId || null
@@ -173,6 +200,8 @@ function selectControl(session) {
     })
     $('composer').addEventListener('submit',sendMessage)
     $('approval-mode').addEventListener('change',changeMode)
+    $('conversation-title').addEventListener('click',startRename)
+    $('conversation-title').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();startRename()}})
     fillModels($('model-choice')).then(()=>$('model-choice')?.addEventListener('change',changeModel))
     $('agent-connections').addEventListener('click',()=>window.FleetConnections.open(controlId))
     $('close-agent').addEventListener('click',closeAgent)
@@ -203,7 +232,11 @@ function renderControl() {
   window.FleetDay?.board(s)
   // A thread is held to the Day's outward gate too, so it reads the same way.
   const day=s.kind==='day',thread=s.kind==='thread',pm=s.kind==='project',gated=day || thread || pm
-  $('conversation-title').textContent=day ? 'Day agent' : thread ? `About: ${s.name}` : pm ? `Project manager · ${s.name}` : s.aiTitle || s.name
+  $('conversation-title').textContent=day ? 'Day agent' : thread ? `About: ${s.name}` : pm ? `Project manager · ${s.name}` : s.renamed ? s.name : s.aiTitle || s.name
+  // Agents and initiatives can be renamed; a name you chose outranks Claude's own title.
+  const title=$('conversation-title'),renameable=['agent','initiative'].includes(s.kind || 'agent')
+  title.classList.toggle('is-renameable',renameable)
+  if(renameable){title.tabIndex=0;title.setAttribute('role','button');title.title='Rename this agent'}
   const queueNote=s.queue?.length ? ` · ${s.queue.length} queued` : ''
   const tool=s.currentTool && (window.FleetBlocks?.toolLabel(s.currentTool) || s.currentTool)
   $('agent-state').textContent=(tool && s.status==='running' ? (day && tool==='Board' ? 'Updating the board…' : `Using ${tool}`) : managedLabels[s.status])+queueNote
@@ -403,7 +436,29 @@ async function fillLaunchModels() {
   const list=await loadModels(true)
   // Read the choice now, not before the request: the operator may have changed it.
   populateModels(select,list)
-  if(status){status.hidden=!modelsFailed;status.textContent=modelsFailed ? 'Could not refresh models. The model choices remain available; reopen this dialog to retry.':''}
+  if(status){status.hidden=!modelsFailed;status.textContent=modelsFailed ? 'Could not refresh models. The choices above still work; reopen New agent to retry.':''}
+}
+function startRename() {
+  const heading=$('conversation-title'),id=controlId
+  if(!heading?.classList.contains('is-renameable') || $('rename-input'))return
+  const input=document.createElement('input')
+  input.id='rename-input';input.className='rename-input';input.maxLength=100;input.value=heading.textContent;input.setAttribute('aria-label','Name this agent')
+  heading.hidden=true;heading.after(input);input.focus();input.select()
+  let done=false
+  const finish=async save=>{
+    if(done)return;done=true
+    const value=input.value.trim(),unchanged=value===heading.textContent
+    input.remove();heading.hidden=false
+    if(!save || !value || unchanged)return
+    try{await api(`/api/managed/${id}/name`,{name:value});await refreshControl();await tick()}
+    catch(error){toast(error.message)}
+  }
+  input.addEventListener('keydown',event=>{
+    if(event.isComposing)return
+    if(event.key==='Enter'){event.preventDefault();finish(true);heading.focus()}
+    else if(event.key==='Escape'){event.preventDefault();finish(false);heading.focus()}
+  })
+  input.addEventListener('blur',()=>finish(true))
 }
 async function changeModel(event) {
   const id=controlId, model=event.target.value
