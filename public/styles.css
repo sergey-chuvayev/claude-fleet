@@ -3155,6 +3155,16 @@ details[open]>summary .ui-chevron { transform:rotate(45deg) }
 .modal details>summary::before { content:""; flex:none; width:6px; height:6px; border-right:1.5px solid var(--faint); border-bottom:1.5px solid var(--faint); transform:rotate(-45deg); transition:transform .15s ease }
 .modal details[open]>summary::before { transform:rotate(45deg) }
 
+/* A Day item's project: a tag that opens the project. */
+button.day-project { display:inline-flex; align-items:center; gap:5px; cursor:pointer; background:transparent; font:inherit; font-size:var(--text-xs) }
+button.day-project span { font-size:8px; opacity:.8 }
+button.day-project:hover { background:color-mix(in oklab,var(--accent) 12%,transparent); border-color:var(--accent) }
+button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--accent) 50%,transparent); outline-offset:1px }
+.button.ghost.is-on-today { color:var(--busy); border-color:color-mix(in oklab,var(--busy) 35%,var(--line)) }
+.ui-row.is-flash { animation:ui-flash 1.6s ease-out }
+@keyframes ui-flash { 0%, 30% { background:color-mix(in oklab,var(--accent) 16%,transparent) } 100% { background:transparent } }
+@media(prefers-reduced-motion:reduce) { .ui-row.is-flash { animation:none } }
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }

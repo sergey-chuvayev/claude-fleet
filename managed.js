@@ -474,10 +474,46 @@ class ManagedSessions extends EventEmitter {
     if (!x || x.projectId !== projectId || x.kind === 'project') fail('That session is not part of this project.')
     return {...this.launchedStatus(x.id),cwd:x.cwd,recent:x.messages.filter(m => m.role !== 'tool').slice(-8).map(m => ({role:m.role,text:String(m.text || '').slice(0,1500)}))}
   }
+  todayDay() {
+    return [...this.sessions.values()].filter(x => x.kind === 'day' && x.dayBoard?.date === day.dateOf()).sort((a,b) => b.createdAt-a.createdAt)[0] || null
+  }
+  // A deliverable onto today's Day as work to start: an "Agent does it" item tagged with
+  // its project and tied to the deliverable. The Day picks it up on its next run and
+  // turns it into a launch brief for the operator to approve, as with any such item.
+  planDeliverable(projectId, deliverableId) {
+    const p = this.projects.require(projectId)
+    const d = p.deliverables.find(x => x.id === deliverableId)
+    if (!d) fail('That deliverable is not in this project.')
+    const today = this.todayDay()
+    if (!today) fail('Start your day on the Today tab first, then add this to it.',409)
+    const existing = today.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    if (existing) return {item:existing,existing:true}
+    // No links: the Day merges an item into any other that shares one, and a project's
+    // links would fold this into whatever else mentions them.
+    const context = [`A deliverable of the project "${p.name}".`, d.note ? `Status note: ${d.note}` : '', p.brief ? `Project brief:\n${p.brief.slice(0,1500)}` : '', p.repos?.length ? `Repositories: ${p.repos.join(', ')}` : ''].filter(Boolean).join('\n\n')
+    const before = structuredClone(today.dayBoard)
+    try {
+      const {item} = day.act(today,{title:d.title,context,priority:'should',mode:'agent',source:'me',projectId:p.id,deliverableId:d.id,action:'add'},'operator')
+      this.changed(today,true)
+      // The note is the manager's evidence; moving the state leaves it be.
+      if (d.state === 'todo') this.projects.deliverable(p.id,d.id,{state:'doing'})
+      this.syncThreads(today)
+      // Someone is waiting for the brief: as soon as an answer, not after a triage burst.
+      this.scheduleDayResume(today, DAY_ANSWER_DELAY_MS)
+      this.emit('change','projects')
+      return {item,existing:false}
+    } catch (error) { today.dayBoard = before; throw error }
+  }
+  // Which of a project's deliverables are on today's Day, and how far along.
+  deliverablesOnToday(projectId) {
+    const out = {}
+    for (const i of this.todayDay()?.dayBoard?.items || []) if (i.projectId === projectId && i.deliverableId && i.status !== 'dropped') out[i.deliverableId] = {itemId:i.id,status:i.status}
+    return out
+  }
   // A manager's suggestion lands on today's Day as a proposal, tagged with the project.
   suggestForProject(projectId, input) {
     this.projects.require(projectId)
-    const today = [...this.sessions.values()].filter(x => x.kind === 'day' && x.dayBoard?.date === day.dateOf()).sort((a,b) => b.createdAt-a.createdAt)[0]
+    const today = this.todayDay()
     if (!today) fail('There is no Day running today. Ask the operator to start their day first.')
     // Only the fields a Day item takes. The manager's tool input also carries its own
     // action ('suggest') and other keys; spread whole, they overrode the Day action and

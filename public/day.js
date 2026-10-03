@@ -30,7 +30,8 @@ window.FleetDay=(()=>{
   }
   // The project an item belongs to, by name.
   const projectName=id=>(window.FleetProjects?.list() || []).find(p=>p.id===id)?.name
-  const projectHtml=item=>{const name=item.projectId && projectName(item.projectId);return name ? `<span class="day-project" title="Project: ${escape(name)}">${escape(name.length>24 ? name.slice(0,23)+'…' : name)}</span>`:''}
+  // An item's project, as a tag that opens it.
+  const projectHtml=item=>{const name=item.projectId && projectName(item.projectId);return name ? `<button type="button" class="day-project" data-open-project="${escape(item.projectId)}" title="Open the project: ${escape(name)}"><span aria-hidden="true">◆</span>${escape(name.length>24 ? name.slice(0,23)+'…' : name)}</button>`:''}
   // Work from an earlier Day says so, with the day it first came from.
   const carriedHtml=item=>{
     if(!item.carriedFrom)return ''
@@ -193,7 +194,10 @@ window.FleetDay=(()=>{
     const b=s.dayBoard || {items:[],cursors:{}}
     const launchedState=b.items.flatMap(i=>i.launched || []).map(id=>(window.Fleet.snapshot()?.sessions || []).find(x=>x.managedId===id)).map(x=>x ? [x.managedStatus,x.taskProgress] : null)
     const moving=(s.subagents || []).filter(d=>d.status==='running').map(d=>[d.id,d.itemId])
-    const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks,moving,Math.floor(Date.now()/60000)])
+    // Project names too: the board can draw before the project list arrives, and its tags
+    // need redrawing once it does.
+    const names=(window.FleetProjects?.list() || []).map(p=>[p.id,p.name])
+    const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks,moving,names,Math.floor(Date.now()/60000)])
     if(panel.fleetSignature===signature)return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
@@ -367,6 +371,9 @@ window.FleetDay=(()=>{
   function act(id,event) {
     const panel=document.getElementById('day-board'),target=event.target
     if(target.closest('[data-sweep]')){event.preventDefault();return post(id,{op:'sweep'},'Checking your sources')}
+    // Inside a row's summary, so it must not also open or close the row.
+    const project=target.closest('[data-open-project]')
+    if(project){event.preventDefault();return window.FleetProjects?.show(project.dataset.openProject)}
     const openThread=target.closest('[data-open-thread]')
     if(openThread){event.preventDefault();return showThread(openThread.dataset.openThread)}
     const askItem=target.closest('[data-ask-item]')
@@ -438,5 +445,20 @@ window.FleetDay=(()=>{
     sessions.insertAdjacentHTML('afterend','<section class="sessions-pane today-pane" id="today-pane" aria-label="Today" hidden></section>')
   }
   mount()
-  return {board,render,active,current,start,messages}
+  // Show one item on the board, opened (from a project's deliverable).
+  function showItem(itemId) {
+    window.FleetViews?.switchView('today')
+    let tries=0
+    const reveal=()=>{
+      const row=document.querySelector(`#day-board [data-card="${CSS.escape(itemId)}"]`)
+      if(!row){if(++tries<20)setTimeout(reveal,100);return}
+      const details=row.querySelector('details');if(details)details.open=true
+      // Scroll the board's own list; scrollIntoView would move the whole window too.
+      const scroller=row.closest('.page-body')
+      if(scroller){const r=row.getBoundingClientRect(),box=scroller.getBoundingClientRect();scroller.scrollBy({top:r.top-box.top-(box.height-r.height)/2,behavior:'smooth'})}
+      row.classList.add('is-flash');setTimeout(()=>row.classList.remove('is-flash'),1600)
+    }
+    reveal()
+  }
+  return {board,render,active,current,start,messages,showItem}
 })()

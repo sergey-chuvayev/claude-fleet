@@ -60,7 +60,7 @@ function add(s,input,by) {
     priority:oneOf(input.priority ?? 'should',PRIORITIES,'Priority'),
     // The operator's own items are already decided; the agent's are proposals until triaged.
     status:by==='operator' ? 'today' : 'proposed',
-    mode:oneOf(input.mode ?? 'me',MODES,'Mode'),estimateMin:minutes(input.estimateMin),...(input.projectId ? {projectId:str(input.projectId,'Project',100)} : {}),needs:[],log:[],createdAt:Date.now(),by}
+    mode:oneOf(input.mode ?? 'me',MODES,'Mode'),estimateMin:minutes(input.estimateMin),...(input.projectId ? {projectId:str(input.projectId,'Project',100)} : {}),...(input.deliverableId ? {deliverableId:str(input.deliverableId,'Deliverable',100)} : {}),needs:[],log:[],createdAt:Date.now(),by}
   board.items.push(item);return {merged:false,item}
 }
 function minutes(value) {
