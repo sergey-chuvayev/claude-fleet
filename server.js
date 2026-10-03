@@ -6,6 +6,7 @@ const path = require('node:path')
 const { randomBytes, timingSafeEqual } = require('node:crypto')
 const { collect, transcriptFor, transcriptFile } = require('./fleet.js')
 const { history } = require('./history.js')
+const { respond, tagOf } = require('./sync.js')
 const { AUTO_OPTION } = require('./routing')
 const { Connections } = require('./connections')
 const { ManagedSessions } = require('./managed.js')
@@ -41,7 +42,23 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
     changes.clear()
     for (const res of clients) if (!res.write(data)) { res.end(); clients.delete(res) }
   }
-  manager.on('change',id=>{changes.add(id);if(!eventTimer) eventTimer=setTimeout(broadcast,120)})
+  manager.on('change',id=>{changes.add(id);if(!eventTimer) eventTimer=setTimeout(broadcast,120);scheduleList()})
+  // "The list changed", pushed, so the page fetches it when it changes rather than on a
+  // timer. Fleet's own sessions report changes; terminal sessions only show up in Claude's
+  // files, so they are looked at every two seconds, on the server, which costs a few
+  // milliseconds instead of a megabyte sent to the page. At most once a second.
+  let listTag=null,listTimer=null,listCheckedAt=0
+  const checkList=()=>{
+    listTimer=null;listCheckedAt=Date.now()
+    if(!clients.size){listTag=null;return}
+    let tag
+    try{tag=tagOf(getSnapshot(),['generatedAt'])}catch{return}
+    if(listTag!==null && tag!==listTag) for(const res of clients) res.write('event: list\ndata: {}\n\n')
+    listTag=tag
+  }
+  function scheduleList(){if(!listTimer) listTimer=setTimeout(checkList,Math.max(250,1000-(Date.now()-listCheckedAt)))}
+  const listWatch=setInterval(scheduleList,2000)
+  listWatch.unref?.()
   manager.on('storage-error',error=>{storageError='Unable to save Fleet conversations. Check disk space and permissions.';console.error(error.message)})
   let theme=readTheme(), themeReadAt=Date.now()
   const currentTheme=()=>{
@@ -234,7 +251,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         const row=/^[\w-]{1,64}$/.test(id) ? collectSessions().sessions.find(s=>s.sessionId===id) : null
         const file=row && transcriptFile(id)
         if(!file) return json(res,404,{error:'No transcript for that session.'})
-        return json(res,200,{...history(file,{alive:!!row.alive}),alive:!!row.alive})
+        return respond(req,res,{...history(file,{alive:!!row.alive}),alive:!!row.alive},{paths:['messages']})
       }
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
@@ -243,7 +260,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,onToday:manager.deliverablesOnToday(p.id),managerId:manager.managerOf(p.id)?.id || null}))})
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
-      if(url.pathname==='/api/sessions') return json(res,200,getSnapshot())
+      if(url.pathname==='/api/sessions') return respond(req,res,getSnapshot(),{paths:['sessions'],volatile:['generatedAt']})
       if(url.pathname==='/api/events') {
         if(clients.size>=20) return json(res,429,{error:'Too many dashboard connections.'})
         res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store','connection':'keep-alive','x-accel-buffering':'no'})
@@ -267,9 +284,9 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         const session=manager.detail(detail[1])
         const holder=elsewhere(collectSessions().sessions.find(t=>t.sessionId===session.sessionId))
         if(holder) session.openElsewhere=holder
-        return json(res,200,{session})
+        return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/ui.js':'ui.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))
@@ -278,7 +295,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   })
   server.requestTimeout=15000
   server.headersTimeout=10000
-  async function close(){connections.close();clearTimeout(eventTimer);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
+  async function close(){connections.close();clearTimeout(eventTimer);clearTimeout(listTimer);clearInterval(listWatch);clearInterval(heartbeat);for(const res of clients)res.end();server.close();await Promise.all([manager.close(),search.close()])}
   return {server,manager,search,archive,updater,close,getSnapshot}
 }
 

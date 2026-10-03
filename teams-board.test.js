@@ -159,7 +159,7 @@ function loadTeams() {
     navigator: {}, location: { reload() {} }, console,
   })
   context.window = context
-  for (const file of ['ui.js', 'app.js', 'control.js', 'teams.js']) {
+  for (const file of ['ui.js', 'sync.js', 'app.js', 'control.js', 'teams.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw error }
