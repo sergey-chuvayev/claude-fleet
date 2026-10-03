@@ -152,7 +152,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
     ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
     ['FleetConnections', ['open']],
     ['FleetSync', ['get', 'forget']],
-    ['FleetUI', ['esc', 'pageHead', 'stat', 'bar', 'ring', 'label', 'section', 'pill', 'orb', 'row', 'list', 'group', 'fold', 'ask', 'callout', 'empty', 'log']],
+    ['FleetUI', ['esc', 'running', 'pageHead', 'stat', 'bar', 'ring', 'label', 'section', 'pill', 'orb', 'row', 'list', 'group', 'fold', 'ask', 'callout', 'empty', 'log']],
   ]) for (const k of keys) assert.equal(typeof context[name][k], 'function', `${name}.${k} must stay part of the published surface`)
   // The one member that is a bag of functions rather than a function.
   for (const k of ['get', 'set', 'clear']) assert.equal(typeof context.Fleet.store[k], 'function', `Fleet.store.${k} must stay part of the published surface`)

@@ -30,6 +30,9 @@ window.FleetUI=(()=>{
   const pill=(text,tone)=>`<span class="ui-pill"${attr('data-tone',tone)}>${text}</span>`
   const orb=(tone,title)=>`<span class="ui-orb"${attr('data-tone',tone || 'todo')}${attr('title',title)}></span>`
   const chevron='<span class="ui-chevron" aria-hidden="true"></span>'
+  // "Running now", in the avatars' pixel style: a 3×3 matrix whose pixels light up in
+  // turn. It marks the step, the reply or the line that is live this second.
+  const running=(label='Running')=>`<span class="pixel-run" role="img" aria-label="${esc(label)}">${'<i></i>'.repeat(9)}</span>`
 
   // A list row: a status orb, a title, one quiet line of meta, and what sits on the
   // right. With a detail it opens in place, keyed so a redraw can keep it open.
@@ -55,5 +58,5 @@ window.FleetUI=(()=>{
   // A log: time, then what happened.
   const log=entries=>entries.length ? `<ol class="ui-log">${entries.map(([time,text])=>`<li><time>${esc(time)}</time>${text}</li>`).join('')}</ol>`:''
 
-  return {esc,pageHead,stat,bar,ring,label,section,pill,orb,chevron,row,list,group,fold,ask,callout,empty,log}
+  return {esc,running,pageHead,stat,bar,ring,label,section,pill,orb,chevron,row,list,group,fold,ask,callout,empty,log}
 })()

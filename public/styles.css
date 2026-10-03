@@ -3165,6 +3165,51 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
 @keyframes ui-flash { 0%, 30% { background:color-mix(in oklab,var(--accent) 16%,transparent) } 100% { background:transparent } }
 @media(prefers-reduced-motion:reduce) { .ui-row.is-flash { animation:none } }
 
+/* ── Working, at a glance ─────────────────────────────────────────────────────
+   One visual language for "this is live": the session avatars' twinkling pixels. A
+   resting avatar is muted; a working one is bright, glows in its own colour and has a
+   band of light sweeping across it. In the conversation the same pixels, as a 3×3
+   matrix, mark the step or reply that is live and the line saying what is happening. */
+.agent-avatar:not(.is-working) .avatar-pixels { filter:saturate(.45) brightness(.8) }
+.agent-avatar.is-working { animation:avatar-glow 2.4s ease-in-out infinite }
+@keyframes avatar-glow {
+  0%, 100% { box-shadow:0 0 0 1px color-mix(in oklab,var(--tone) 30%,transparent), 0 0 6px -2px color-mix(in oklab,var(--tone) 45%,transparent) }
+  50% { box-shadow:0 0 0 1px color-mix(in oklab,var(--tone) 70%,transparent), 0 0 18px -1px color-mix(in oklab,var(--tone) 70%,transparent) }
+}
+.avatar-sweep { animation:avatar-sweep 2.8s ease-in-out infinite; mix-blend-mode:screen; opacity:.55 }
+@keyframes avatar-sweep { 0% { transform:translateX(0) } 55%, 100% { transform:translateX(76px) } }
+
+.pixel-run { display:inline-grid; grid-template-columns:repeat(3,3px); grid-auto-rows:3px; gap:1px; flex:none; vertical-align:middle; color:var(--busy) }
+.pixel-run i { border-radius:.5px; background:currentColor; opacity:.25; animation:pixel-run 1.2s ease-in-out infinite }
+/* The pixels light in a loop around the edge, the centre steady: it reads as motion
+   even at nine pixels. */
+.pixel-run i:nth-child(1) { animation-delay:0s }
+.pixel-run i:nth-child(2) { animation-delay:.15s }
+.pixel-run i:nth-child(3) { animation-delay:.3s }
+.pixel-run i:nth-child(6) { animation-delay:.45s }
+.pixel-run i:nth-child(9) { animation-delay:.6s }
+.pixel-run i:nth-child(8) { animation-delay:.75s }
+.pixel-run i:nth-child(7) { animation-delay:.9s }
+.pixel-run i:nth-child(4) { animation-delay:1.05s }
+.pixel-run i:nth-child(5) { animation:none; opacity:.85 }
+@keyframes pixel-run { 0%, 100% { opacity:.2 } 20% { opacity:1 } 50% { opacity:.35 } }
+
+.block-icon.is-live { display:inline-grid; place-items:center }
+.block-state.is-live { display:inline-flex; align-items:center; gap:6px }
+.block-state.is-running { color:var(--busy) }
+.conversation .block[data-status=running] { border-color:color-mix(in oklab,var(--busy) 45%,var(--line)); box-shadow:inset 2px 0 0 var(--busy) }
+.now-line { display:flex; align-items:center; gap:10px; flex:none; margin:8px 0 0; padding:7px 12px; border-radius:var(--radius-lg); background:color-mix(in oklab,var(--busy) 8%,var(--panel)); color:var(--text); font-size:var(--text-md); min-width:0 }
+.now-line[hidden] { display:none }
+.now-line .now-text { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.now-line .now-time { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
+.now-line[data-tone=needs] { background:var(--warn-surface); color:var(--stale) }
+.now-line[data-tone=needs] .pixel-run { color:var(--stale) }
+@media(prefers-reduced-motion:reduce) {
+  .agent-avatar.is-working, .avatar-sweep, .pixel-run i { animation:none }
+  .avatar-sweep { display:none }
+  .pixel-run i { opacity:.7 }
+}
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }
