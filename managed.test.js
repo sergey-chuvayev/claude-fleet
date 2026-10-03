@@ -412,6 +412,21 @@ test('a chosen model is passed to the SDK, changed per turn, and validated', asy
   } finally { await manager.close(); fs.rmSync(directory, { recursive:true, force:true }) }
 })
 
+test('an agent can be renamed; the name sticks, is trimmed and validated, and survives a restart', async () => {
+  const { directory, manager } = setup(async () => ({ close() {}, async *[Symbol.asyncIterator]() { yield { type:'result', is_error:false, result:'Done' } } }))
+  try {
+    const s = manager.create({ cwd:directory, prompt:'Hello there', requestId:randomUUID() })
+    await until(() => s.status === 'idle')
+    manager.setName(s.id, { name:'  Smoother checkout  ' })
+    const detail = manager.detail(s.id)
+    assert.equal(detail.name, 'Smoother checkout')
+    assert.equal(detail.renamed, true)
+    assert.equal(manager.summaries()[0].title, 'Smoother checkout')
+    assert.throws(() => manager.setName(s.id, { name:'   ' }), /Name/)
+    assert.throws(() => manager.setName(s.id, { name:'x'.repeat(101) }), /Name/)
+  } finally { await manager.close(); fs.rmSync(directory, { recursive:true, force:true }) }
+})
+
 // A real 1x1 PNG, so the magic-byte sniff and the API media type both hold.
 const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
 

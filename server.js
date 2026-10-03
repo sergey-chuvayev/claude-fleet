@@ -75,7 +75,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       // Claude names its own sessions once a conversation has taken shape. Prefer
       // that over Fleet's first-prompt slice, and keep it for the detail view too.
       const aiTitle=transcriptFor(s.sessionId)?.title
-      if(aiTitle){s.title=aiTitle;try{manager.get(s.managedId).aiTitle=aiTitle}catch{}}
+      if(aiTitle && !(s.managedId && manager.get(s.managedId)?.renamed)){s.title=aiTitle;try{manager.get(s.managedId).aiTitle=aiTitle}catch{}}
       // A Task-tool sub-agent has no PID and never gets its own row, so the left panel
       // needs just enough per-delegation state to draw a nested one. Prompts, reports
       // and steps stay off this polled payload; the detail route carries those.
@@ -185,10 +185,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(handing) setTimeout(()=>{handover().catch(error=>console.error(error.message))},250).unref()
           return json(res,200,{service:status,restarting:handing})
         }
-        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|project|approvals\/([\w-]+))$/)
+        const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|project|name|approvals\/([\w-]+))$/)
         if(!match) return json(res,404,{error:'Unknown action.'})
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
+        if(action==='name') return json(res,200,{session:manager.detail(manager.setName(id,data).id)})
         if(action==='project') return json(res,200,{session:manager.detail(manager.setProject(id,data).id)})
         if(action==='day') return json(res,200,{result:manager.dayAction(id,data),session:manager.detail(id)})
         if(action==='messages') manager.send(id,data)

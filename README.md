@@ -139,7 +139,7 @@ Past 90% the countdown replaces the bar, because by then the question is when it
 not how full it is.
 
 When a request is actually refused, the bar turns into the refusal, and the new-agent
-dialog says so before you write a prompt:
+New agent pane says so before you write a prompt:
 
 ```
 ⊘ Rate limited · five-hour window · resets 11:42 (35m) · organisation spend cap reached
@@ -650,7 +650,7 @@ for the app itself.
 | [`catalog.js`](catalog.js) | Read-only listing of a project's slash commands and skills |
 | `public/app.js` | Dashboard layout, session list, filters, monitoring, resizable panels |
 | `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
-| `public/control.js` | Launch form, composer, approvals, streamed updates |
+| `public/control.js` | New-agent draft, composer, approvals, streamed updates |
 | `public/ask.js` | The Ask panel, its polling, and the result cards |
 | [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
 | [`update.js`](update.js) | The npm version check, its cache, and the self-install |
