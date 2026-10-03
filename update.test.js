@@ -253,3 +253,30 @@ test('an update installs past npm\'s metadata cache, which lags a fresh publish'
   assert.ok(args.includes('--prefer-online'))
   assert.strictEqual(args.at(-1), '@sergeychuvayev/claude-fleet@0.22.0')
 })
+
+// A replacement Fleet that fails to start used to vanish: it ran with its output thrown
+// away, leaving a closed window and nothing to read. Its output now goes to the log,
+// and an early exit is written down with its code.
+test('a restarted Fleet writes to the log, and a replacement that dies says so', async () => {
+  const { relaunch } = require('./server')
+  const directory = temp()
+  try {
+    const log = path.join(directory, 'logs', 'claude-fleet.log')
+    const crashing = path.join(directory, 'crash.js')
+    fs.writeFileSync(crashing, "console.error('Error: Cannot find module ./missing'); process.exit(3)")
+    const failed = relaunch({ entry: crashing, args: ['start', '--no-open'], port: 7999, why: 'Restarting after an update', log, watchMs: 3000 })
+    assert.equal(await failed.settled, false)
+    const text = fs.readFileSync(log, 'utf8')
+    assert.match(text, /Restarting after an update: starting .*crash\.js start --no-open on port 7999/)
+    assert.match(text, /Cannot find module \.\/missing/, 'the replacement\'s own error lands in the log')
+    assert.match(text, /exited before it was up \(code 3\)/)
+
+    const staying = path.join(directory, 'stay.js')
+    fs.writeFileSync(staying, "console.log('listening on', process.env.PORT); setTimeout(() => {}, 2000)")
+    const ok = relaunch({ entry: staying, args: [], port: 7998, why: 'Restarting after an update', log, watchMs: 500 })
+    assert.equal(await ok.settled, true)
+    await new Promise(resolve => setTimeout(resolve, 200))
+    assert.match(fs.readFileSync(log, 'utf8'), /listening on 7998/, 'it runs on the port it was handed')
+    ok.child.kill()
+  } finally { fs.rmSync(directory, { recursive: true, force: true }) }
+})

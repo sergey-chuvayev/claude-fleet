@@ -643,7 +643,7 @@ async function waitForRestart(deadline = Date.now() + 60000) {
   }
   fleetUpdateBusy = false
   renderUpdate()
-  toast('Fleet installed the update but did not come back. Start it again.')
+  toast('Fleet installed the update but did not come back. Start it again with claude-fleet or the Claude Fleet app; the reason is in ~/Library/Logs/claude-fleet.log.')
 }
 $('update-pill')?.addEventListener('click', async () => {
   if (fleetUpdateBusy || !fleetUpdate || !fleetUpdate.canInstall) return
