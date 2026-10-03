@@ -318,14 +318,18 @@ function seeded(text) {
 }
 // The 7 cells span the whole 38px tile edge to edge with 1px gaps. 38 does not divide
 // by 7, so cell edges are rounded to whole pixels (cells are 4 or 5 wide) and stay crisp.
-const AVATAR_EDGES = Array.from({ length: 8 }, (_, i) => Math.round(i * 39 / 7))
+// A fine 9×9 dot matrix filling the tile, each pixel on whole screen pixels so it stays
+// crisp; the 5×5 letter sits in the middle.
+const AVATAR_GRID = 9
+const AVATAR_EDGES = Array.from({ length: AVATAR_GRID + 1 }, (_, i) => Math.round(i * 39 / AVATAR_GRID))
 function pixelAvatar(seed, initial, tone, working) {
   const rand = seeded(seed), glyph = GLYPHS[initial] || null, now = Date.now() / 1000, cells = []
-  for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
-    const inGlyph = !!glyph && x > 0 && x < 6 && y > 0 && y < 6 && glyph[(y - 1) * 5 + (x - 1)] === '1'
+  for (let y = 0; y < AVATAR_GRID; y++) for (let x = 0; x < AVATAR_GRID; x++) {
+    const gx = x - 2, gy = y - 2
+    const inGlyph = !!glyph && gx >= 0 && gx < 5 && gy >= 0 && gy < 5 && glyph[gy * 5 + gx] === '1'
     const r = rand()
     // Dim field, brighter towards the right; a few lit "stars"; the letter on top.
-    const base = inGlyph ? 0.95 : Math.min(0.5, 0.06 + r * 0.12 + (x / 6) * 0.12 + (r > 0.94 ? 0.28 : 0)) + (working && !inGlyph ? 0.08 : 0)
+    const base = inGlyph ? 0.95 : Math.min(0.45, 0.05 + r * 0.11 + (x / (AVATAR_GRID - 1)) * 0.12 + (r > 0.95 ? 0.24 : 0)) + (working && !inGlyph ? 0.08 : 0)
     let motion = ''
     if (working) {
       const length = 1.4 + rand() * 1.8, phase = rand() * length

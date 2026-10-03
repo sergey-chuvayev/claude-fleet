@@ -271,7 +271,7 @@ async function continueOutside(event) {
 // What is happening this second, under the conversation, in the avatars' pixel style:
 // the step that is running and for how long, or thinking, writing, waiting for you.
 const toolName=tool=>window.FleetBlocks?.toolLabel(tool) || tool
-const shortElapsed=ms=>{const t=Math.max(0,Math.round(ms/1000));return t<60 ? `${t}s` : `${Math.floor(t/60)}m ${String(t%60).padStart(2,'0')}s`}
+const shortElapsed=ms=>{const t=Math.max(0,Math.round(ms/1000));return t<60 ? `${t}s` : t<3600 ? `${Math.floor(t/60)}m ${String(t%60).padStart(2,'0')}s` : `${Math.floor(t/3600)}h ${String(Math.floor(t%3600/60)).padStart(2,'0')}m`}
 function setNow(text,{since=null,tone=''}={}) {
   const line=$('now-line')
   if(!line)return
