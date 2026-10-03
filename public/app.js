@@ -135,7 +135,7 @@ const hasUnseen = s => !!s.lastActivity && key(s) !== selected && (seen[key(s)] 
 function childRowHtml(s, d) {
   const cls = DELEGATION_BADGE[d.status] || ''
   const label = DELEGATION_LABEL[d.status] || d.status
-  return `<button class="session session-child" data-session="${esc(key(s))}" data-delegation="${esc(d.id)}" aria-pressed="${selectedChild === d.id}" aria-controls="detail"><span><span class="session-top"><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span><span class="session-name">⑂ ${esc(d.role)}</span></span><span class="session-title">${esc(formatModel(d.model))}</span></span><span class="session-context"></span></button>`
+  return `<button class="session session-child" data-session="${esc(key(s))}" data-delegation="${esc(d.id)}" aria-pressed="${selectedChild === d.id}" aria-controls="detail"><span><span class="session-top"><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span><span class="session-name"><i class="ico ico-pr" aria-hidden="true"></i> ${esc(d.role)}</span></span><span class="session-title">${esc(formatModel(d.model))}</span></span><span class="session-context"></span></button>`
 }
 // A session's sub-agents fold away behind a header of their own. An initiative can sit
 // between two sessions with twenty delegation rows wedged in the gap, which buries the
@@ -159,7 +159,7 @@ function childToggleHtml(s, collapsed) {
   const running = all.filter(d => d.status === 'running').length
   const failed = all.filter(d => d.status === 'failed').length
   const counts = [`${all.length} sub-agent${all.length === 1 ? '' : 's'}`, running ? `${running} working` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(' · ')
-  return `<button class="session-children-toggle${collapsed ? ' is-collapsed' : ''}" data-fold-session="${esc(key(s))}" aria-expanded="${!collapsed}" aria-controls="${esc(childGroupId(key(s)))}"><span class="children-chevron" aria-hidden="true">›</span><span class="children-count">⑂ ${esc(counts)}</span></button>`
+  return `<button class="session-children-toggle${collapsed ? ' is-collapsed' : ''}" data-fold-session="${esc(key(s))}" aria-expanded="${!collapsed}" aria-controls="${esc(childGroupId(key(s)))}"><span class="children-chevron" aria-hidden="true">›</span><span class="children-count"><i class="ico ico-pr" aria-hidden="true"></i> ${esc(counts)}</span></button>`
 }
 // An initiative that runs long enough accumulates delegations without bound; the
 // row list stays a list, not a scrollbar of its own, by showing only the tail.
@@ -265,7 +265,7 @@ function renderStatusbar(usage, sessions) {
 function rowTags(s, spawnCounts) {
   const spawned = spawnCounts.get(s.pid)
   return [
-    spawned ? `<span class="spawn-badge" title="Running ${spawned} background session(s)">⑂ ${spawned}</span>` : '',
+    spawned ? `<span class="spawn-badge" title="Running ${spawned} background session(s)"><i class="ico ico-pr" aria-hidden="true"></i> ${spawned}</span>` : '',
     s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : '',
     s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : '',
   ].join('')
@@ -284,7 +284,7 @@ function initiativeTag(s) {
 // Where the work is happening.
 function rowMeta(s) {
   const project = s.cwd?.split('/').filter(Boolean).pop() || 'No project'
-  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch">⑂ ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span>↗ ${s.links.length}</span>` : ''}</span>`
+  return `<span class="session-meta"><span>${esc(project)}</span><span class="branch"><i class="ico ico-pr" aria-hidden="true"></i> ${esc(s.branch || 'No branch')}</span>${s.links?.length ? `<span><i class="ico ico-arrow" aria-hidden="true"></i> ${s.links.length}</span>` : ''}</span>`
 }
 // The right-hand column: how full the context window is, and how long ago the
 // agent last did anything.
@@ -527,7 +527,7 @@ function renderDetail(s) {
     p >= 75 ? UI.callout(p >= 90 ? 'Context nearly full' : 'Context is getting full', p >= 90 ? 'Compaction may happen soon.' : '', { tone: 'needs' }) : '',
     s.managed ? '' : UI.section('Latest response', `<div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div>`, { aside: s.latestResponseAt ? `${age(s.latestResponseAt)} ago` : '' }),
     s.lastPrompt && !s.managed ? UI.section('Latest request', `<div class="response">${esc(s.lastPrompt)}</div>`) : '',
-    UI.section('Linked work', links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '⑂' : '◩'} ${esc(l.label)} ↗</a>`).join('')}</div><p class="note">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>', { aside: 'From transcript' }),
+    UI.section('Linked work', links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '<i class="ico ico-pr" aria-hidden="true"></i>' : '<i class="ico ico-ticket" aria-hidden="true"></i>'} ${esc(l.label)} <i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}</div><p class="note">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>', { aside: 'From transcript' }),
     UI.section('Environment', `<dl class="facts">${facts.map(([label,value]) => `<dt>${label}</dt><dd>${esc(value ?? '—')}</dd>`).join('')}</dl>`),
     s.transcriptTruncated ? '<p class="note">Showing the most recent 6 MB of this transcript. Earlier responses and links may be absent.</p>' : '',
     s.archived ? '<p class="note archived-note">Archived. Hidden from your fleet, still on disk, still resumable and still searchable.</p>' : '',
@@ -558,7 +558,7 @@ function renderChildDetail(s, delegationId) {
   // answer it, so it just points the operator back to the row that can.
   const approvalNotice = s.managedStatus === 'approval' ? `<p class="note child-approval-notice">${esc(s.name || s.title || 'This session')} needs your approval to continue. Select its row above to respond — this read-only view can’t.</p>` : ''
   const stepsHtml = steps.length ? `<ol class="child-steps">${steps.map(step => `<li class="child-step" data-status="${esc(step.status)}"><span class="child-step-tool">${esc(step.tool)}</span>${step.target ? `<span class="child-step-target">${esc(step.target)}</span>` : ''}<span class="child-step-state">${esc(STEP_LABEL[step.status] || step.status)}</span><span class="child-step-time">${step.ms != null ? elapsed(step.ms) : step.status === 'running' ? 'running…' : ''}</span>${step.input != null || step.result != null ? `<details class="child-step-detail" data-child-step="${esc(step.id)}" ${openedSteps.has(step.id) ? 'open':''}><summary>Input and output</summary><h4>Input</h4><pre>${esc(step.input == null ? 'Not recorded' : typeof step.input === 'string' ? step.input : JSON.stringify(step.input,null,2))}</pre><h4>Output${step.truncated ? ' · truncated':''}</h4><pre>${esc(step.result ?? 'No result reported yet.')}</pre></details>`:''}</li>`).join('')}</ol>` : `<p class="note">${full ? 'No tool steps recorded.' : 'Loading steps…'}</p>`
-  update('detail-content', `${window.FleetUI.pageHead({ title: `⑂ ${esc(compact.role)}`, actions: `<span class="ui-pill">Sub-agent · read only</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span>`, strip: `${window.FleetUI.stat('Model', esc(formatModel(full?.model || compact.model)))}${window.FleetUI.stat('Duration', esc(duration))}${full?.attempt ? window.FleetUI.stat('Attempt', esc(full.attempt)) : ''}`, cls: 'detail-head' })}<div class="page-body detail-body">${approvalNotice}<p class="note">${esc(usageText)}.</p><section class="ui-section"><h4 class="ui-label">Mandate</h4><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="ui-section"><h4 class="ui-label">Steps${full?.stepsTruncated ? '<span class="ui-label-aside">Showing the most recent 200</span>' : ''}</h4>${stepsHtml}</section><section class="ui-section"><h4 class="ui-label">Report to the manager</h4><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p></div>`)
+  update('detail-content', `${window.FleetUI.pageHead({ title: `<i class="ico ico-pr" aria-hidden="true"></i> ${esc(compact.role)}`, actions: `<span class="ui-pill">Sub-agent · read only</span><span class="badge ${cls}"><span class="dot"></span>${esc(label)}</span>`, strip: `${window.FleetUI.stat('Model', esc(formatModel(full?.model || compact.model)))}${window.FleetUI.stat('Duration', esc(duration))}${full?.attempt ? window.FleetUI.stat('Attempt', esc(full.attempt)) : ''}`, cls: 'detail-head' })}<div class="page-body detail-body">${approvalNotice}<p class="note">${esc(usageText)}.</p><section class="ui-section"><h4 class="ui-label">Mandate</h4><div class="response">${esc(full ? (full.prompt || 'No mandate recorded.') : 'Loading…')}</div></section><section class="ui-section"><h4 class="ui-label">Steps${full?.stepsTruncated ? '<span class="ui-label-aside">Showing the most recent 200</span>' : ''}</h4>${stepsHtml}</section><section class="ui-section"><h4 class="ui-label">Report to the manager</h4><div class="response ${full?.report ? '' : 'missing'}">${esc(full ? (full.report || 'Waiting for this agent’s report.') : 'Loading…')}</div></section>${childDetailError ? `<p class="note">${esc(childDetailError)}</p>` : ''}<p class="note">A sub-agent is not addressable on its own. This is a read-only report back to the manager.</p></div>`)
   if(focusedStep) document.querySelector(`[data-child-step="${CSS.escape(focusedStep)}"]>summary`)?.focus({preventScroll:true})
 }
 // The list payload only ever carries id/role/model/status for a delegation; its steps,

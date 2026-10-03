@@ -21,7 +21,7 @@ window.FleetDay=(()=>{
   const minutes=list=>list.reduce((sum,i)=>sum+(i.estimateMin || 0),0)
   const duration=n=>n>=60 ? `${Math.floor(n/60)}h${n%60 ? ` ${n%60}m`:''}` : `${n}m`
   const options=(map,value)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===value ? 'selected':''}>${v}</option>`).join('')
-  const linksHtml=item=>item.links.length ? `<span class="day-links">${item.links.slice(0,4).map(url=>`<a href="${escape(url)}" target="_blank" rel="noopener noreferrer" title="${escape(url)}">${escape(label(url))} ↗</a>`).join('')}</span>`:''
+  const linksHtml=item=>item.links.length ? `<span class="day-links">${item.links.slice(0,4).map(url=>`<a href="${escape(url)}" target="_blank" rel="noopener noreferrer" title="${escape(url)}">${escape(label(url))} <i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}</span>`:''
   function label(url) {
     const linear=url.match(/linear\.app\/[^/]+\/issue\/([A-Za-z]+-\d+)/);if(linear)return linear[1].toUpperCase()
     const pr=url.match(/github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)/);if(pr)return `${pr[1]}#${pr[2]}`
@@ -52,7 +52,7 @@ window.FleetDay=(()=>{
     if(n.kind==='choose') return `<div class="day-need" data-kind="choose"><p>${escape(n.question)}</p><div class="ui-actions">${(n.options || []).map(o=>`<button type="button" class="button" data-answer-value="${escape(o)}" ${data}>${escape(o)}</button>`).join('')}</div>${replyHtml(id,data)}</div>`
     if(n.kind==='launch'){
       const plan=n.launch || {},teams=teamList()
-      return `<div class="day-need" data-kind="launch"><p>${escape(n.question)}</p><label class="day-field">Brief the new session starts from${keep(`draft:${id}`,n.draft,Math.min(10,Math.max(4,String(n.draft).split('\n').length+1)))}</label><div class="day-launch-fields"><label class="day-field">Repository<input data-launch="cwd" value="${escape(plan.cwd || '')}" maxlength="4096"></label><label class="day-field">Who<select data-launch="teamId"><option value="">Single agent</option>${teams.map(t=>`<option value="${escape(t.id)}" ${t.id===plan.teamId ? 'selected':''}>${escape(t.name)}</option>`).join('')}${plan.teamId && !teams.some(t=>t.id===plan.teamId) ? `<option value="${escape(plan.teamId)}" selected>${escape(plan.teamId)}</option>`:''}</select></label></div><div class="ui-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Launch ↗</button><button type="button" class="button" data-answer="reject" ${data}>Not now</button><span class="note">Starts a Fleet session like the Work queue does. It shows up in Sessions.</span></div>${replyHtml(id,data)}</div>`
+      return `<div class="day-need" data-kind="launch"><p>${escape(n.question)}</p><label class="day-field">Brief the new session starts from${keep(`draft:${id}`,n.draft,Math.min(10,Math.max(4,String(n.draft).split('\n').length+1)))}</label><div class="day-launch-fields"><label class="day-field">Repository<input data-launch="cwd" value="${escape(plan.cwd || '')}" maxlength="4096"></label><label class="day-field">Who<select data-launch="teamId"><option value="">Single agent</option>${teams.map(t=>`<option value="${escape(t.id)}" ${t.id===plan.teamId ? 'selected':''}>${escape(t.name)}</option>`).join('')}${plan.teamId && !teams.some(t=>t.id===plan.teamId) ? `<option value="${escape(plan.teamId)}" selected>${escape(plan.teamId)}</option>`:''}</select></label></div><div class="ui-actions"><button type="button" class="button resume" data-answer="approve" ${data}>Launch <i class="ico ico-arrow" aria-hidden="true"></i></button><button type="button" class="button" data-answer="reject" ${data}>Not now</button><span class="note">Starts a Fleet session like the Work queue does. It shows up in Sessions.</span></div>${replyHtml(id,data)}</div>`
     }
     return `<div class="day-need" data-kind="info"><p>${escape(n.question)}</p><div class="ui-actions day-inline">${keep(`info:${id}`)}<button type="button" class="button resume" data-answer="info" ${data}>Answer</button></div></div>`
   }
@@ -77,7 +77,7 @@ window.FleetDay=(()=>{
       const x=sessions.find(x=>x.managedId===id)
       if(!x)return `<span class="day-launch-chip" data-state="closed">Session closed</span>`
       const p=x.taskProgress
-      return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape(x.teamName || 'Agent')} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} ↗</button>`
+      return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape(x.teamName || 'Agent')} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} <i class="ico ico-arrow" aria-hidden="true"></i></button>`
     }).join('')}</div>`
   }
   // Today's items under their priority. A row says only what is unusual about it (it
@@ -92,9 +92,9 @@ window.FleetDay=(()=>{
   }
   // The gist of the item's thread, and the way back into it.
   function threadHtml(item) {
-    if(!item.thread && item.previousThread?.summary)return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-session="${escape(item.previousThread.sessionId)}" title="Open that conversation in Sessions" data-state="idle"><span class="dot"></span>Earlier thread ↗</button>${escape(item.previousThread.summary)}</p>`
+    if(!item.thread && item.previousThread?.summary)return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-session="${escape(item.previousThread.sessionId)}" title="Open that conversation in Sessions" data-state="idle"><span class="dot"></span>Earlier thread <i class="ico ico-arrow" aria-hidden="true"></i></button>${escape(item.previousThread.summary)}</p>`
     if(!item.thread || item.thread.closed)return ''
-    return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-thread="${escape(item.thread.sessionId)}" title="Open your conversation about this item"><span class="dot"></span>Thread ↗</button>${item.thread.summary ? escape(item.thread.summary) : 'Starting…'}</p>`
+    return `<p class="day-thread-gist"><button type="button" class="day-launch-chip" data-open-thread="${escape(item.thread.sessionId)}" title="Open your conversation about this item"><span class="dot"></span>Thread <i class="ico ico-arrow" aria-hidden="true"></i></button>${item.thread.summary ? escape(item.thread.summary) : 'Starting…'}</p>`
   }
   // Where each item actually is, in words: being worked on now and by whom, running in
   // its own session, waiting for a launch, queued behind the Day's current work, or not
@@ -130,7 +130,7 @@ window.FleetDay=(()=>{
       const meta=`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}${projectHtml(item)}${live ? UI.pill(escape(live[1]),live[0]):''}${latest ? `<span class="ui-row-latest" title="${escape(latest)}">${escape(latest)}</span>`:''}`
       const side=`${item.estimateMin ? `<small class="ui-row-figure">${duration(item.estimateMin)}</small>`:''}${UI.pill(escape(MODE_SHORT[item.mode] || MODE[item.mode]),item.mode==='agent' ? 'agent' : item.mode==='me' ? 'me' : 'outline')}`
       const projects=window.FleetProjects?.list() || []
-      const detail=`${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${UI.log(item.log.slice(-6).map(l=>[new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),escape(l.text)]))}<div class="ui-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask ↗' : 'Ask about this ↗'}</button></div><div class="ui-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${projects.length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${projects.map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div>`
+      const detail=`${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${UI.log(item.log.slice(-6).map(l=>[new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),escape(l.text)]))}<div class="ui-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Ask about this <i class="ico ico-arrow" aria-hidden="true"></i>'}</button></div><div class="ui-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${projects.length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${projects.map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div>`
       return UI.row({tone,orbTitle:icon?.[1] || live?.[1] || 'Not started',title:escape(item.title),meta,side,detail,open:opened.has(item.id),key:item.id,attrs:`data-card="${escape(item.id)}"`})
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
@@ -241,7 +241,7 @@ window.FleetDay=(()=>{
       const morning=new Date();morning.setDate(morning.getDate()+1);morning.setHours(from,0,0,0)
       when=`Checked ${clock(c.lastAt)} · next ${later ? `tomorrow ${clock(morning)}` : next.getHours()<from ? clock(new Date(next).setHours(from,0,0,0)) : clock(next)}`
     }
-    return `<span class="day-check-state">${when}</span><button type="button" class="button ghost" data-sweep ${working ? 'disabled title="The Day agent is busy"':''}>↻ Check now</button>`
+    return `<span class="day-check-state">${when}</span><button type="button" class="button ghost" data-sweep ${working ? 'disabled title="The Day agent is busy"':''}><i class="ico ico-refresh" aria-hidden="true"></i> Check now</button>`
   }
   // What today has used: this Day's own tokens and context, then the account's plan
   // windows, which every session on the machine draws from, the Day included.
@@ -280,7 +280,7 @@ window.FleetDay=(()=>{
     if(day){if(!document.getElementById('day-board'))pane().querySelector('.today-empty')?.remove();return}
     document.getElementById('day-board')?.remove()
     if(pane().querySelector('.today-empty'))return
-    pane().insertAdjacentHTML('beforeend',`<div class="today-empty ui-empty"><h3>Good morning.</h3><p>One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day ↗</button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
+    pane().insertAdjacentHTML('beforeend',`<div class="today-empty ui-empty"><h3>Good morning.</h3><p>One agent reads your Slack, Linear, Granola, GitHub and calendar, proposes a plan, and works through it with you all day. Nothing is sent without your approval.</p><textarea id="today-note" rows="3" maxlength="8000" placeholder="Anything to add before it starts? Optional."></textarea><button type="button" class="button resume" id="start-day">Start my day <i class="ico ico-arrow" aria-hidden="true"></i></button>${days.length ? '<p class="note">Unfinished items from your last Day carry over, with their open questions.</p>':''}</div>`)
     document.getElementById('start-day').addEventListener('click',start)
   }
   // The Day's console, told in its own terms. An automatic run is a marker, not a
