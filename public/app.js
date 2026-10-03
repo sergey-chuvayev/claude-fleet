@@ -313,6 +313,9 @@ function seeded(text) {
   for (const ch of String(text)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
   return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000 }
 }
+// The 7 cells span the whole 38px tile edge to edge with 1px gaps. 38 does not divide
+// by 7, so cell edges are rounded to whole pixels (cells are 4 or 5 wide) and stay crisp.
+const AVATAR_EDGES = Array.from({ length: 8 }, (_, i) => Math.round(i * 39 / 7))
 function pixelAvatar(seed, initial, tone, working) {
   const rand = seeded(seed), glyph = GLYPHS[initial] || null, now = Date.now() / 1000, cells = []
   for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
@@ -328,12 +331,13 @@ function pixelAvatar(seed, initial, tone, working) {
       const high = inGlyph ? 0.72 : rand() > 0.6 ? 0.95 : Math.min(0.55, base * 2.4 + 0.1)
       motion = ` style="--o:${base.toFixed(2)};--hi:${high.toFixed(2)};animation-duration:${length.toFixed(2)}s;animation-delay:-${((now + phase) % length).toFixed(2)}s"`
     }
-    cells.push(`<rect x="${(3.5 + x * 4.6).toFixed(1)}" y="${(3.5 + y * 4.6).toFixed(1)}" width="3.2" height="3.2" rx=".6" opacity="${base.toFixed(2)}"${motion}/>`)
+    const x0 = AVATAR_EDGES[x], y0 = AVATAR_EDGES[y]
+    cells.push(`<rect x="${x0}" y="${y0}" width="${AVATAR_EDGES[x + 1] - 1 - x0}" height="${AVATAR_EDGES[y + 1] - 1 - y0}" rx=".6" opacity="${base.toFixed(2)}"${motion}/>`)
   }
   // Working, a band of light also sweeps across the pixels. Its phase comes from the
   // clock too, so the list redrawing does not restart it.
   const sweep = working ? `<defs><linearGradient id="sweep-${tone}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect class="avatar-sweep" x="-38" y="0" width="38" height="38" fill="url(#sweep-${tone})" style="animation-delay:-${(now % 2.8).toFixed(2)}s"/>` : ''
-  return `<svg class="avatar-pixels" viewBox="0 0 38 38" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}${sweep}</svg>`
+  return `<svg class="avatar-pixels" viewBox="0 0 38 38" shape-rendering="crispEdges" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}${sweep}</svg>`
 }
 // A new agent starts as a draft: one row at the top of the list that is not a session
 // yet. Nothing exists on the server until its first message is sent, so discarding it
