@@ -58,9 +58,10 @@ window.FleetProgress=(()=>{
   function mount() {
     const tabs=document.querySelector('.work-tabs'),sessions=document.getElementById('sessions-pane')
     if(!tabs || !sessions || document.getElementById('view-progress'))return
-    const after=document.getElementById('view-projects') || document.getElementById('view-today')
+    // Last in the row, right after Sessions.
     const button='<button type="button" class="button" id="view-progress" aria-pressed="false" title="This week: what shipped, what stalled, what ran">Progress</button>'
-    if(after)after.insertAdjacentHTML('afterend',button);else tabs.insertAdjacentHTML('afterbegin',button)
+    const after=document.getElementById('view-sessions')
+    if(after)after.insertAdjacentHTML('afterend',button);else tabs.insertAdjacentHTML('beforeend',button)
     sessions.insertAdjacentHTML('afterend','<section class="sessions-pane today-pane progress-pane" id="progress-pane" aria-label="Progress" hidden></section>')
     pane().addEventListener('click',event=>{if(event.target.closest('[data-refresh-progress]'))load(true)})
   }

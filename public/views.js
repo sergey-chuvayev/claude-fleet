@@ -4,7 +4,7 @@
 // projects.js before this runs; a view whose pane is missing falls back to Sessions, and
 // so does a view that no longer exists (the Work queue, remembered from an older Fleet).
 window.FleetViews=(()=>{
-  const VIEWS=['today','projects','progress','sessions']
+  const VIEWS=['today','projects','sessions','progress']
   const LABEL={today:'Today',projects:'Projects',progress:'Progress',sessions:'Sessions'}
   const {$,store}=window.Fleet
   const saved=store.get('fleet:view')
