@@ -31,9 +31,8 @@ async function initializeControls() {
   if(!$('launch-cwd').value) $('launch-cwd').value=store.get(LAST_CWD) || data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
-// The terminal session the inspector is showing, for its "Continue in Fleet" button.
+// The terminal session the console is showing, if it is one.
 let outsideSession=null
-document.addEventListener('click',event=>{if(event.target.closest?.('#resume-in-fleet') && outsideSession)openLaunch(outsideSession)})
 function updateLaunchTeam() {
   const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
   const ownerReview=team?.mode==='owner-review'
@@ -160,7 +159,9 @@ $('launch-form')?.addEventListener('submit',async event=>{
 function selectControl(session) {
   const next=session?.managedId || null
   if(next===controlId && next) return
-  controlId=next;controlSession=null;controlVersion++
+  // A terminal session already on screen only refreshes its conversation.
+  if(!next && session && session.sessionId && session.sessionId===outsideSession?.sessionId && $('outside-console')){outsideSession=session;return refreshOutside()}
+  controlId=next;controlSession=null;controlVersion++;outsideSession=null;outsideSeen=null
   window.Fleet.watchConversation(null)
   $('control-panel').innerHTML=''
   if(next){
@@ -208,11 +209,61 @@ function selectControl(session) {
     $('stop-agent').addEventListener('click',stopAgent)
     refreshControl()
   }else if(session){
-    // The inspector says it was opened outside Fleet and offers to continue it here.
-    $('control-panel').innerHTML=''
     outsideSession=session
-    window.Fleet.syncDetails()
+    openOutside()
   }
+}
+// A session started in a terminal opens in the same console as a Fleet one: its
+// conversation read from the transcript, and a composer. A stopped session is taken
+// over by the first message; one still open in its terminal is continued as a copy,
+// since two programs writing one conversation would corrupt it.
+function openOutside() {
+  const s=outsideSession
+  const title=s.title || s.name || 'Untitled session'
+  const able=!!(s.sessionId && s.cwd)
+  $('control-panel').innerHTML=`<div class="conversation-header" id="outside-console"><div class="header-title"><h3>${esc(title)}</h3><span id="outside-state" class="subtle"></span></div></div><div id="conversation" class="conversation" role="log" aria-label="Conversation from the terminal" aria-live="off"><p class="note">Loading the conversation…</p></div><form id="composer" class="composer outside-composer"><label class="sr-only" for="message-input">Continue this conversation</label><textarea id="message-input" rows="3" maxlength="16000" ${able ? '' : 'disabled'}></textarea><div class="composer-footer"><span id="composer-hint" class="note"></span><button id="send-message" class="button resume" type="submit" ${able ? '' : 'disabled'}></button></div><p id="send-error" class="form-error" role="alert" hidden></p></form>`
+  window.Fleet.watchConversation($('conversation'))
+  $('message-input').addEventListener('keydown',event=>{if(event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();if(!$('send-message').disabled)$('composer').requestSubmit()}})
+  $('composer').addEventListener('submit',continueOutside)
+  window.Fleet.syncDetails()
+  refreshOutside()
+}
+let outsideSeen=null,outsideLoading=null
+function refreshOutside() {
+  const s=outsideSession
+  if(!s || !$('outside-state'))return
+  const busy=s.state==='busy'
+  $('outside-state').textContent=s.alive ? (busy ? 'Working in a terminal' : 'Open in a terminal') : 'From a terminal · stopped'
+  $('send-message').textContent=s.alive ? 'Continue a copy here ↗' : 'Continue here ↗'
+  $('composer-hint').textContent=!(s.sessionId && s.cwd) ? 'This session has no saved conversation to continue.' : s.alive ? 'Sends to a copy in Fleet. The terminal keeps the original.' : 'Your message continues this conversation in Fleet.'
+  $('message-input').placeholder=s.alive ? 'Continue a copy of this conversation…' : 'Continue this conversation…'
+  // Read the transcript again only when the session has moved.
+  const mark=`${s.sessionId}:${s.lastActivity}:${s.alive}`
+  if(mark===outsideSeen || outsideLoading || !s.sessionId)return
+  outsideSeen=mark
+  const id=s.sessionId
+  outsideLoading=api(`/api/sessions/history?sessionId=${encodeURIComponent(id)}`).then(data=>{
+    if(outsideSession?.sessionId!==id || !$('conversation'))return
+    const log=$('conversation')
+    if(log.querySelector(':scope > p.note'))log.innerHTML=''
+    if(data.truncated && !log.querySelector('.outside-earlier'))log.insertAdjacentHTML('afterbegin','<p class="note outside-earlier">Earlier messages are in the transcript; this shows the most recent part.</p>')
+    window.FleetBlocks.renderBlocks(log,data.messages,{onCopy:toast})
+    if(!data.messages.length && !log.querySelector('.block'))log.innerHTML='<p class="note">No messages in this conversation yet.</p>'
+  }).catch(error=>{if(outsideSession?.sessionId===id && $('conversation'))$('conversation').innerHTML=`<p class="note">${esc(error.message)}</p>`;outsideSeen=null}).finally(()=>{outsideLoading=null})
+}
+async function continueOutside(event) {
+  event.preventDefault()
+  const s=outsideSession,text=$('message-input').value.trim()
+  if(!s || !text)return
+  const button=$('send-message');button.disabled=true;$('send-error').hidden=true
+  try{
+    const data=await api('/api/managed',{cwd:s.cwd,name:s.title || s.name || '',prompt:text,requestId:crypto.randomUUID(),resumeSessionId:s.sessionId,...(s.alive ? {fork:true}:{})})
+    $('message-input').value=''
+    await tick()
+    window.Fleet.setFilter('all')
+    window.Fleet.select(data.session.id)
+    toast(s.alive ? 'Continuing a copy in Fleet. The terminal keeps the original.' : 'Continuing in Fleet')
+  }catch(error){if($('send-error')){$('send-error').textContent=error.message;$('send-error').hidden=false};button.disabled=false}
 }
 async function refreshControl() {
   const id=controlId,version=controlVersion

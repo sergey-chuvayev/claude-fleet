@@ -1,6 +1,6 @@
 {
   "name": "@sergeychuvayev/claude-fleet",
-  "version": "0.36.2",
+  "version": "0.37.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
     "claude",
@@ -27,6 +27,7 @@
     "build/make-app.sh",
     "archive.js",
     "service.js",
+    "history.js",
     "catalog.js",
     "connections.js",
     "day.js",

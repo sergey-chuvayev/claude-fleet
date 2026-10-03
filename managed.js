@@ -4,7 +4,8 @@ const path = require('node:path')
 const os = require('node:os')
 const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
-const { gitBranch, turnSummary, toolTarget, transcriptFor } = require('./fleet')
+const { gitBranch, turnSummary, toolTarget, transcriptFor, transcriptFile } = require('./fleet')
+const { history, clampInput, resultText, MAX_TOOL_RESULT, QUIET_RESULT } = require('./history')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE } = require('./permissions')
 const { stateDir, defaultCwd } = require('./paths')
 const { getTeam, compile, boundedModel } = require('./teams')
@@ -54,10 +55,6 @@ function sniffImage(buffer) {
   if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'image/webp'
   return null
 }
-const MAX_TOOL_INPUT = 2000
-const MAX_TOOL_RESULT = 6000
-// Tool names whose result is the point of the block; others are summarised by their input.
-const QUIET_RESULT = new Set(['TodoWrite', 'Write', 'Edit', 'NotebookEdit'])
 // A delegation can run a sub-agent through an unbounded number of tool calls; capped here
 // so a long-running one cannot grow the session file without limit.
 const MAX_DELEGATION_STEPS = 200
@@ -72,8 +69,9 @@ function requestId(value) {
 }
 
 class ManagedSessions extends EventEmitter {
-  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue, modelRouter = routing.route } = {}) {
+  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue, modelRouter = routing.route, findTranscript = transcriptFile } = {}) {
     super()
+    this.findTranscript = findTranscript
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
     this.modelRouter = modelRouter
@@ -204,7 +202,7 @@ class ManagedSessions extends EventEmitter {
       model:s.model, contextTokens:s.contextTokens || null, contextLimit:s.contextLimit || 200000,
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
-      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null,
+      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null, forkPending:!!s.forkPending, continuedFrom:s.continuedFrom || null,
       kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, projectId:s.projectId || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
@@ -255,12 +253,24 @@ class ManagedSessions extends EventEmitter {
     const hasImages = Array.isArray(body.images) && body.images.length > 0
     const prompt = hasImages && !(body.prompt || '').trim() ? '' : text(body.prompt,'Message',16000)
     const name = body.name?.trim() ? text(body.name,'Session name',100) : (prompt || 'Image').slice(0,70)
-    let resume = null
+    // A conversation started in a terminal. A stopped one Fleet takes over as it is; one
+    // still open in its terminal is forked, so Fleet continues an identical copy while
+    // the terminal keeps its own. Either way the console starts with the conversation
+    // so far, read from the transcript.
+    let resume = null, fork = false, earlier = []
     if (body.resumeSessionId) {
       const source = this.externalSessions().find(s => s.sessionId === body.resumeSessionId)
-      if (!source || source.alive || source.cwd !== cwd) fail('Only a stopped session in this project can be resumed.',409)
-      if ([...this.sessions.values()].some(s => s.sessionId === source.sessionId)) fail('This conversation is already managed by Fleet.',409)
+      fork = body.fork === true
+      if (!source) fail('That session is not on this machine.',409)
+      if (source.alive && !fork) fail('That session is still open in its terminal. Continue a copy of it instead, or close it there first.',409)
+      // The transcript records the folder as Claude saw it; compare real paths, so a
+      // symlinked project (or macOS's /var and /private/var) is the same place.
+      const real = dir => { try { return fs.realpathSync(dir) } catch { return dir } }
+      if (real(source.cwd || '') !== cwd) fail('That session is not in this project.',409)
+      if (!fork && [...this.sessions.values()].some(s => s.sessionId === source.sessionId)) fail('This conversation is already managed by Fleet.',409)
       resume = source.sessionId
+      const file = this.findTranscript(resume)
+      if (file) try { earlier = history(file,{alive:false,limit:MAX_MESSAGES-20}).messages } catch {}
     }
     this.checkCapacity()
     // A team turns this conversation into an initiative: the manager takes the main thread
@@ -271,11 +281,12 @@ class ManagedSessions extends EventEmitter {
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
     const projectId = body.projectId ? this.projects.require(text(body.projectId,'Project',100)).id : null
-    const s = {id,projectId,sessionId:resume,name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    const s = {id,projectId,sessionId:resume,...(fork ? {forkPending:true,forkedFrom:resume} : {}),...(resume ? {continuedFrom:resume} : {}),name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     if (ownerReview.enabled(s)) {
       try {s.reviewBaseCommit=ownerReview.snapshot(s).commit;s.ownerRequest=prompt || 'Implement the request in the attached images.'}
       catch(error) {worktrees.remove(worktree);throw error}
     }
+    s.messages = earlier
     this.sessions.set(s.id,s)
     try { this.send(s.id,{message:prompt,images:body.images,requestId:rid}) }
     catch (error) { this.sessions.delete(s.id); if (worktree) worktrees.remove(worktree); throw error }
@@ -549,7 +560,8 @@ class ManagedSessions extends EventEmitter {
     const message = hasImages && !(body.message || '').trim() ? '' : text(body.message,'Message',16000)
     // Another live process on the same session would write the same transcript.
     // Refuse, and name the holder so the operator can find that window.
-    const holder = s.sessionId ? this.externalSessions().find(x => x.sessionId === s.sessionId && x.alive) : null
+    // A fork reads the terminal's conversation and writes a new one, so it may proceed.
+    const holder = s.sessionId && !s.forkPending ? this.externalSessions().find(x => x.sessionId === s.sessionId && x.alive) : null
     if (holder) {
       const where = holder.entrypoint === 'cli' ? 'a terminal' : 'another program'
       const since = holder.startedAt ? ` since ${new Date(holder.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
@@ -641,6 +653,9 @@ class ManagedSessions extends EventEmitter {
         canUseTool:(tool,input,context) => this.ask(s,run,tool,input,context),
         stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
         ...(s.sessionId && !run.background ? {resume:s.sessionId} : {}),
+        // A copy of a conversation still open in its terminal: the first turn forks it, and
+        // the new session id it reports is this conversation's from then on.
+        ...(s.forkPending && !run.background ? {forkSession:true} : {}),
       }
       const automatic=s.selectedModel===routing.AUTO_MODEL
       const selectedModel=automatic ? '' : s.selectedModel
@@ -819,7 +834,7 @@ class ManagedSessions extends EventEmitter {
     }
   }
   event(s,run,event) {
-    if (event.session_id && !event.parent_tool_use_id && !run.background) s.sessionId=event.session_id
+    if (event.session_id && !event.parent_tool_use_id && !run.background) { if (s.forkPending && event.session_id!==s.sessionId) delete s.forkPending; s.sessionId=event.session_id }
     // Account-wide, so it is recorded whoever emitted it, sub-agent turns included.
     if (event.type==='rate_limit_event') this.usage.recordEvent(event.rate_limit_info)
     if (event.parent_tool_use_id && (s.taskBoard || s.subagents)) {
@@ -1158,21 +1173,6 @@ function modelChoice(value) {
   if (value === undefined || value === null || value === '') return ''
   if (typeof value !== 'string' || !/^[\w.:-]{1,80}$/.test(value)) fail('That model name is not valid.')
   return value
-}
-function clampInput(input) {
-  if (input === null || typeof input !== 'object') return {}
-  const out = {}
-  for (const [key,value] of Object.entries(input)) {
-    if (typeof value === 'string') out[key] = value.length > MAX_TOOL_INPUT ? value.slice(0,MAX_TOOL_INPUT)+'\n… truncated' : value
-    else if (value === null || ['number','boolean'].includes(typeof value)) out[key] = value
-    else { const json = JSON.stringify(value) ?? ''; out[key] = json.length > MAX_TOOL_INPUT ? json.slice(0,MAX_TOOL_INPUT)+'… truncated' : value }
-  }
-  return out
-}
-function resultText(content) {
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) return content.map(b => typeof b === 'string' ? b : b?.type === 'text' ? b.text || '' : '').filter(Boolean).join('\n')
-  return ''
 }
 // Stored conversation entries, in the shape turnSummary() reads from transcripts.
 function managedEvents(messages) {

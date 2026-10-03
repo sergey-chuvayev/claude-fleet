@@ -4,7 +4,8 @@ const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
 const { randomBytes, timingSafeEqual } = require('node:crypto')
-const { collect, transcriptFor } = require('./fleet.js')
+const { collect, transcriptFor, transcriptFile } = require('./fleet.js')
+const { history } = require('./history.js')
 const { AUTO_OPTION } = require('./routing')
 const { Connections } = require('./connections')
 const { ManagedSessions } = require('./managed.js')
@@ -54,10 +55,12 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   const getSnapshot=()=>{
     const snap=collectSessions()
     const managed=manager.summaries()
-    const managedIds=new Set(managed.map(s=>s.sessionId).filter(Boolean))
+    // A copy still being forked carries its source's id until Claude reports its own;
+    // until then the source stays its own row and nothing is shared between them.
+    const managedIds=new Set(managed.filter(s=>!s.forkPending).map(s=>s.sessionId).filter(Boolean))
     const external=snap.sessions.filter(s=>!managedIds.has(s.sessionId))
     for(const s of managed) {
-      const transcript=snap.sessions.find(t=>t.sessionId===s.sessionId)
+      const transcript=s.forkPending ? null : snap.sessions.find(t=>t.sessionId===s.sessionId)
       const holder=elsewhere(transcript)
       if(holder){
         s.openElsewhere=holder
@@ -223,6 +226,15 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return res.end(themeCss(currentTheme()))
       }
       if(url.pathname==='/api/service')return json(res,200,{service:service.status()})
+      // A terminal session's conversation, for the console. Only a session Fleet can
+      // see in its list, read from that session's own transcript.
+      if(url.pathname==='/api/sessions/history'){
+        const id=url.searchParams.get('sessionId') || ''
+        const row=/^[\w-]{1,64}$/.test(id) ? collectSessions().sessions.find(s=>s.sessionId===id) : null
+        const file=row && transcriptFile(id)
+        if(!file) return json(res,404,{error:'No transcript for that session.'})
+        return json(res,200,{...history(file,{alive:!!row.alive}),alive:!!row.alive})
+      }
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})

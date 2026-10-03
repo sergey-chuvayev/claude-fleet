@@ -472,4 +472,9 @@ function transcriptFor(sessionId) {
   return file ? readTranscript(file) : null
 }
 
-module.exports = { collect, gitBranch, transcriptFor, turnSummary, toolTarget, toolCategory }
+// The transcript file itself, for reading a session back in full.
+function transcriptFile(sessionId) {
+  return sessionId ? transcriptIndex().get(sessionId) || null : null
+}
+
+module.exports = { collect, gitBranch, transcriptFor, transcriptFile, turnSummary, toolTarget, toolCategory }

@@ -116,7 +116,7 @@ test('answers questions, cancels pending approvals on stop, and rejects active t
   }}),()=>[terminal])
   terminal.cwd=directory
   try{
-    assert.throws(()=>create(manager,directory,{resumeSessionId:terminal.sessionId}),/Only a stopped/)
+    assert.throws(()=>create(manager,directory,{resumeSessionId:terminal.sessionId}),/still open in its terminal/)
     const s=create(manager,directory)
     await until(()=>s.approvals.length)
     assert.throws(()=>manager.decide(s.id,s.approvals[0].id,{decision:'allow',answers:{}}),/Answer/)
