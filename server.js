@@ -14,7 +14,7 @@ const { SearchJobs, warm: warmSearch, WINDOW_DAYS: SEARCH_DAYS } = require('./se
 const { Archive } = require('./archive.js')
 const { Updater } = require('./update.js')
 const { Service, RESTART_CODE } = require('./service.js')
-const { defaultCwd } = require('./paths.js')
+const { defaultCwd, stateDir } = require('./paths.js')
 const { progress: projectProgress } = require('./projects')
 const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
@@ -269,6 +269,30 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   return {server,manager,search,archive,updater,close,getSnapshot}
 }
 
+// Where a Fleet started without a terminal writes: the macOS log the app launcher and
+// the service use, or Fleet's own state directory elsewhere.
+const serverLog=()=>process.platform==='darwin' ? path.join(require('node:os').homedir(),'Library','Logs','claude-fleet.log') : path.join(stateDir(),'server.log')
+// Start a replacement Fleet (after an update, or when the service would not take over)
+// with its output in the log. It used to run with its output thrown away, so a new
+// version that failed to start left a closed window and nothing to read. If it dies
+// within `watchMs`, the log says so, with its exit code.
+function relaunch({entry,args,port,why,log=serverLog(),watchMs=4000,spawn=require('node:child_process').spawn}) {
+  fs.mkdirSync(path.dirname(log),{recursive:true})
+  const fd=fs.openSync(log,'a')
+  fs.writeSync(fd,`\n[${new Date().toISOString()}] ${why}: starting ${[entry,...args].join(' ')} on port ${port}\n`)
+  const child=spawn(process.execPath,[entry,...args],{detached:true,stdio:['ignore',fd,fd],env:{...process.env,PORT:String(port)}})
+  fs.closeSync(fd)
+  const note=text=>{try{fs.appendFileSync(log,`[${new Date().toISOString()}] ${text}\n`)}catch{}}
+  const watching=setTimeout(()=>{},watchMs)
+  const settled=new Promise(resolve=>{
+    child.once('exit',(code,signal)=>{clearTimeout(watching);note(`The new Fleet exited before it was up (${signal || `code ${code}`}). Start it again with claude-fleet, or open the Claude Fleet app.`);resolve(false)})
+    child.once('error',error=>{clearTimeout(watching);note(`Could not start the new Fleet: ${error.message}`);resolve(false)})
+    setTimeout(()=>{child.removeAllListeners('exit');resolve(true)},watchMs).unref()
+  })
+  child.unref()
+  return {child,settled,log}
+}
+
 // Starting the server is the CLI's job too, so it lives in a function rather than
 // in a `require.main` block: bin/claude-fleet.js calls this, which keeps argv[1]
 // pointing at the installed command that a restart needs to re-run.
@@ -282,28 +306,23 @@ function main(){
     // launchd ends whatever its job spawned, so under the service the new version is
     // launchd's to start: exit with the code it restarts on.
     if(service.managed){await app.close();process.exit(RESTART_CODE)}
-    const entry=process.argv[1]
     const held=app.server.address()?.port || port
-    // The page that asked for this is already open and waiting to be reloaded, so
-    // the replacement must not raise a second window. Dropping --open is not enough:
-    // with no command, the CLI opens one by default. --no-open says it outright.
-    const args=[...process.argv.slice(2).filter(a=>a!=='--open'),'--no-open']
     await app.close()
-    const child=require('node:child_process').spawn(process.execPath,[entry,...args],{detached:true,stdio:'ignore',env:{...process.env,PORT:String(held)}})
-    child.on('error',error=>{console.error(`Could not restart Fleet: ${error.message}`);process.exit(1)})
-    child.unref()
-    setTimeout(()=>process.exit(0),100).unref()
+    await relaunch({entry:process.argv[1],args:relaunchArgs(),port:held,why:'Restarting after an update'}).settled
+    process.exit(0)
   }
+  // The page that asked for this is already open and waiting to be reloaded, so the
+  // replacement must not raise a second window. Dropping --open is not enough: with no
+  // command, the CLI opens one by default. --no-open says it outright.
+  const relaunchArgs=()=>[...process.argv.slice(2).filter(a=>a!=='--open' && a!=='--no-open'),'--no-open']
   // Turning the service on from here: let go of the lock and the port, then load the
   // job, which launchd starts at once. If launchd will not, come back as we were.
   const handover=async()=>{
     await app.close()
     try{service.load();process.exit(0);return}
     catch(error){console.error(`${error.message} Starting Fleet again without the service.`)}
-    const held=app.server.address()?.port || port
-    const child=require('node:child_process').spawn(process.execPath,[process.argv[1],...process.argv.slice(2).filter(a=>a!=='--open'),'--no-open'],{detached:true,stdio:'ignore',env:{...process.env,PORT:String(held)}})
-    child.unref()
-    setTimeout(()=>process.exit(0),100).unref()
+    await relaunch({entry:process.argv[1],args:relaunchArgs(),port:app.server.address()?.port || port,why:'The service did not take over'}).settled
+    process.exit(0)
   }
   try{app=createApp({restart,service,handover})}catch(error){
     // Already running is the everyday case, not a crash: put the window the operator
@@ -343,4 +362,4 @@ function main(){
   return app
 }
 if(require.main===module) main()
-module.exports={createApp,main}
+module.exports={createApp,main,relaunch}
