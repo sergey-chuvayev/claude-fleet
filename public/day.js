@@ -199,6 +199,8 @@ window.FleetDay=(()=>{
     const names=(window.FleetProjects?.list() || []).map(p=>[p.id,p.name])
     const signature=JSON.stringify([s.id,b,s.status,launchedState,s.dayChecks,moving,names,Math.floor(Date.now()/60000)])
     if(panel.fleetSignature===signature)return
+    // Redrawing would replace the select under an open dropdown; the next refresh catches up.
+    if(window.FleetSelect?.isOpen(panel))return
     // Keep what the operator is in the middle of: open disclosures, typed text, focus.
     const opened=new Set([...panel.querySelectorAll('details[open][data-evidence]')].map(el=>el.dataset.evidence))
     const typed=new Map([...panel.querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.value]))

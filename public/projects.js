@@ -90,6 +90,8 @@ window.FleetProjects=(()=>{
     const p=projects.find(p=>p.id===selected)
     const signature=JSON.stringify([projects,selected,editing,live.filter(s=>s.projectId).map(s=>[s.managedId,s.managedStatus,s.title])])
     if(!force && pane().fleetSignature===signature)return
+    // Redrawing would replace the select under an open dropdown; the next refresh catches up.
+    if(!force && window.FleetSelect?.isOpen(pane()))return
     // What the operator is in the middle of survives a redraw: typed text, focus, open
     // sections. Polling used to rebuild the pane every few seconds and wipe the form.
     const typed=new Map([...pane().querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.value]))
