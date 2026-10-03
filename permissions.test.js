@@ -1,7 +1,7 @@
 'use strict'
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
-const { askReason, deniedCommand, normaliseMode, DEFAULT_MODE } = require('./permissions')
+const { askReason, deniedCommand, normaliseMode, DEFAULT_MODE, DEFAULT_NEW_MODE, MODES } = require('./permissions')
 
 const auto = (tool, input) => askReason(tool, input, 'auto')
 
@@ -69,4 +69,10 @@ test('a missing or malformed command is not silently approved as harmless', () =
   assert.equal(deniedCommand(''), null)
   // No command at all means nothing to match; the tool itself is still auto-approved.
   assert.equal(auto('Bash', {}), null)
+})
+
+test('a new agent starts in Approve everything, apart from the fallback for unreadable values', () => {
+  assert.equal(DEFAULT_NEW_MODE, 'all')
+  assert.ok(MODES.includes(DEFAULT_NEW_MODE))
+  assert.equal(normaliseMode('nonsense'), 'auto')
 })

@@ -306,8 +306,8 @@ test('auto mode answers safe tools itself, still stops for the denylist, and is 
     yield { type:'result', result:'Done', is_error:false }
   } }))
   try {
-    // The default mode is auto, so the helper's explicit 'ask' is overridden here.
-    const s = manager.create({ cwd:directory, prompt:'Test task', requestId:randomUUID() })
+    // The helper's explicit 'ask' is overridden: this test exercises auto mode.
+    const s = manager.create({ cwd:directory, prompt:'Test task', requestId:randomUUID(), approvalMode:'auto' })
     assert.equal(s.approvalMode, 'auto')
     await until(() => s.approvals.length === 1)
     // Two safe requests were answered without ever reaching the operator.
@@ -1340,4 +1340,48 @@ test('pausing dispatch also holds a follow-up queued during the current turn',as
     await until(()=>calls===2 && s.status==='idle')
     assert.equal(s.queue.length,0)
   } finally {release();await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('new agents start in Approve everything until the default approval mode is changed',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-default-mode-'))
+  const idle=async()=>({close(){},async *[Symbol.asyncIterator](){yield {type:'result',result:'Done',is_error:false}}})
+  const launch=(manager,extra={})=>manager.create({cwd:directory,prompt:'Test task',requestId:randomUUID(),...extra})
+  let manager=new ManagedSessions({directory,queryFactory:idle})
+  try {
+    assert.equal(manager.defaultApprovalMode,'all')
+    const first=launch(manager)
+    assert.equal(first.approvalMode,'all')
+
+    assert.equal(manager.setDefaultApprovalMode({mode:'ask'}),'ask')
+    assert.equal(launch(manager).approvalMode,'ask','a changed default applies to the next agent')
+    assert.equal(launch(manager,{approvalMode:'auto'}).approvalMode,'auto','the operator can still pick a mode at launch')
+    assert.equal(manager.get(first.id).approvalMode,'all','agents that already exist are unchanged')
+    assert.throws(()=>manager.setDefaultApprovalMode({mode:'whatever'}),/ask, auto, or all/)
+    assert.equal(manager.defaultApprovalMode,'ask','a refused value leaves the default alone')
+
+    manager.save();await manager.close()
+    manager=new ManagedSessions({directory,queryFactory:idle})
+    assert.equal(manager.defaultApprovalMode,'ask','the default survives a restart')
+    assert.equal(launch(manager).approvalMode,'ask')
+  } finally {await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
+test('the default approval mode is read and changed through the settings endpoint',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-default-mode-http-'))
+  const manager=new ManagedSessions({directory,queryFactory:async()=>({close(){},async *[Symbol.asyncIterator](){}})})
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  await new Promise(r=>app.server.listen(0,'127.0.0.1',r))
+  const base=`http://127.0.0.1:${app.server.address().port}`
+  try {
+    const config=await (await fetch(base+'/api/control')).json()
+    assert.equal(config.defaultApprovalMode,'all')
+    assert.equal((await (await fetch(base+'/api/settings/approval-mode')).json()).defaultApprovalMode,'all')
+    const headers={'content-type':'application/json','x-fleet-token':config.token,origin:base}
+    const changed=await fetch(base+'/api/settings/approval-mode',{method:'POST',headers,body:JSON.stringify({mode:'auto'})})
+    assert.equal(changed.status,200)
+    assert.equal((await changed.json()).defaultApprovalMode,'auto')
+    const refused=await fetch(base+'/api/settings/approval-mode',{method:'POST',headers,body:JSON.stringify({mode:'nope'})})
+    assert.equal(refused.status,400)
+    assert.equal((await (await fetch(base+'/api/control')).json()).defaultApprovalMode,'auto')
+  } finally {await new Promise(r=>app.server.close(r));await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })

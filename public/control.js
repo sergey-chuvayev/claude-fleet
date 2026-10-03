@@ -28,6 +28,7 @@ async function initializeControls() {
   // update, and without this the difference is invisible until something 404s.
   if(data.version) $('app-version').textContent=`v${data.version}`
   referencesAvailable=data.supportsSessionReferences===true
+  if(data.defaultApprovalMode) $('launch-mode').value=data.defaultApprovalMode
   if(!$('launch-cwd').value) $('launch-cwd').value=store.get(LAST_CWD) || data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false
