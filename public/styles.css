@@ -3245,6 +3245,25 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
 .scout-run-gist { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .scout-run small { color:var(--faint); font-variant-numeric:tabular-nums }
 
+/* ── Icons ─────────────────────────────────────────────────────────────────────
+   One small stroke set instead of text characters (↗ ⌕ ↻ ＋ ✕ ■), which every font
+   draws at its own size and baseline. Each is a mask filled with the text colour, so it
+   follows its button's colour and state; in a button it is a fixed 16px, centred by the
+   button's own flex layout. */
+.ico { display:inline-block; flex:none; width:1.1em; height:1.1em; background:currentColor; vertical-align:-.2em; -webkit-mask:var(--ico) center/contain no-repeat; mask:var(--ico) center/contain no-repeat }
+.button .ico, .button svg { flex:none }
+.button .ico { width:16px; height:16px; vertical-align:0 }
+.button:has(.ico) { gap:6px }
+.ico-arrow { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M7 17 17 7M8 7h9v9%22/></svg>") }
+.ico-plus { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M12 5v14M5 12h14%22/></svg>") }
+.ico-refresh { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7%22/></svg>") }
+.ico-search { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2211%22 cy=%2211%22 r=%226.5%22/><path d=%22m20 20-4.2-4.2%22/></svg>") }
+.ico-close { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M6 6l12 12M18 6 6 18%22/></svg>") }
+.ico-stop { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%226.5%22 y=%226.5%22 width=%2211%22 height=%2211%22 rx=%222%22 fill=%22%23000%22/></svg>") }
+.ico-pr { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%226%22 cy=%226%22 r=%222.4%22/><circle cx=%226%22 cy=%2218%22 r=%222.4%22/><circle cx=%2218%22 cy=%2218%22 r=%222.4%22/><path d=%22M6 8.4v7.2M18 15.6V10a3 3 0 0 0-3-3h-4m2-2.5L10.5 7 13 9.5%22/></svg>") }
+.ico-ticket { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%224%22 y=%224%22 width=%2216%22 height=%2216%22 rx=%223.5%22/><path d=%22M8.5 12.5 11 15l4.5-5%22/></svg>") }
+.ico-stop { -webkit-mask-size:contain; mask-size:contain }
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }

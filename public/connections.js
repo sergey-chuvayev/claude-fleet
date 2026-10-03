@@ -9,11 +9,11 @@ window.FleetConnections=(()=>{
     const backdrop=document.createElement('div')
     backdrop.id='connections-backdrop';backdrop.className='modal-backdrop';backdrop.hidden=true
     backdrop.innerHTML=`<section class="modal modal-connections" role="dialog" aria-modal="true" aria-labelledby="connections-title">
-      <header class="modal-head"><div class="modal-heading"><span class="modal-spark" aria-hidden="true">⌘</span><div><span class="modal-eyebrow">TOOLS WITHIN REACH</span><h2 id="connections-title">Your connections.</h2><p>Check what’s available. Get a blocked connection moving.</p></div></div><button type="button" class="modal-close" data-close-modal aria-label="Close connections">✕</button></header>
+      <header class="modal-head"><div class="modal-heading"><span class="modal-spark" aria-hidden="true">⌘</span><div><span class="modal-eyebrow">TOOLS WITHIN REACH</span><h2 id="connections-title">Your connections.</h2><p>Check what’s available. Get a blocked connection moving.</p></div></div><button type="button" class="modal-close" data-close-modal aria-label="Close connections"><i class="ico ico-close" aria-hidden="true"></i></button></header>
       <div class="modal-body"><form id="connections-form" class="connections-form"><label>Check connections for<select id="connections-session"><option value="">Project directory</option></select></label><label id="connections-project">Project directory<input id="connections-cwd" maxlength="4096" placeholder="~/projects/my-project" required></label><button class="button resume" id="connections-check" type="submit">Check connections</button></form>
       <p class="note" id="connections-context">Choose a project or session. Checking connects configured servers without sending an agent message.</p>
       <p id="connections-error" class="form-error" role="alert" hidden></p><div id="connections-results" aria-live="polite" aria-busy="false"><p class="connections-empty">Your configured MCP servers will appear here.</p></div>
-      <details class="connections-help"><summary>Missing a connection?</summary><p>Sign in opens the server’s own sign-in page in your browser and Fleet picks the result up by itself. Claude.ai connectors you have not added yet are added in Claude’s settings; local servers are configured in Claude Code for this project.</p><a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener noreferrer">Open Claude connector settings ↗</a><p>For a local server, open Claude Code in this project and run <code>/mcp</code> to authenticate or approve its configuration. Fleet does not add servers from this panel.</p></details></div>
+      <details class="connections-help"><summary>Missing a connection?</summary><p>Sign in opens the server’s own sign-in page in your browser and Fleet picks the result up by itself. Claude.ai connectors you have not added yet are added in Claude’s settings; local servers are configured in Claude Code for this project.</p><a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener noreferrer">Open Claude connector settings <i class="ico ico-arrow" aria-hidden="true"></i></a><p>For a local server, open Claude Code in this project and run <code>/mcp</code> to authenticate or approve its configuration. Fleet does not add servers from this panel.</p></details></div>
       <footer class="modal-foot"><span>Connection changes never resend a task.</span><span><kbd>Esc</kbd> close</span></footer></section>`
     document.body.append(backdrop)
     $('connections-form').addEventListener('submit',event=>{event.preventDefault();check()})
@@ -64,10 +64,10 @@ window.FleetConnections=(()=>{
     if(wait){
       const late=Date.now()-wait.since>SIGN_IN_TIMEOUT
       action=late ? `<span class="connection-wait">Didn’t finish?</span>${button('authenticate','Try again',true)}`
-        : `<span class="connection-wait"><span class="day-spinner" aria-hidden="true"></span>Waiting for you to finish signing in</span>${wait.url ? `<a class="button" href="${esc(wait.url)}" target="_blank" rel="noopener noreferrer">Open page again ↗</a>`:''}<button type="button" class="button" data-cancel-sign-in="${esc(s.name)}">Cancel</button>`
+        : `<span class="connection-wait"><span class="day-spinner" aria-hidden="true"></span>Waiting for you to finish signing in</span>${wait.url ? `<a class="button" href="${esc(wait.url)}" target="_blank" rel="noopener noreferrer">Open page again <i class="ico ico-arrow" aria-hidden="true"></i></a>`:''}<button type="button" class="button" data-cancel-sign-in="${esc(s.name)}">Cancel</button>`
     }
     else if(s.internal)action=''
-    else if(s.status==='needs-auth')action=s.canAuthenticate===false ? `<span class="note">Run <code>/mcp</code> in Claude Code for this project to sign in.</span>` : button('authenticate','Sign in ↗',false)
+    else if(s.status==='needs-auth')action=s.canAuthenticate===false ? `<span class="note">Run <code>/mcp</code> in Claude Code for this project to sign in.</span>` : button('authenticate','Sign in <i class="ico ico-arrow" aria-hidden="true"></i>',false)
     else if(s.status==='failed')action=button('reconnect','Reconnect',true)
     else if(s.status==='disabled' && s.canToggle)action=button('enable','Turn on',false)
     else if(s.status==='connected' && s.canToggle)action=button('disable','Turn off',false)

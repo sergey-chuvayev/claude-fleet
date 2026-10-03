@@ -76,7 +76,7 @@ function hitCard(hit, match) {
   const title = hit.title || live?.title || live?.name || 'Untitled session'
   const when = hit.lastAt ? `${dateOf(hit.lastAt)} · ${age(hit.lastAt)} ago` : ''
   const action = live
-    ? `<button type="button" class="button ask-open" data-open-session="${esc(key(live))}">Open in Fleet ↗</button>`
+    ? `<button type="button" class="button ask-open" data-open-session="${esc(key(live))}">Open in Fleet <i class="ico ico-arrow" aria-hidden="true"></i></button>`
     : `<button type="button" class="button ask-open" data-copy-resume="claude --resume ${esc(hit.sessionId)}" title="This session is not open right now">Copy resume command</button>`
   const snippets = (hit.snippets || []).map(s => `<p class="ask-snippet"><span class="ask-role">${s.role === 'user' ? 'you' : 'claude'}</span>${esc(s.text)}</p>`).join('')
   return `<article class="ask-hit" data-relevance="${esc(match?.relevance || '')}"><div class="ask-hit-head"><span class="ask-hit-title">${esc(title)}</span>${match ? `<span class="ask-rel">${REL_WORD[match.relevance] || 'related'}</span>` : ''}<span class="ask-hit-meta">${esc(hit.project || 'unknown project')}${when ? ` · ${esc(when)}` : ''}${live ? ' · <span class="ask-live">open now</span>' : ''}</span></div>${match?.context ? `<p class="ask-context">${esc(match.context)}</p>` : ''}${match?.quote ? `<blockquote class="ask-quote">${esc(match.quote)}</blockquote>` : ''}${snippets ? `<details class="ask-snippets"${match ? '' : ' open'}><summary>${hit.matches} matching passage${hit.matches === 1 ? '' : 's'} · keyword excerpts</summary>${snippets}</details>` : ''}<div class="ask-hit-actions">${action}</div></article>`
