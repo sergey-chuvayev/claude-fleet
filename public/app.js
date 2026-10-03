@@ -506,11 +506,8 @@ function renderDetail(s) {
     s.model ? UI.stat('Model', esc(s.model.replace('claude-',''))) : '',
   ].join('')
   const actions = `${status(s)}${s.managed || !s.sessionId ? '' : `<button class="button ghost" id="toggle-archive">${s.archived ? 'Restore' : 'Archive'}</button>`}${s.resumeCmd && !s.managed ? '<button class="button ghost" id="copy-resume">Copy resume command</button>' : ''}`
-  // A session that runs in a terminal is watched here, not driven; say so first.
-  const outside = s.managed ? '' : UI.callout('Opened outside Fleet', s.alive ? 'This session is running in a terminal. Use its terminal to send messages, or launch a new Fleet-managed agent.' : 'This process has stopped. Continue its saved conversation here with a new message.', { actions: !s.alive && s.sessionId && s.cwd ? '<button type="button" id="resume-in-fleet" class="button resume">Continue in Fleet ↗</button>' : '' })
   const body = [
     p >= 75 ? UI.callout(p >= 90 ? 'Context nearly full' : 'Context is getting full', p >= 90 ? 'Compaction may happen soon.' : '', { tone: 'needs' }) : '',
-    outside,
     s.managed ? '' : UI.section('Latest response', `<div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div>`, { aside: s.latestResponseAt ? `${age(s.latestResponseAt)} ago` : '' }),
     s.lastPrompt && !s.managed ? UI.section('Latest request', `<div class="response">${esc(s.lastPrompt)}</div>`) : '',
     UI.section('Linked work', links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '⑂' : '◩'} ${esc(l.label)} ↗</a>`).join('')}</div><p class="note">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>', { aside: 'From transcript' }),

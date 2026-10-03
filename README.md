@@ -485,6 +485,19 @@ GitHub and Slack to check facts, keeps the deliverables' state and notes honest,
 decisions and risks. It never starts work or sends anything outside Fleet: next steps go onto
 your Day as proposals, where launches still need your approval.
 
+### Continue a terminal session in Fleet
+
+Select a session you started with `claude` in a terminal and it opens in the same
+console as a Fleet one: its conversation read from the transcript, with your
+messages, Claude's replies and each tool call, and a composer underneath.
+
+- **Stopped:** your first message continues it in Fleet. Fleet resumes the same Claude
+  session, so it keeps its id and the console keeps what was said in the terminal.
+- **Still open in a terminal:** the conversation updates as the terminal works, and
+  your message continues a **copy**. Fleet forks the session, so the copy gets its own
+  id and the terminal keeps the original. Two programs writing one session would
+  corrupt it, so Fleet never drives the original while the terminal has it.
+
 ### Inspect individual agents
 
 Select a subagent row beneath a managed initiative to see its assignment, actual model,
