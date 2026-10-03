@@ -46,6 +46,7 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, value) } catch {} },
   clear(key) { try { localStorage.removeItem(key) } catch {} },
 }
+let checkedAt = 0, renderedAt = 0, tickAt = 0, tickQueued = null
 let snapshot = null, filter = 'all', dateFilter = 'all', filterMenuOpen = false, selected = null, pending = false, toastTimer
 // A delegation row nested under a team session. Keyed on the delegation id, never on
 // its position or status, so a sub-agent finishing does not move the operator's focus.
@@ -375,6 +376,7 @@ const emptyListHtml = total =>
 
 function render() {
   if (!snapshot) return
+  renderedAt = Date.now()
   const {sessions, total} = snapshot
   // Archived sessions are put away, not deleted: they leave every count and every
   // filter but their own, and the transcript behind them is untouched.
@@ -697,11 +699,11 @@ async function tick() {
   pending = true
   setBusy(true)
   try {
-    const r = await fetch('/api/sessions', {cache:'no-store',signal:AbortSignal.timeout(8000)})
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
-    const data = await r.json()
-    if (!Array.isArray(data.sessions) || !data.counts) throw new Error('Invalid response')
-    snapshot = data; render()
+    // Only what changed comes back; an unchanged list is a 304 and costs nothing to draw.
+    const { value: data, changed } = await window.FleetSync.get('/api/sessions', { paths: ['sessions'] })
+    if (!Array.isArray(data.sessions) || !data.counts) { window.FleetSync.forget('/api/sessions'); throw new Error('Invalid response') }
+    checkedAt = Date.now()
+    if (changed || !snapshot) { snapshot = data; render() }
     // A selected delegation keeps polling its own steps and report at the same cadence
     // as everything else, independent of whether the manager's own panel is mounted.
     if (selectedChild) {
@@ -709,9 +711,9 @@ async function tick() {
       if (owner?.managedId) loadChildDetail(owner.managedId, selectedChild)
     }
     // Other panels (the ask results) re-read the snapshot to refresh "open now" state.
-    document.dispatchEvent(new CustomEvent('fleet-snapshot'))
+    if (changed) document.dispatchEvent(new CustomEvent('fleet-snapshot'))
     setConnection('Live connection', 'busy')
-    if ($('updated')) $('updated').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
+    if ($('updated')) $('updated').textContent = `Updated ${new Date(checkedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
     showError(data.storageError)
   } catch {
     setConnection('Disconnected', 'stale')
@@ -726,6 +728,15 @@ async function tick() {
 // page down with it. State is handed out through functions rather than as live
 // bindings, so a caller cannot take a copy of `snapshot` and read a stale one after
 // the next poll.
+// A pushed change asks for the list; a burst of them makes one fetch a second at most.
+function requestTick() {
+  if (tickQueued) return
+  tickQueued = setTimeout(() => {
+    tickQueued = null
+    if (document.hidden) return // visibilitychange fetches on return
+    tickAt = Date.now(); tick()
+  }, Math.max(0, 1000 - (Date.now() - tickAt)))
+}
 window.Fleet = {
   // DOM and formatting helpers the other files share.
   $, esc, update, key, age, tokens, money, status, store,
@@ -740,6 +751,7 @@ window.Fleet = {
   // Refetch the session list. control.js awaits this after an action that changed
   // the server's state, so the list reflects it without waiting for the next poll.
   tick,
+  requestTick,
   setSnapshot(next) { snapshot = next; render() },
   setFilter(next) { filter = next; render() },
   select(sessionKey, delegationId = null) { selected = sessionKey; selectedChild = delegationId; render() },
@@ -768,8 +780,17 @@ window.Fleet = {
 // ── Boot ────────────────────────────────────────────────────────────────────
 $('refresh')?.addEventListener('click',tick)
 tick()
-setInterval(() => { if (!document.hidden) tick() },2000)
+// The server pushes "the list changed" (control.js listens) and the page fetches then.
+// This slow poll only covers a dropped event stream; reconnecting refetches anyway.
+setInterval(() => { if (!document.hidden) tick() },30000)
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick() })
+// Ages ("2m ago") and running-turn timers are worked out from the clock when the list is
+// drawn, so it is redrawn without fetching: every two seconds while something is
+// working, every half minute otherwise.
+setInterval(() => {
+  if (document.hidden || !snapshot) return
+  if (snapshot.sessions.some(isWorkingRow) || Date.now() - renderedAt > 30000) render()
+}, 2000)
 
 // Layout the operator controls: a draggable split between the session list and the
 // inspector, and resizable session sections. Sizes are remembered per browser; a storage

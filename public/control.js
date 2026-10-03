@@ -4,7 +4,7 @@
 // the two files happened to share.
 ;(() => {
 const { $, esc, update, toast, tick, store } = window.Fleet
-let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0
+let controlToken=null, controlSession=null, controlId=null, controlFetch=null, controlVersion=0, refreshedAt=0
 const drafts=new Map()
 const inFlight=new Set()
 const LAST_CWD='fleet:launch-cwd'
@@ -242,7 +242,7 @@ function refreshOutside() {
   if(mark===outsideSeen || outsideLoading || !s.sessionId)return
   outsideSeen=mark
   const id=s.sessionId
-  outsideLoading=api(`/api/sessions/history?sessionId=${encodeURIComponent(id)}`).then(data=>{
+  outsideLoading=window.FleetSync.get(`/api/sessions/history?sessionId=${encodeURIComponent(id)}`,{paths:['messages'],key:`history:${id}`}).then(({value:data})=>{
     if(outsideSession?.sessionId!==id || !$('conversation'))return
     const log=$('conversation')
     if(log.querySelector(':scope > p.note'))log.innerHTML=''
@@ -271,7 +271,9 @@ async function refreshControl() {
   if(controlFetch?.id===id){controlFetch.again=true;return}
   const task={id,again:false};controlFetch=task
   try{
-    const data=await api(`/api/managed/${id}`)
+    // Unchanged, this is a 304; changed, only new or edited messages and sub-agents travel.
+    const {value:data}=await window.FleetSync.get(`/api/managed/${id}`,{paths:['session.messages','session.subagents'],key:`managed:${id}`})
+    refreshedAt=Date.now()
     if(controlId!==id || controlVersion!==version)return
     controlSession=data.session;renderControl()
   }catch(error){if(controlId===id && $('agent-error')){$('agent-error').hidden=false;$('agent-error').textContent=error.message}}
@@ -551,10 +553,20 @@ window.addEventListener('fleet-libs-ready',()=>{
 fillLaunchModels()
 initializeControls().catch(error=>toast(error.message))
 const events=new EventSource('/api/events')
-events.addEventListener('sessions',event=>{try{if(JSON.parse(event.data).includes(controlId))refreshControl()}catch{}})
-events.onopen=()=>{refreshControl();tick()}
-// Polling also recovers from a dropped event stream or a server restart.
-setInterval(()=>{if(!document.hidden)refreshControl()},2500)
+events.addEventListener('sessions',event=>{try{const ids=JSON.parse(event.data);if(ids.includes(controlId))refreshControl();if(ids.includes('projects'))window.FleetProjects?.load(true)}catch{}})
+// The list changed: fetch it, and the open conversation too, since a terminal driving
+// a Fleet session changes it without Fleet hearing about it.
+events.addEventListener('list',()=>{window.Fleet.requestTick?.();if(controlId && !document.hidden)refreshControl()})
+// A new stream may follow a server restart: start from scratch rather than from a copy
+// the new server never saw.
+events.onopen=()=>{window.FleetSync.forget();refreshControl();tick()}
+// A slow safety net for a dropped stream. While the agent works it checks every 2.5s,
+// which is a 304 when nothing moved, so anything drawn from the clock keeps moving.
+setInterval(()=>{
+  if(document.hidden || !controlId)return
+  const working=['starting','running','queued','stopping','approval'].includes(controlSession?.status)
+  if(working || Date.now()-refreshedAt>30000)refreshControl()
+},2500)
 window.addEventListener('beforeunload',()=>events.close())
 
 // Slash picker: typing `/` at the start of a line offers this project's commands

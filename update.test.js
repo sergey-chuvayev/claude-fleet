@@ -209,7 +209,7 @@ function loadDashboard() {
     navigator: {}, location: { reload() {} }, console: { log() {}, error() {}, warn() {} },
   })
   context.window = context
-  for (const file of ['ui.js', 'app.js', 'blocks.js', 'control.js']) {
+  for (const file of ['ui.js', 'sync.js', 'app.js', 'blocks.js', 'control.js']) {
     const source = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8')
     try { new vm.Script(source, { filename: file }).runInContext(context) }
     catch (error) { if (error && error.name === 'SyntaxError') throw error }
