@@ -216,11 +216,13 @@ function usageHtml(usage, now) {
   // provider where plan limits do not apply at all, the cluster is simply absent.
   if (!usage || !usage.available || !usage.known) return ''
   const blocked = usage.blocked
-  if (blocked) return `<span class="usage-blocked hot" title="A request was refused by this window. Every Claude session on this machine is affected until it resets.">⊘ Rate limited · ${esc(windowWord(blocked.rateLimitType))} window · resets ${clockAt(blocked.resetsAt)} (${untilReset(blocked.resetsAt, now)})${blockReason(blocked.reason) ? ` · ${esc(blockReason(blocked.reason))}` : ''}</span>`
+  const blockedHtml = blocked ? `<span class="usage-blocked hot" title="A request was refused by this window. Every Claude session on this machine is affected until it resets.">⊘ Rate limited · ${esc(windowWord(blocked.rateLimitType))} window · resets ${clockAt(blocked.resetsAt)} (${untilReset(blocked.resetsAt, now)})${blockReason(blocked.reason) ? ` · ${esc(blockReason(blocked.reason))}` : ''}</span>` : ''
   const binding = usage.windows.find(w => w.name === usage.binding) || usage.windows[0]
-  if (!binding) return ''
+  // A block with no window reading has no number to draw, and a made-up one is worse.
+  if (!binding) return blockedHtml
   const cls = heat(binding.utilization)
-  // Past 90% the countdown is the decision and the percentage is trivia, so they swap.
+  // Past 90% the countdown is the decision, so it replaces the reset clock. The gauge
+  // itself never goes away: it is the one thing that reads at a glance in every state.
   const critical = binding.utilization >= 90
   const reset = binding.resetsAt ? (critical ? `${untilReset(binding.resetsAt, now)} left` : `resets ${clockAt(binding.resetsAt)}`) : ''
   const detail = [
@@ -228,11 +230,12 @@ function usageHtml(usage, now) {
     'Account-wide, including the terminal sessions Fleet only watches.',
     usage.observedAt ? `Last read ${clockAt(usage.observedAt)}.` : '',
   ].filter(Boolean).join(' ')
-  // One bar, on whichever window is closest to stopping the fleet. The rest are bare
-  // numbers: a second bar would just be a second thing to look at.
+  // One gauge, on whichever window is closest to stopping the fleet. The rest are bare
+  // numbers: a second gauge would just be a second thing to look at.
   const others = usage.windows.filter(w => w !== binding)
     .map(w => `<span class="usage-other ${heat(w.utilization)}"><b>${esc(w.label)}</b> ${w.utilization}%</span>`).join('')
-  return `<span class="usage-window ${cls}${usage.stale ? ' is-stale' : ''}" title="${esc(detail)}"><b>${esc(binding.label)}</b>${critical ? `<em>${reset}</em><span class="usage-pct">${binding.utilization}%</span>` : `<span class="mini-bar"><i class="${cls}" style="width:${binding.utilization}%"></i></span><span class="usage-pct">${binding.utilization}%</span>${reset ? `<small>${reset}</small>` : ''}`}</span>${others}${usage.stale && usage.observedAt ? `<small class="usage-stale" title="Utilisation only updates while a Fleet agent is running.">as of ${clockAt(usage.observedAt)}</small>` : ''}`
+  const gauge = `<span class="usage-gauge ${cls}" role="meter" aria-label="${esc(windowWord(binding.name))} usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${binding.utilization}"><i style="width:${binding.utilization}%"></i></span>`
+  return `<span class="usage-window ${cls}${usage.stale ? ' is-stale' : ''}" title="${esc(detail)}"><b>${esc(binding.label)}</b>${gauge}<span class="usage-pct">${binding.utilization}%</span><small class="usage-reset${critical ? ' is-critical' : ''}">${reset}</small></span>${others}${blockedHtml}${usage.stale && usage.observedAt ? `<small class="usage-stale" title="Utilisation only updates while a Fleet agent is running.">as of ${clockAt(usage.observedAt)}</small>` : ''}`
 }
 function renderStatusbar(usage, sessions) {
   const now = Date.now()
