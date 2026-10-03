@@ -25,10 +25,16 @@
     const below = viewportHeight - trigger.bottom - gap, above = trigger.top - gap
     return menuHeight <= below || below >= above ? 'below' : 'above'
   }
-  if (typeof module !== 'undefined' && module.exports) { module.exports = { match, placement }; return }
+  // A scroll only strands the menu when what scrolled holds the trigger (or is the page).
+  // The console log following a stream, or a list restoring its scroll after a refresh,
+  // moves nothing the menu is anchored to.
+  function moves(scrolled, trigger) {
+    return !!scrolled && typeof scrolled.contains === 'function' && scrolled.contains(trigger)
+  }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { match, placement, moves }; return }
 
   // Published before any DOM work, so a page without a body still gets the namespace.
-  window.FleetSelect = { enhance:select => enhance(select), close:() => close(false) }
+  window.FleetSelect = { enhance:select => enhance(select), close:() => close(false), isOpen:within => !!open && (!within || within.contains(open)) }
   const CHEVRON = '<svg class="fleet-select-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   const CHECK = '<svg class="fleet-select-check" width="12" height="9" viewBox="0 0 12 9" fill="none" aria-hidden="true"><path d="M1 4.5L4.2 7.5L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]))
@@ -110,7 +116,9 @@
       const description = o.dataset.description
       html += `<div class="fleet-select-option" role="option" id="fleet-option-${uid}-${i}" data-index="${i}" aria-selected="${i === current}"${o.disabled ? ' aria-disabled="true"' : ''}>${CHECK}<span class="fleet-select-text"><span>${esc(o.textContent)}</span>${description ? `<small>${esc(description)}</small>` : ''}</span></div>`
     }
+    const scrolled = menu.scrollTop
     menu.innerHTML = html
+    menu.scrollTop = scrolled
     activate(menu.dataset.active !== undefined ? Number(menu.dataset.active) : current)
   }
   function activate(i) {
@@ -209,7 +217,7 @@
     if (open && !menu.contains(event.target) && !enhanced.get(open)?.trigger.contains(event.target)) close(false)
   }, true)
   addEventListener('resize', () => close(false))
-  document.addEventListener('scroll', event => { if (open && !menu.contains(event.target)) close(false) }, true)
+  document.addEventListener('scroll', event => { if (open && !menu.contains(event.target) && moves(event.target, enhanced.get(open)?.trigger)) close(false) }, true)
 
   function scan(root) {
     if (root.nodeType !== 1) return
