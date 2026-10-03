@@ -2917,6 +2917,16 @@ body[data-panel-resizing], body[data-panel-resizing] * { cursor:row-resize!impor
 .project-md > :first-child { margin-top:0 }
 .project-md ul, .project-md ol { padding-left:20px }
 
+/* ── Progress ─────────────────────────────────────────────────────────────── */
+/* A page to read, not a pane beside a console: the whole workspace, no inspector. */
+.progress-pane { display:flex; flex-direction:column }
+.workspace[data-view=progress] { grid-template-columns:minmax(0,1fr) }
+.workspace[data-view=progress] .splitter, .workspace[data-view=progress] #detail { display:none }
+.progress-pane .page-body { max-width:880px }
+.progress-pane .ui-row-meta a { color:var(--accent) }
+.progress-pane .ui-empty { margin:0; padding:12px 0 }
+.progress-pane .ui-empty h3 { font-size:var(--text-md) }
+
 /* ── Touch: at narrow widths every control is at least a 44px target ───────── */
 @media(max-width:720px) {
   .button, .topbar .refresh-info .button, .filter-trigger, .mode-picker :is(select,.fleet-select), .day-agent-tab, .day-launch-chip,
