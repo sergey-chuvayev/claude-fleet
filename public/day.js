@@ -320,6 +320,16 @@ window.FleetDay=(()=>{
   // Switching to a thread changes which session the console holds, so it goes through
   // the app's selection; switching between the Day and its subagents does not.
   function showThread(id) {shownThread=id || null;shownAgent=null;window.Fleet.render()}
+  // Every check sends the same scouts out again, so the strip shows one tab per scout,
+  // holding its latest run; its earlier runs today are listed inside it.
+  const SCOUT_ORDER=['slack-scout','linear-scout','github-scout','granola-scout','calendar-scout']
+  const scoutName=role=>({'slack-scout':'Slack','linear-scout':'Linear','github-scout':'GitHub','granola-scout':'Granola','calendar-scout':'Calendar'})[role] || role
+  function byRole(list) {
+    const groups=new Map()
+    for(const d of [...list].sort((a,b)=>(a.startedAt || 0)-(b.startedAt || 0))){if(!groups.has(d.role))groups.set(d.role,[]);groups.get(d.role).push(d)}
+    const rank=role=>{const i=SCOUT_ORDER.indexOf(role);return i<0 ? SCOUT_ORDER.length : i}
+    return [...groups.entries()].map(([role,runs])=>({role,runs,latest:runs[runs.length-1]})).sort((a,b)=>rank(a.role)-rank(b.role) || (b.latest.startedAt || 0)-(a.latest.startedAt || 0))
+  }
   function agents(s) {
     const conversation=document.getElementById('conversation')
     let strip=document.getElementById('day-agents'),view=document.getElementById('day-agent-view')
@@ -341,7 +351,11 @@ window.FleetDay=(()=>{
         shownAgent=next;strip.fleetSignature=null;agents(control().session())
       })
     }
-    if(!view){view=document.createElement('section');view.id='day-agent-view';view.className='day-agent-view';conversation.after(view)}
+    if(!view){
+      view=document.createElement('section');view.id='day-agent-view';view.className='day-agent-view';conversation.after(view)
+      // An earlier run, picked from the list inside a scout's tab.
+      view.addEventListener('click',event=>{const run=event.target.closest('[data-agent]');if(!run)return;shownAgent=run.dataset.agent;strip.fleetSignature=null;agents(control().session())})
+    }
     // Tabs earn their row only once there is something to switch to.
     strip.hidden=!list.length && !threads.length
     const running=list.filter(d=>d.status==='running').length
@@ -350,17 +364,25 @@ window.FleetDay=(()=>{
     const signature=JSON.stringify([s.id,shownAgent,list.map(d=>[d.id,d.status,d.steps.length,d.report?.length,d.output?.length]),threads.map(i=>[i.thread.sessionId,threadState(i.thread.sessionId)])])
     if(strip.fleetSignature!==signature){
       strip.fleetSignature=signature
-      // Newest first after the Day itself; the last 12 is what a morning produces.
-      const recent=list.slice(-12).reverse()
+      const groups=byRole(list),shownRole=list.find(d=>d.id===shownAgent)?.role
+      const tab=g=>{
+        const live=g.latest.status==='running'
+        const mark=live && window.FleetUI ? window.FleetUI.running(`${scoutName(g.role)} is running`) : `<span class="dot ${AGENT_STATE[g.latest.status] || ''}"></span>`
+        return `<button type="button" class="day-agent-tab${live ? ' is-live' : ''}" data-agent="${escape(g.latest.id)}" aria-pressed="${shownRole===g.role}" title="${escape(`${g.latest.description || g.role} · ${g.runs.length} run${g.runs.length===1 ? '':'s'} today`)}">${mark}${escape(scoutName(g.role))}${g.runs.length>1 ? `<span class="ui-count">${g.runs.length}</span>`:''}</button>`
+      }
       const THREAD_DOT={starting:'busy',running:'busy',approval:'stale',error:'hot'}
-      strip.innerHTML=`<button type="button" class="day-agent-tab" data-agent="" aria-pressed="${s.kind==='day' && !shownAgent}">Day agent</button>${threads.map(i=>`<button type="button" class="day-agent-tab is-thread" data-thread="${escape(i.thread.sessionId)}" aria-pressed="${s.id===i.thread.sessionId}" title="Your conversation about: ${escape(i.title)}"><span class="dot ${THREAD_DOT[threadState(i.thread.sessionId)] || 'idle'}"></span>${escape(i.title.length>28 ? i.title.slice(0,27)+'…' : i.title)}</button>`).join('')}${recent.map(d=>`<button type="button" class="day-agent-tab" data-agent="${escape(d.id)}" aria-pressed="${shownAgent===d.id}" title="${escape(d.description || d.role)}"><span class="dot ${AGENT_STATE[d.status] || ''}"></span>${escape(d.role)}</button>`).join('')}${list.length>12 ? `<span class="note">+${list.length-12} earlier</span>`:''}${running ? `<span class="note day-agents-running">${running} running</span>`:''}`
+      strip.innerHTML=`<button type="button" class="day-agent-tab" data-agent="" aria-pressed="${s.kind==='day' && !shownAgent}">Day agent</button>${threads.map(i=>`<button type="button" class="day-agent-tab is-thread" data-thread="${escape(i.thread.sessionId)}" aria-pressed="${s.id===i.thread.sessionId}" title="Your conversation about: ${escape(i.title)}"><span class="dot ${THREAD_DOT[threadState(i.thread.sessionId)] || 'idle'}"></span>${escape(i.title.length>28 ? i.title.slice(0,27)+'…' : i.title)}</button>`).join('')}${groups.map(tab).join('')}${running ? `<span class="note day-agents-running">${running} running</span>`:''}`
     }
     conversation.hidden=!!shownAgent && s.kind==='day';view.hidden=!shownAgent || s.kind!=='day'
     if(!shownAgent || s.kind!=='day')return
     const d=list.find(d=>d.id===shownAgent)
     const opened=new Set([...view.querySelectorAll('details[open][data-step]')].map(el=>el.dataset.step))
     const steps=d.steps.length ? `<ol class="child-steps">${d.steps.map(step=>`<li class="child-step" data-status="${escape(step.status)}"><span class="child-step-tool">${escape(step.tool.replace(/^mcp__[^_]+(?:_[^_]+)*?__/,''))}</span>${step.target ? `<span class="child-step-target">${escape(step.target)}</span>`:''}<span class="child-step-state">${escape(step.status)}</span><span class="child-step-time">${step.ms!=null ? elapsed(step.ms) : step.status==='running' ? 'running…':''}</span><details class="child-step-detail" data-step="${escape(step.id)}" ${opened.has(step.id) ? 'open':''}><summary>Input and output</summary><h4>Input</h4><pre>${escape(typeof step.input==='string' ? step.input : JSON.stringify(step.input,null,2))}</pre><h4>Output${step.truncated ? ' · truncated':''}</h4><pre>${escape(step.result ?? 'No result yet.')}</pre></details></li>`).join('')}</ol>` : '<p class="note">No tool steps yet.</p>'
-    const html=`<header class="day-agent-head"><span class="badge ${AGENT_STATE[d.status] || ''}"><span class="dot"></span>${escape(d.status)}</span><h3>${escape(d.role)}</h3><span class="note">${escape(d.model ? d.model.replace('claude-','') : '')}${d.startedAt ? ` · ${elapsed((d.finishedAt || Date.now())-d.startedAt)}`:''}${d.description ? ` · ${escape(d.description)}`:''}</span></header><section class="detail-section"><h3>Assignment</h3><div class="response">${escape(d.prompt || 'Not recorded.')}</div></section><section class="detail-section"><h3>Steps</h3>${steps}</section>${d.output && d.status==='running' ? `<section class="detail-section"><h3>Latest output</h3><div class="response">${escape(d.output)}</div></section>`:''}<section class="detail-section"><h3>Report to the Day</h3><div class="response ${d.report ? '':'missing'}">${escape(d.report || (d.status==='running' ? 'Still working…' : 'No report.'))}</div></section>`
+    const runs=list.filter(x=>x.role===d.role).sort((a,b)=>(b.startedAt || 0)-(a.startedAt || 0))
+    const clockOf=at=>at ? new Date(at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''
+    const gist=x=>x.status==='running' ? 'running now' : String(x.report || '').replace(/\s+/g,' ').trim().slice(0,90) || (x.status==='failed' ? 'failed' : 'no report')
+    const history=runs.length>1 ? `<section class="detail-section"><h3>Runs today <span>${runs.length}</span></h3><ol class="scout-runs">${runs.map(x=>`<li><button type="button" class="scout-run" data-agent="${escape(x.id)}" aria-current="${x.id===d.id}"><span class="dot ${AGENT_STATE[x.status] || ''}"></span><time>${escape(clockOf(x.startedAt))}</time><span class="scout-run-gist">${escape(gist(x))}</span><small>${x.steps.length} step${x.steps.length===1 ? '':'s'}</small></button></li>`).join('')}</ol></section>` : ''
+    const html=`<header class="day-agent-head"><span class="badge ${AGENT_STATE[d.status] || ''}"><span class="dot"></span>${escape(d.status)}</span><h3>${escape(d.role)}</h3><span class="note">${escape(d.model ? d.model.replace('claude-','') : '')}${d.startedAt ? ` · ${elapsed((d.finishedAt || Date.now())-d.startedAt)}`:''}${d.description ? ` · ${escape(d.description)}`:''}</span></header>${history}<section class="detail-section"><h3>Assignment</h3><div class="response">${escape(d.prompt || 'Not recorded.')}</div></section><section class="detail-section"><h3>Steps</h3>${steps}</section>${d.output && d.status==='running' ? `<section class="detail-section"><h3>Latest output</h3><div class="response">${escape(d.output)}</div></section>`:''}<section class="detail-section"><h3>Report to the Day</h3><div class="response ${d.report ? '':'missing'}">${escape(d.report || (d.status==='running' ? 'Still working…' : 'No report.'))}</div></section>`
     if(view.fleetHtml!==html){const top=view.scrollTop;view.innerHTML=html;view.fleetHtml=html;view.scrollTop=top}
   }
   async function post(id,body,done) {
