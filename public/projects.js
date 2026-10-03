@@ -10,6 +10,7 @@ window.FleetProjects=(()=>{
   const escape=value=>esc(String(value ?? ''))
   const STATE={todo:'To do',doing:'Doing',review:'In review',done:'Done'}
   const STATE_TONE={todo:'todo',doing:'progress',review:'review',done:'done'}
+  const DAY_STATUS={today:'planned',in_progress:'in progress',waiting_on_you:'waiting on you',done:'done',later:'later',proposed:'proposed'}
   const SESSION_TONE={starting:'working',running:'working',approval:'needs',stopping:'idle',stopped:'idle',error:'hot',idle:'idle',queued:'queued'}
   const SESSION_STATE={starting:'starting',running:'working',approval:'needs you',stopping:'stopping',stopped:'stopped',error:'failed',idle:'ready',queued:'queued'}
   const store=window.Fleet.store
@@ -50,7 +51,10 @@ window.FleetProjects=(()=>{
   const newHtml=()=>`${UI.pageHead({title:'New project',actions:switcher()})}<div class="page-body"><form class="ui-form project-new-form" data-project-new><h3>What are you working towards?</h3><p class="note">Just a title. The project manager looks it up in Linear, GitHub, Slack, Notion and your meetings, writes the brief, deadline and deliverables into the project's file, and asks you what it could not find.</p><input data-keep="new:name" name="name" required maxlength="100" placeholder="Queue in the ring node" autocomplete="off"><textarea data-keep="new:note" name="note" rows="3" maxlength="8000" placeholder="Anything to start from? A link, a deadline, who asked. Optional."></textarea><div class="ui-actions"><button type="submit" class="button resume">Create and set up ↗</button><button type="button" class="button" data-cancel>Cancel</button></div></form></div>`
   function projectHtml(p,live) {
     const left=daysLeft(p.deadline),members=live.filter(s=>s.projectId===p.id && s.kind!=='project')
-    const deliverables=UI.list(p.deliverables.map(d=>UI.row({tone:STATE_TONE[d.state],orbTitle:STATE[d.state],title:escape(d.title),meta:d.note ? `<span class="ui-row-latest" title="${escape(d.note)}">${escape(d.note)}</span>`:'',side:`<select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select>`})).join(''))
+    // Each open deliverable can go on today's Day; once there, it says so and leads there.
+    const onToday=p.onToday || {}
+    const todayButton=d=>onToday[d.id] ? `<button type="button" class="button ghost is-on-today" data-open-today="${escape(onToday[d.id].itemId)}" title="On today's Day: ${escape(DAY_STATUS[onToday[d.id].status] || onToday[d.id].status)}">${onToday[d.id].status==='done' ? 'Done today' : 'On Today'} ↗</button>` : d.state==='done' ? '' : `<button type="button" class="button ghost" data-plan-today="${escape(d.id)}" title="Put this on today's Day. The Day agent prepares a launch brief for you to approve.">＋ Today</button>`
+    const deliverables=UI.list(p.deliverables.map(d=>UI.row({tone:STATE_TONE[d.state],orbTitle:STATE[d.state],title:escape(d.title),meta:d.note ? `<span class="ui-row-latest" title="${escape(d.note)}">${escape(d.note)}</span>`:'',side:`${todayButton(d)}<select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select>`})).join(''))
     const sessions=members.length ? UI.list(members.map(s=>UI.row({tone:SESSION_TONE[s.managedStatus],orbTitle:SESSION_STATE[s.managedStatus] || s.managedStatus,title:escape((s.title || s.name || 'Session').slice(0,80)),meta:UI.pill(escape(SESSION_STATE[s.managedStatus] || s.managedStatus),SESSION_TONE[s.managedStatus]),side:`<button type="button" class="button ghost" data-open-session="${escape(s.managedId)}">Open ↗</button>`})).join(''),'is-compact') : '<p class="note">No sessions yet. Tag one from its console, or launch from your Day.</p>'
     const log=(p.log || []).slice(-5).reverse()
     const strip=[
@@ -123,6 +127,18 @@ window.FleetProjects=(()=>{
     if(copy){navigator.clipboard?.writeText(copy.dataset.copyPath).then(()=>toast('Path copied. Edit the file by hand any time; Fleet reads it.'),()=>toast(copy.dataset.copyPath));return}
     const archive=t.closest('[data-archive]')
     if(archive){if(!confirmArchive(archive))return;await api(`/api/projects/${archive.dataset.archive}/archive`,{archived:true}).catch(e=>toast(e.message));editing=null;selected=null;return load(true)}
+    const plan=t.closest('[data-plan-today]')
+    if(plan){
+      plan.disabled=true
+      try{
+        const result=await api(`/api/projects/${selected}/today`,{deliverableId:plan.dataset.planToday})
+        toast(result.existing ? 'Already on today.' : 'On today. The Day agent is preparing a launch brief.')
+        await window.Fleet.tick();await load(true)
+      }catch(error){toast(error.message);plan.disabled=false}
+      return
+    }
+    const onDay=t.closest('[data-open-today]')
+    if(onDay)return window.FleetDay?.showItem?.(onDay.dataset.openToday)
     const opener=t.closest('[data-open-session]')
     if(opener){window.FleetViews?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const ask=t.closest('[data-ask-project]')
@@ -178,5 +194,12 @@ window.FleetProjects=(()=>{
   }
   mount()
   // The console's own controls use this to offer a project to tag a session with.
-  return {active,current,render,list:()=>projects,load}
+  // Open one project, from anywhere (a Today item's project tag).
+  function show(id) {
+    if(!projects.some(p=>p.id===id) && fetchedAt)return toast('That project is archived or gone.')
+    selected=id;editing=null;store.set('fleet:project',selected)
+    window.FleetViews?.switchView('projects')
+    draw(true);load(true)
+  }
+  return {active,current,render,list:()=>projects,load,show}
 })()

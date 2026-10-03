@@ -185,3 +185,28 @@ test('a manager\'s suggestion, as its tool sends it, lands on today\'s Day with 
     assert.ok(d.dayBoard.items.some(i=>i.id===item.id),'it is on today\'s board')
   } finally { await manager.close() }
 })
+
+test('a deliverable goes on today as work to start, once, and the project knows it is there',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const p=make(manager.projects,{brief:'Ship the queue.'})
+    const [first,second]=p.deliverables
+    manager.projects.deliverable(p.id,first.id,{note:'Waiting on #3799'})
+    assert.throws(()=>manager.planDeliverable(p.id,first.id),/Start your day/,'there has to be a Day to put it on')
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const {item,existing}=manager.planDeliverable(p.id,first.id)
+    assert.equal(existing,false)
+    assert.deepEqual([item.title,item.status,item.mode,item.projectId,item.deliverableId],[first.title,'today','agent',p.id,first.id],'decided work for the Day agent, tagged with its project')
+    assert.match(item.context,/Ship the queue\./)
+    assert.deepEqual(item.links,[],'no links, so it cannot be merged into another item')
+    const after=manager.projects.get(p.id).deliverables.find(x=>x.id===first.id)
+    assert.equal(after.state,'doing')
+    assert.equal(after.note,'Waiting on #3799','the manager\'s note is kept')
+    assert.equal(manager.planDeliverable(p.id,first.id).existing,true,'a second click finds it rather than adding a twin')
+    assert.equal(d.dayBoard.items.filter(i=>i.deliverableId===first.id).length,1)
+    assert.deepEqual(manager.deliverablesOnToday(p.id),{[first.id]:{itemId:item.id,status:'today'}})
+    assert.throws(()=>manager.planDeliverable(p.id,'nope'),/not in this project/)
+    assert.equal(manager.projects.get(p.id).deliverables.find(x=>x.id===second.id).state,'todo','only the one asked for moves')
+  } finally { await manager.close() }
+})

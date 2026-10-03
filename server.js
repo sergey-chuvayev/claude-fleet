@@ -151,11 +151,12 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
         if(url.pathname==='/api/projects'){const project=manager.createProject(data);manager.emit('change','projects');return json(res,200,{project})}
-        const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask)$/)
+        const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask|today)$/)
         if(projectAction){
           const [,pid,act]=projectAction
           const result=act==='archive' ? {project:manager.projects.archive(pid,data.archived!==false)}
             : act==='deliverable' ? {deliverable:manager.projects.deliverable(pid,String(data.deliverableId || ''),{state:data.state,note:data.note})}
+            : act==='today' ? manager.planDeliverable(pid,String(data.deliverableId || ''))
             : {session:manager.detail(manager.askProject(pid,data).id)}
           manager.emit('change','projects')
           return json(res,200,result)
@@ -239,7 +240,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(url.pathname==='/api/models') return json(res,200,{models:[...(manager.models || MODEL_FALLBACK),AUTO_OPTION]})
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
       // Each project with its progress, how many sessions are tagged to it, and its manager.
-      if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,managerId:manager.managerOf(p.id)?.id || null}))})
+      if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,onToday:manager.deliverablesOnToday(p.id),managerId:manager.managerOf(p.id)?.id || null}))})
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
       if(url.pathname==='/api/sessions') return json(res,200,getSnapshot())

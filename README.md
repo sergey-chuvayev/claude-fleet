@@ -485,6 +485,15 @@ GitHub and Slack to check facts, keeps the deliverables' state and notes honest,
 decisions and risks. It never starts work or sends anything outside Fleet: next steps go onto
 your Day as proposals, where launches still need your approval.
 
+### Start a deliverable from Today
+
+Each open deliverable on a project has **＋ Today**. It puts the deliverable on today's
+Day as an "Agent does it" item, tagged with the project and tied to the deliverable,
+and moves the deliverable to Doing. The Day agent picks it up within seconds and writes
+a launch brief; approve it and the work runs as a Fleet session in that project. The
+deliverable then shows **On Today ↗**, which opens the item on the board. On Today, an
+item's project tag opens the project.
+
 ### Continue a terminal session in Fleet
 
 Select a session you started with `claude` in a terminal and it opens in the same
