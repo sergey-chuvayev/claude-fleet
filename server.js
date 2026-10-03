@@ -18,6 +18,7 @@ const { Updater } = require('./update.js')
 const { Service, RESTART_CODE } = require('./service.js')
 const { defaultCwd, stateDir } = require('./paths.js')
 const { progress: projectProgress } = require('./projects')
+const weekly = require('./progress')
 const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
 const { version: VERSION } = require('./package.json')
@@ -258,6 +259,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(url.pathname==='/api/teams') return json(res,200,{teams:manager.teams.list(),tools:TOOL_OPTIONS})
       // Each project with its progress, how many sessions are tagged to it, and its manager.
       if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,onToday:manager.deliverablesOnToday(p.id),managerId:manager.managerOf(p.id)?.id || null}))})
+      // The weekly look: what shipped, what stalled, what ran, read from the Day boards and sessions.
+      if(url.pathname==='/api/progress') return json(res,200,weekly.summarize(manager.sessions.values(),{days:Math.min(30,Math.max(1,Number(url.searchParams.get('days')) || weekly.WINDOW_DAYS))}))
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
       if(url.pathname==='/api/sessions') return respond(req,res,getSnapshot(),{paths:['sessions'],volatile:['generatedAt']})
@@ -286,7 +289,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/progress.js':'progress.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))

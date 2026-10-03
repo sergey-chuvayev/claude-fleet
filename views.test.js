@@ -5,13 +5,13 @@ const assert=require('node:assert/strict')
 const fs=require('node:fs')
 const path=require('node:path')
 const vm=require('node:vm')
-function load(saved,panes=['sessions-pane','today-pane','projects-pane']) {
+function load(saved,panes=['sessions-pane','today-pane','projects-pane','progress-pane']) {
   const elements=new Map(),stored={'fleet:view':saved},renders=[]
   const element=id=>{
     if (!elements.has(id)) elements.set(id,{id,hidden:false,attrs:{},handlers:{},addEventListener(type,fn){this.handlers[type]=fn},setAttribute(name,value){this.attrs[name]=value}})
     return elements.get(id)
   }
-  for (const id of [...panes,'view-today','view-projects','view-sessions']) element(id)
+  for (const id of [...panes,'view-today','view-projects','view-progress','view-sessions']) element(id)
   const workspace={dataset:{},setAttribute(){}}
   const context=vm.createContext({document:{querySelector:()=>workspace},console})
   context.window=context
@@ -28,6 +28,13 @@ test('one view shows at a time, its tab is pressed, and the choice is remembered
   assert.equal(element('view-sessions').attrs['aria-pressed'],'false')
   assert.equal(workspace.dataset.view,'today')
   assert.equal(stored['fleet:view'],'today')
+})
+test('Progress is a view of its own and shows only its pane',()=>{
+  const {views,element}=load('sessions')
+  element('view-progress').handlers.click()
+  assert.equal(views.view(),'progress')
+  assert.deepEqual(['sessions-pane','today-pane','projects-pane','progress-pane'].map(id=>element(id).hidden),[true,true,true,false])
+  assert.equal(load('progress',['sessions-pane']).views.view(),'sessions','Progress without its pane falls back')
 })
 test('a remembered Work queue, or a view without its pane, falls back to Sessions',()=>{
   assert.equal(load('queue').views.view(),'sessions','the retired Work queue view opens Sessions')
