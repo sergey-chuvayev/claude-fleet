@@ -6,6 +6,7 @@ const path = require('node:path')
 const { randomBytes, timingSafeEqual } = require('node:crypto')
 const { collect, transcriptFor, transcriptFile } = require('./fleet.js')
 const { history } = require('./history.js')
+const codex = require('./codex.js')
 const { respond, tagOf } = require('./sync.js')
 const { AUTO_OPTION } = require('./routing')
 const { Connections } = require('./connections')
@@ -32,7 +33,7 @@ const MODEL_FALLBACK = [
 const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null} = {}) {
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null} = {}) {
   const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
@@ -70,8 +71,18 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   heartbeat.unref()
   const json=(res,status,body)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(body))}
   const elsewhere=(row)=>row && row.alive ? {pid:row.pid,name:row.name || row.shortId || null,entrypoint:row.entrypoint || null,background:!!row.background,state:row.state,startedAt:row.startedAt || null} : null
+  // Codex's own sessions join Claude's in the one list, marked engine: 'codex'. A broken
+  // Codex folder costs its rows, never the list.
+  const withCodex=snap=>{
+    let rows=[]
+    try{rows=collectCodex()}catch{}
+    if(!rows.length) return snap
+    const counts={...snap.counts}
+    for(const r of rows) counts[r.state]=(counts[r.state] || 0)+1
+    return {...snap,sessions:[...snap.sessions,...rows],counts,total:(snap.total || 0)+rows.length}
+  }
   const getSnapshot=()=>{
-    const snap=collectSessions()
+    const snap=withCodex(collectSessions())
     const managed=manager.summaries()
     // A copy still being forked carries its source's id until Claude reports its own;
     // until then the source stays its own row and nothing is shared between them.
@@ -224,7 +235,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return json(res,200,{session:manager.detail(id)})
       }
       if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,defaultApprovalMode:manager.defaultApprovalMode,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,codex:codex.available() ? {available:true,model:codex.defaultModel()} : {available:false},supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,defaultApprovalMode:manager.defaultApprovalMode,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
       if(url.pathname==='/api/update'){
         // Answer from the cache and refresh behind the request: a page load should
         // never wait on npm's registry, and the dashboard asks again shortly after.
@@ -250,10 +261,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       // see in its list, read from that session's own transcript.
       if(url.pathname==='/api/sessions/history'){
         const id=url.searchParams.get('sessionId') || ''
-        const row=/^[\w-]{1,64}$/.test(id) ? collectSessions().sessions.find(s=>s.sessionId===id) : null
-        const file=row && transcriptFile(id)
+        const row=/^[\w-]{1,64}$/.test(id) ? withCodex(collectSessions()).sessions.find(s=>s.sessionId===id) : null
+        const file=row && (row.engine==='codex' ? row.transcript : transcriptFile(id))
         if(!file) return json(res,404,{error:'No transcript for that session.'})
-        return respond(req,res,{...history(file,{alive:!!row.alive}),alive:!!row.alive},{paths:['messages']})
+        const read=row.engine==='codex' ? codex.history : history
+        return respond(req,res,{...read(file,{alive:!!row.alive}),alive:!!row.alive},{paths:['messages']})
       }
       if(url.pathname==='/api/settings/gateway')return json(res,200,{gateway:manager.gatewaySettings.status()})
       if(url.pathname==='/api/settings/approval-mode')return json(res,200,{defaultApprovalMode:manager.defaultApprovalMode})

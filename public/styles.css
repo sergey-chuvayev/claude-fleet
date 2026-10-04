@@ -3264,6 +3264,10 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
 .ico-ticket { --ico:url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%224%22 y=%224%22 width=%2216%22 height=%2216%22 rx=%223.5%22/><path d=%22M8.5 12.5 11 15l4.5-5%22/></svg>") }
 .ico-stop { -webkit-mask-size:contain; mask-size:contain }
 
+/* Codex sessions and agents: a small tag, the same in the list and the console. */
+.engine-tag, #conversation-title[data-engine=codex]::after { display:inline-flex; align-items:center; padding:0 7px; border-radius:999px; border:1px solid color-mix(in oklab,var(--idle) 45%,var(--line)); color:var(--idle); font-size:var(--text-xs); font-weight:600; letter-spacing:.02em; line-height:16px; white-space:nowrap }
+#conversation-title[data-engine=codex]::after { content:"Codex"; margin-left:8px; vertical-align:2px }
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }

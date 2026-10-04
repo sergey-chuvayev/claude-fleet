@@ -6,6 +6,8 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+// Codex's sessions too: tests must not read, or list, the real ~/.codex.
+if (!process.env.CODEX_HOME) process.env.CODEX_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-test-codex-'))
 if (!process.env.CLAUDE_FLEET_HOME) {
   process.env.CLAUDE_FLEET_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-test-home-'))
 }

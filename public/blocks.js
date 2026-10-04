@@ -132,7 +132,7 @@ function toolLabel(name) {
   const action = mcp[2].replace(new RegExp(`^${server.toLowerCase()}_`), '').replace(/_/g, ' ')
   return `${server} · ${action}`
 }
-function blockHtml(message, { streaming = false } = {}) {
+function blockHtml(message, { streaming = false, agent = 'CLAUDE' } = {}) {
   // A run that started on its own (an intake, a check, picking up answers): a marker
   // in the timeline, not a message the operator typed.
   if (message.role === 'event') return `<div class="block-event"><span>${escapeHtml(message.text)}</span><span class="block-meta">${clock(message.at)}</span></div>`
@@ -147,7 +147,7 @@ function blockHtml(message, { streaming = false } = {}) {
     const lead = state === 'is-running' && window.FleetUI ? `<span class="block-icon is-live">${window.FleetUI.running('Running now')}</span>` : `<span class="block-icon" aria-hidden="true">${icon}</span>`
     return `<div class="block-head">${lead}<span class="block-tool" title="${escapeHtml(message.tool)}">${isDelegation(message.tool) ? `Delegation · ${escapeHtml(message.input?.subagent_type || 'subagent')}` : escapeHtml(message.label || toolLabel(message.tool))}</span>${target}<span class="block-meta">${escapeHtml(meta)}</span>${auto}<span class="block-state ${state}">${stateLabel}</span>${actionsHtml}</div><div class="block-body">${toolBody(message)}${resultHtml(message)}</div>`
   }
-  const who = message.role === 'user' ? 'YOU' : 'CLAUDE'
+  const who = message.role === 'user' ? 'YOU' : agent
   const icon = message.role === 'user' ? '›' : '✳'
   const live = streaming ? `<span class="block-state is-running is-live">${window.FleetUI ? window.FleetUI.running('Writing now') : ''}writing</span>` : ''
   const attachments = Array.isArray(message.attachments) && message.attachments.length
@@ -175,7 +175,8 @@ function copyText(message) {
   return parts.join('\n')
 }
 
-function renderBlocks(container, messages, { streamingId = null, onCopy = () => {} } = {}) {
+// `agent` names who replies: CLAUDE, or CODEX for a Codex session.
+function renderBlocks(container, messages, { streamingId = null, onCopy = () => {}, agent = 'CLAUDE' } = {}) {
   const seen = new Set()
   let previous = null
   for (const message of messages) {
@@ -196,7 +197,7 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
       element.dataset.tool = message.tool || ''
       element.dataset.status = message.status || ''
       const disclosures = new Map([...element.querySelectorAll('[data-delegation]')].map(el => [el.dataset.delegation, el.open]))
-      element.innerHTML = blockHtml(message, { streaming })
+      element.innerHTML = blockHtml(message, { streaming, agent })
       for (const el of element.querySelectorAll('[data-delegation]')) if (disclosures.has(el.dataset.delegation)) el.open = disclosures.get(el.dataset.delegation)
       element.querySelector('[data-collapse]')?.addEventListener('click', event => {
         const collapsed = element.classList.toggle('collapsed')

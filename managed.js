@@ -6,6 +6,7 @@ const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
 const { gitBranch, turnSummary, toolTarget, transcriptFor, transcriptFile } = require('./fleet')
 const { history, clampInput, resultText, MAX_TOOL_RESULT, QUIET_RESULT } = require('./history')
+const codexEngine = require('./codex')
 const { askReason, normaliseMode, MODES, DEFAULT_MODE, DEFAULT_NEW_MODE } = require('./permissions')
 const { stateDir, defaultCwd } = require('./paths')
 const { getTeam, compile, boundedModel } = require('./teams')
@@ -69,9 +70,11 @@ function requestId(value) {
 }
 
 class ManagedSessions extends EventEmitter {
-  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue, modelRouter = routing.route, findTranscript = transcriptFile } = {}) {
+  constructor({ directory = stateDir(), queryFactory, externalSessions = () => [], queue, modelRouter = routing.route, findTranscript = transcriptFile, codex = codexEngine } = {}) {
     super()
     this.findTranscript = findTranscript
+    // Codex, the other engine: its saved sessions and how to run a turn.
+    this.codex = codex
     this.directory = directory
     this.queryFactory = queryFactory || (async args => (await import('@anthropic-ai/claude-agent-sdk')).query(args))
     this.modelRouter = modelRouter
@@ -195,7 +198,7 @@ class ManagedSessions extends EventEmitter {
   }
   summaries() {
     return [...this.sessions.values()].map(s => ({
-      managedId:s.id, sessionId:s.sessionId, shortId:(s.sessionId || s.id).slice(0,8),
+      managedId:s.id, sessionId:s.sessionId, shortId:(s.sessionId || s.id).slice(0,8), engine:s.engine || 'claude',
       name:s.name, title:s.name, branch:gitBranch(s.cwd), cwd:s.cwd, cwdShort:s.cwd.replace(os.homedir(),'~'),
       state:ACTIVE.has(s.status) && s.status !== 'approval' ? 'busy' : 'idle',
       managedStatus:s.status, managed:true, alive:ACTIVE.has(s.status), pid:null,
@@ -204,7 +207,7 @@ class ManagedSessions extends EventEmitter {
       model:s.model, contextTokens:s.contextTokens || null, contextLimit:s.contextLimit || 200000,
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
-      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? `claude --resume ${s.sessionId}` : null, forkPending:!!s.forkPending, continuedFrom:s.continuedFrom || null,
+      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? (s.engine === 'codex' ? `codex resume ${s.sessionId}` : `claude --resume ${s.sessionId}`) : null, forkPending:!!s.forkPending, continuedFrom:s.continuedFrom || null,
       kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, projectId:s.projectId || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
@@ -269,7 +272,23 @@ class ManagedSessions extends EventEmitter {
     // the terminal keeps its own. Either way the console starts with the conversation
     // so far, read from the transcript.
     let resume = null, fork = false, earlier = []
-    if (body.resumeSessionId) {
+    // Which agent runs it: Claude, or Codex where it is installed. Codex runs single
+    // agents; teams, Days and project managers are built on Claude's own features.
+    const engine = body.engine === 'codex' ? 'codex' : 'claude'
+    if (engine === 'codex') {
+      if (!this.codex.available()) fail('Codex is not installed on this machine. Install it with npm install -g @openai/codex, then sign in with codex login.',409)
+      if (body.teamId) fail('Teams run on Claude. Start a Codex agent without a team.',409)
+    }
+    if (body.resumeSessionId && engine === 'codex') {
+      const source = this.codex.sessions().find(x => x.sessionId === body.resumeSessionId)
+      if (!source) fail('That Codex session is not on this machine.',409)
+      if (source.alive) fail('Codex is still working on that session. Continue it here once it finishes.',409)
+      const real = dir => { try { return fs.realpathSync(dir) } catch { return dir } }
+      if (real(source.cwd || '') !== cwd) fail('That session is not in this project.',409)
+      if ([...this.sessions.values()].some(x => x.sessionId === source.sessionId)) fail('This conversation is already managed by Fleet.',409)
+      resume = source.sessionId
+      try { earlier = this.codex.history(source.transcript,{limit:MAX_MESSAGES-20}).messages } catch {}
+    } else if (body.resumeSessionId) {
       const source = this.externalSessions().find(s => s.sessionId === body.resumeSessionId)
       fork = body.fork === true
       if (!source) fail('That session is not on this machine.',409)
@@ -292,7 +311,7 @@ class ManagedSessions extends EventEmitter {
     const id = randomUUID()
     const worktree = team ? worktrees.create({cwd,id,name}) : null
     const projectId = body.projectId ? this.projects.require(text(body.projectId,'Project',100)).id : null
-    const s = {id,projectId,sessionId:resume,...(fork ? {forkPending:true,forkedFrom:resume} : {}),...(resume ? {continuedFrom:resume} : {}),name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:body.approvalMode===undefined ? this.defaultApprovalMode : normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
+    const s = {id,projectId,sessionId:resume,...(engine === 'codex' ? {engine} : {}),...(fork ? {forkPending:true,forkedFrom:resume} : {}),...(resume ? {continuedFrom:resume} : {}),name,cwd:worktree ? worktree.path : cwd,createRequestId:rid,createdAt:Date.now(),updatedAt:Date.now(),status:'idle',approvalMode:body.approvalMode===undefined ? this.defaultApprovalMode : normaliseMode(body.approvalMode),selectedModel:modelChoice(body.model),messages:[],approvals:[],model:null,contextTokens:null,error:null,currentTool:null,requestIds:[],queue:[],kind:team ? 'initiative' : 'agent',teamId:team?.id || null,teamName:team?.name || null,teamSnapshot:team ? structuredClone(team) : null,taskBoard:team?.workflow ? {tasks:[],delegations:[]} : null,worktree}
     if (ownerReview.enabled(s)) {
       try {s.reviewBaseCommit=ownerReview.snapshot(s).commit;s.ownerRequest=prompt || 'Implement the request in the attached images.'}
       catch(error) {worktrees.remove(worktree);throw error}
@@ -690,149 +709,161 @@ class ManagedSessions extends EventEmitter {
       yield { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null }
     })()
   }
+  // A Codex turn: the installed Codex, resuming its thread after the first turn. Fleet's
+  // approval setting chooses its sandbox, since Codex cannot ask here before a command.
+  codexQuery(s,run,entry,prompt) {
+    const images = (typeof entry === 'string' ? [] : entry.attachments || []).map(a => path.join(this.attachmentsDir, a.id))
+    return this.codex.query({prompt,cwd:s.cwd,threadId:s.sessionId,approvalMode:s.approvalMode,model:s.selectedModel || '',images,signal:run.controller.signal,onStderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) }})
+  }
+  // A Claude turn: the Agent SDK query, with whatever this kind of session adds (a team,
+  // a Day, a project manager, owner review, automatic model choice).
+  async claudeQuery(s,run,entry,prompt) {
+    const options = {
+      cwd:s.cwd,permissionMode:'default',settingSources:['user','project','local'],
+      systemPrompt:{type:'preset',preset:'claude_code'},
+      includePartialMessages:true,abortController:run.controller,
+      canUseTool:(tool,input,context) => this.ask(s,run,tool,input,context),
+      stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
+      ...(s.sessionId && !run.background ? {resume:s.sessionId} : {}),
+      // A copy of a conversation still open in its terminal: the first turn forks it, and
+      // the new session id it reports is this conversation's from then on.
+      ...(s.forkPending && !run.background ? {forkSession:true} : {}),
+    }
+    const automatic=s.selectedModel===routing.AUTO_MODEL
+    const selectedModel=automatic ? '' : s.selectedModel
+    options.model = boundedModel(selectedModel)
+    options.effort = 'medium'
+    // `agent` puts the manager on the main thread, so the operator's messages reach it and
+    // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
+    // Both compose with the claude_code preset above, which keeps the built-in tools.
+    const team = s.teamSnapshot || getTeam(s.teamId)
+    if (team) {
+      Object.assign(options, compile(team))
+      const manager=options.agents[team.manager]
+      options.model=boundedModel(selectedModel || manager.model,'opus')
+      manager.model=options.model
+      options.effort=manager.effort
+      options.maxTurns=manager.maxTurns
+    }
+    if (s.kind === 'project') {
+      if (!this.projects.get(s.projectId)) throw new Error('This project was deleted.')
+      options.systemPrompt = {type:'preset',preset:'claude_code',append:projectAgent.SYSTEM}
+      options.model = boundedModel(selectedModel,'sonnet')
+      options.disallowedTools = ['Edit','Write','NotebookEdit']
+      options.mcpServers = {fleet:await projectAgent.server(s.projectId,{projects:this.projects,status:id=>this.projectStatus(id),session:(id,sid)=>this.projectSession(id,sid),suggest:(id,input)=>this.suggestForProject(id,input)},()=>this.changed(s))}
+      options.hooks = {PreToolUse:[{hooks:[async input=>{
+        if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+        return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+      }]}]}
+    }
+    if (s.kind === 'thread') {
+      const owner = this.dayFor(s)
+      if (!owner) throw new Error('The Day this conversation belongs to was closed.')
+      options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.THREAD_SYSTEM}
+      options.model = boundedModel(selectedModel,'sonnet')
+      options.disallowedTools = ['Edit','Write','NotebookEdit']
+      options.mcpServers = {fleet:await day.threadServer(owner,s.itemId,()=>this.changed(owner,true))}
+      options.hooks = {PreToolUse:[{hooks:[async input=>{
+        if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+        return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+      }]}]}
+    }
+    if (s.kind === 'day') {
+      options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.SYSTEM}
+      options.agents = dayAgent.AGENTS
+      options.model = boundedModel(selectedModel,'sonnet')
+      // Code is changed by initiatives the operator launches, never by the Day itself.
+      options.disallowedTools = ['Edit','Write','NotebookEdit']
+      options.mcpServers={fleet:await day.sdkServer(s,()=>{this.syncThreads(s);this.changed(s,true)},{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description})),projects:()=>this.projects.list().map(p=>({id:p.id,name:p.name,repos:p.repos,deadline:p.deadline,open:p.deliverables.filter(d=>d.state!=='done').map(d=>d.title)}))})}
+      // Scouts run in the foreground. A background subagent outlives the turn that
+      // launched it, and once that turn's result arrives the SDK closes its input:
+      // every permission check and every call to the in-process day tool after that
+      // fails with "Stream closed". Several foreground calls in one message still run
+      // side by side, so the intake loses nothing by waiting for them.
+      options.hooks={PreToolUse:[{hooks:[async input=>{
+        if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
+        return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
+      }]}]}
+    }
+    if (team?.workflow) {
+      if (ownerReview.refresh(s)) this.changed(s,true)
+      options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
+      options.hooks={
+        PreToolUse:[{hooks:[async input=>{
+          if (ownerReview.refresh(s)) this.changed(s,true)
+          if (ownerReview.enabled(s) && input.agent_id && (['Agent','Task'].includes(input.tool_name) || input.tool_name==='mcp__fleet__tasks')) {
+            return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'Only the persistent owner can manage the request or invoke its reviewer.'}}
+          }
+          if (!['Agent','Task'].includes(input.tool_name)) return {}
+          const before=structuredClone(s.taskBoard)
+          let applied=false
+          try {
+            const delegation=tasks.start(s,input.tool_use_id,input.tool_input)
+            applied=true
+            const task=s.taskBoard.tasks.find(t=>t.id===delegation.taskId)
+            const mandate=ownerReview.enabled(s) ? ownerReview.mandate(s,task,this.attachmentsDir) : `\n\nFleet acceptance criteria:\n${task.criteria.map(c=>'- '+c).join('\n')}\nReturn PASS or FAIL with evidence if you are verifying. Do not edit source while verifying.`
+            delegation.prompt=(input.tool_input.prompt+mandate).slice(0,48000)
+            this.changed(s,true)
+            return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,prompt:input.tool_input.prompt+mandate}}}
+          } catch(error) {if(applied)s.taskBoard=before;return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:error.message}}}
+        }]}],
+        Stop:[{hooks:[async (input={})=>{
+          if (input.agent_id) return {}
+          if (ownerReview.refresh(s)) this.changed(s,true)
+          if (ownerReview.enabled(s)) {
+            const task=s.taskBoard.tasks[0]
+            if (!task || !['verified','blocked'].includes(task.status)) {
+              const limit=s.limits?.maxAttempts ?? team.workflow.maxAttempts
+              const exhausted=task && ((task.reviewErrors || 0)>=2 || (task.attempt>=limit && !['review','review_error'].includes(task.status)))
+              if (!exhausted && (run.continuations || 0)<2) {
+                run.continuations=(run.continuations || 0)+1
+                return {decision:'block',reason:'The request is not verified. Continue in this owner session: register one task if needed, implement/test/commit, submit with action ready, and invoke the reviewer. Read the board first. Record a concrete blocker if you cannot proceed.'}
+              }
+              if (task) {task.status='blocked';task.blocker ||= exhausted ? 'Request-wide review or execution retry limit reached. Operator action is required.' : 'Owner stopped before completing independent review. Resume this session to continue.';this.changed(s,true)}
+            }
+            return {}
+          }
+          const unfinished=s.taskBoard.tasks.filter(t=>!['verified','blocked'].includes(t.status) && t.attempt<(s.limits?.maxAttempts ?? team.workflow.maxAttempts))
+          if (unfinished.length && (run.continuations || 0)<2) {
+            run.continuations=(run.continuations || 0)+1
+            return {decision:'block',reason:'Fleet tasks remain unfinished. Read the board and continue implementation/verification, or record a concrete blocker before stopping.'}
+          }
+          return {}
+        }]}],
+        SubagentStart:[{hooks:[async input=>{run.agentRoles ||= new Map();run.agentRoles.set(input.agent_id,input.agent_type);return {}}]}],
+      }
+      if (ownerReview.enabled(s)) {
+        const check=async input=>{
+          if (!ownerReview.refresh(s)) return {}
+          this.changed(s,true)
+          return {hookSpecificOutput:{hookEventName:input.hook_event_name,additionalContext:'Fleet review is stale because the code changed or its Git snapshot is unavailable. Submit a clean committed snapshot for review again.'}}
+        }
+        options.hooks.PostToolUse=[{hooks:[check]}]
+        options.hooks.PostToolUseFailure=[{hooks:[check]}]
+      }
+    }
+    if (automatic) {
+      if (!s.modelRouting) {
+        const original=s.messages.find(m=>m.role==='user')
+        let apiKey=''
+        try{apiKey=this.gatewaySettings.key()}catch{} // Unreadable credentials retain the preset.
+        const decision=await this.modelRouter({original:original?.text,current:typeof entry==='string' ? entry:entry.text,
+          fallback:options.model,hasExtraContext:!!(s.sessionId || original?.attachments?.length || original?.references?.length || entry?.attachments?.length || entry?.references?.length),signal:run.controller.signal},{apiKey})
+        if (run.stopping || run.controller.signal.aborted) return
+        s.modelRouting=decision
+        this.changed(s,true)
+      }
+      options.model=s.modelRouting.model
+      if (team) options.agents[team.manager].model=options.model
+    }
+    if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
+    return this.queryFactory({prompt,options})
+  }
   async run(s,run,entry) {
     const prompt = typeof entry === 'string' ? entry : this.promptFor(entry)
     try {
-      const options = {
-        cwd:s.cwd,permissionMode:'default',settingSources:['user','project','local'],
-        systemPrompt:{type:'preset',preset:'claude_code'},
-        includePartialMessages:true,abortController:run.controller,
-        canUseTool:(tool,input,context) => this.ask(s,run,tool,input,context),
-        stderr:chunk => { run.stderr = (run.stderr+chunk).slice(-4000) },
-        ...(s.sessionId && !run.background ? {resume:s.sessionId} : {}),
-        // A copy of a conversation still open in its terminal: the first turn forks it, and
-        // the new session id it reports is this conversation's from then on.
-        ...(s.forkPending && !run.background ? {forkSession:true} : {}),
-      }
-      const automatic=s.selectedModel===routing.AUTO_MODEL
-      const selectedModel=automatic ? '' : s.selectedModel
-      options.model = boundedModel(selectedModel)
-      options.effort = 'medium'
-      // `agent` puts the manager on the main thread, so the operator's messages reach it and
-      // nobody else; `agents` is where the Agent tool resolves the rest of the team from.
-      // Both compose with the claude_code preset above, which keeps the built-in tools.
-      const team = s.teamSnapshot || getTeam(s.teamId)
-      if (team) {
-        Object.assign(options, compile(team))
-        const manager=options.agents[team.manager]
-        options.model=boundedModel(selectedModel || manager.model,'opus')
-        manager.model=options.model
-        options.effort=manager.effort
-        options.maxTurns=manager.maxTurns
-      }
-      if (s.kind === 'project') {
-        if (!this.projects.get(s.projectId)) throw new Error('This project was deleted.')
-        options.systemPrompt = {type:'preset',preset:'claude_code',append:projectAgent.SYSTEM}
-        options.model = boundedModel(selectedModel,'sonnet')
-        options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers = {fleet:await projectAgent.server(s.projectId,{projects:this.projects,status:id=>this.projectStatus(id),session:(id,sid)=>this.projectSession(id,sid),suggest:(id,input)=>this.suggestForProject(id,input)},()=>this.changed(s))}
-        options.hooks = {PreToolUse:[{hooks:[async input=>{
-          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
-          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
-        }]}]}
-      }
-      if (s.kind === 'thread') {
-        const owner = this.dayFor(s)
-        if (!owner) throw new Error('The Day this conversation belongs to was closed.')
-        options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.THREAD_SYSTEM}
-        options.model = boundedModel(selectedModel,'sonnet')
-        options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers = {fleet:await day.threadServer(owner,s.itemId,()=>this.changed(owner,true))}
-        options.hooks = {PreToolUse:[{hooks:[async input=>{
-          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
-          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
-        }]}]}
-      }
-      if (s.kind === 'day') {
-        options.systemPrompt = {type:'preset',preset:'claude_code',append:dayAgent.SYSTEM}
-        options.agents = dayAgent.AGENTS
-        options.model = boundedModel(selectedModel,'sonnet')
-        // Code is changed by initiatives the operator launches, never by the Day itself.
-        options.disallowedTools = ['Edit','Write','NotebookEdit']
-        options.mcpServers={fleet:await day.sdkServer(s,()=>{this.syncThreads(s);this.changed(s,true)},{launched:id=>this.launchedStatus(id),teams:()=>this.teams.list().map(t=>({id:t.id,name:t.name,description:t.description})),projects:()=>this.projects.list().map(p=>({id:p.id,name:p.name,repos:p.repos,deadline:p.deadline,open:p.deliverables.filter(d=>d.state!=='done').map(d=>d.title)}))})}
-        // Scouts run in the foreground. A background subagent outlives the turn that
-        // launched it, and once that turn's result arrives the SDK closes its input:
-        // every permission check and every call to the in-process day tool after that
-        // fails with "Stream closed". Several foreground calls in one message still run
-        // side by side, so the intake loses nothing by waiting for them.
-        options.hooks={PreToolUse:[{hooks:[async input=>{
-          if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
-          return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
-        }]}]}
-      }
-      if (team?.workflow) {
-        if (ownerReview.refresh(s)) this.changed(s,true)
-        options.mcpServers={fleet:await tasks.sdkServer(s,()=>this.changed(s,true))}
-        options.hooks={
-          PreToolUse:[{hooks:[async input=>{
-            if (ownerReview.refresh(s)) this.changed(s,true)
-            if (ownerReview.enabled(s) && input.agent_id && (['Agent','Task'].includes(input.tool_name) || input.tool_name==='mcp__fleet__tasks')) {
-              return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'Only the persistent owner can manage the request or invoke its reviewer.'}}
-            }
-            if (!['Agent','Task'].includes(input.tool_name)) return {}
-            const before=structuredClone(s.taskBoard)
-            let applied=false
-            try {
-              const delegation=tasks.start(s,input.tool_use_id,input.tool_input)
-              applied=true
-              const task=s.taskBoard.tasks.find(t=>t.id===delegation.taskId)
-              const mandate=ownerReview.enabled(s) ? ownerReview.mandate(s,task,this.attachmentsDir) : `\n\nFleet acceptance criteria:\n${task.criteria.map(c=>'- '+c).join('\n')}\nReturn PASS or FAIL with evidence if you are verifying. Do not edit source while verifying.`
-              delegation.prompt=(input.tool_input.prompt+mandate).slice(0,48000)
-              this.changed(s,true)
-              return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,prompt:input.tool_input.prompt+mandate}}}
-            } catch(error) {if(applied)s.taskBoard=before;return {hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:error.message}}}
-          }]}],
-          Stop:[{hooks:[async (input={})=>{
-            if (input.agent_id) return {}
-            if (ownerReview.refresh(s)) this.changed(s,true)
-            if (ownerReview.enabled(s)) {
-              const task=s.taskBoard.tasks[0]
-              if (!task || !['verified','blocked'].includes(task.status)) {
-                const limit=s.limits?.maxAttempts ?? team.workflow.maxAttempts
-                const exhausted=task && ((task.reviewErrors || 0)>=2 || (task.attempt>=limit && !['review','review_error'].includes(task.status)))
-                if (!exhausted && (run.continuations || 0)<2) {
-                  run.continuations=(run.continuations || 0)+1
-                  return {decision:'block',reason:'The request is not verified. Continue in this owner session: register one task if needed, implement/test/commit, submit with action ready, and invoke the reviewer. Read the board first. Record a concrete blocker if you cannot proceed.'}
-                }
-                if (task) {task.status='blocked';task.blocker ||= exhausted ? 'Request-wide review or execution retry limit reached. Operator action is required.' : 'Owner stopped before completing independent review. Resume this session to continue.';this.changed(s,true)}
-              }
-              return {}
-            }
-            const unfinished=s.taskBoard.tasks.filter(t=>!['verified','blocked'].includes(t.status) && t.attempt<(s.limits?.maxAttempts ?? team.workflow.maxAttempts))
-            if (unfinished.length && (run.continuations || 0)<2) {
-              run.continuations=(run.continuations || 0)+1
-              return {decision:'block',reason:'Fleet tasks remain unfinished. Read the board and continue implementation/verification, or record a concrete blocker before stopping.'}
-            }
-            return {}
-          }]}],
-          SubagentStart:[{hooks:[async input=>{run.agentRoles ||= new Map();run.agentRoles.set(input.agent_id,input.agent_type);return {}}]}],
-        }
-        if (ownerReview.enabled(s)) {
-          const check=async input=>{
-            if (!ownerReview.refresh(s)) return {}
-            this.changed(s,true)
-            return {hookSpecificOutput:{hookEventName:input.hook_event_name,additionalContext:'Fleet review is stale because the code changed or its Git snapshot is unavailable. Submit a clean committed snapshot for review again.'}}
-          }
-          options.hooks.PostToolUse=[{hooks:[check]}]
-          options.hooks.PostToolUseFailure=[{hooks:[check]}]
-        }
-      }
-      if (automatic) {
-        if (!s.modelRouting) {
-          const original=s.messages.find(m=>m.role==='user')
-          let apiKey=''
-          try{apiKey=this.gatewaySettings.key()}catch{} // Unreadable credentials retain the preset.
-          const decision=await this.modelRouter({original:original?.text,current:typeof entry==='string' ? entry:entry.text,
-            fallback:options.model,hasExtraContext:!!(s.sessionId || original?.attachments?.length || original?.references?.length || entry?.attachments?.length || entry?.references?.length),signal:run.controller.signal},{apiKey})
-          if (run.stopping || run.controller.signal.aborted) return
-          s.modelRouting=decision
-          this.changed(s,true)
-        }
-        options.model=s.modelRouting.model
-        if (team) options.agents[team.manager].model=options.model
-      }
-      if (process.env.CLAUDE_FLEET_EXECUTABLE) options.pathToClaudeCodeExecutable = process.env.CLAUDE_FLEET_EXECUTABLE
-      run.query = await this.queryFactory({prompt,options})
+      run.query = s.engine === 'codex' ? this.codexQuery(s,run,entry,prompt) : await this.claudeQuery(s,run,entry,prompt)
+      if (!run.query) return
       if (run.stopping) { run.query.close(); return }
       if (!this.models) run.query.supportedModels?.()
         .then(list => { if (Array.isArray(list) && list.length) this.models = [FALLBACK_MODELS[0], ...list] })

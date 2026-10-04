@@ -268,6 +268,7 @@ function rowTags(s, spawnCounts) {
     spawned ? `<span class="spawn-badge" title="Running ${spawned} background session(s)"><i class="ico ico-pr" aria-hidden="true"></i> ${spawned}</span>` : '',
     s.background ? `<span class="spawn-owner" title="Started by ${esc(s.spawnedByName || 'a program')}, not from a terminal">via ${esc(s.spawnedByName || 'a program')}</span>` : '',
     s.archived ? '<span class="archived-tag" title="Archived. Hidden from your fleet, still on disk and still resumable.">archived</span>' : '',
+    s.engine === 'codex' ? '<span class="engine-tag" title="A Codex session">Codex</span>' : '',
   ].join('')
 }
 // A team session says which team is running it and how far through its tasks it is.

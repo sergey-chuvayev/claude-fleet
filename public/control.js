@@ -29,13 +29,20 @@ async function initializeControls() {
   if(data.version) $('app-version').textContent=`v${data.version}`
   referencesAvailable=data.supportsSessionReferences===true
   if(data.defaultApprovalMode) $('launch-mode').value=data.defaultApprovalMode
+  // Codex is offered only where it is installed.
+  codexInfo=data.codex || {available:false}
+  if($('launch-engine-field'))$('launch-engine-field').hidden=!codexInfo.available
   if(!$('launch-cwd').value) $('launch-cwd').value=store.get(LAST_CWD) || data.defaultCwd
 }
-let launchTeams=null, launchTeamsLoading=false
+let launchTeams=null, launchTeamsLoading=false, codexInfo={available:false}
+// What Fleet's approval setting means for Codex, which cannot ask before each command.
+const CODEX_SANDBOX={ask:'Codex reads the project but changes nothing.',auto:'Codex edits inside the project, without network access. It does not ask before each command.',all:'Codex edits inside the project and can use the network. It does not ask before each command.'}
+const launchEngine=()=>codexInfo.available && $('launch-engine')?.value==='codex' ? 'codex' : 'claude'
 // The terminal session the console is showing, if it is one.
 let outsideSession=null
 function updateLaunchTeam() {
-  const team=resumeSource ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
+  const codex=launchEngine()==='codex'
+  const team=resumeSource || codex ? null : launchTeams?.find(t=>t.id===$('launch-team')?.value)
   const ownerReview=team?.mode==='owner-review'
   const heading=resumeSource ? 'Continue this conversation in Fleet.' : ownerReview ? 'Give your owner a task.' : team ? 'Give your team a brief.' : 'What are we working on?'
   $('draft-title').textContent=heading
@@ -46,7 +53,12 @@ function updateLaunchTeam() {
   $('customize-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
   $('customize-team').hidden=!!resumeSource
   $('launch-team').disabled=!!resumeSource || launchTeamsLoading || $('launch-submit').disabled
-  $('launch-team').closest('label').hidden=!!resumeSource
+  $('launch-team').closest('label').hidden=!!resumeSource || codex
+  // Codex runs one agent, on its own model, inside a sandbox chosen by the approval setting.
+  $('launch-model').closest('label').hidden=codex
+  $('customize-team').hidden=!!resumeSource || codex
+  $('launch-engine-note').textContent=codex ? `${CODEX_SANDBOX[$('launch-mode').value] || CODEX_SANDBOX.auto}${codexInfo.model ? ` Model: ${codexInfo.model}.` : ''}` : ''
+  if(codex)$('draft-title').textContent='What should Codex work on?'
   $('launch-team-note').textContent=team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? '' : 'Teams unavailable. Reopen New agent to retry; single agents still work.'
   $('launch-model-note').hidden=$('launch-model').value!=='auto-jev'
 }
@@ -56,6 +68,8 @@ async function loadLaunchTeams() {
     $('customize-team').addEventListener('click',()=>window.FleetTeams.open())
     $('launch-team').addEventListener('change',()=>{launchRequestId=null;updateLaunchTeam()})
     $('launch-model').addEventListener('change',updateLaunchTeam)
+    $('launch-engine')?.addEventListener('change',()=>{launchRequestId=null;updateLaunchTeam()})
+    $('launch-mode').addEventListener('change',updateLaunchTeam)
   }
   if(launchTeams || launchTeamsLoading){updateLaunchTeam();return}
   launchTeamsLoading=true;updateLaunchTeam()
@@ -142,7 +156,8 @@ $('launch-form')?.addEventListener('submit',async event=>{
   form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=true)
   launchRequestId ||= crypto.randomUUID()
   try{
-    const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource ? {teamId:form.elements.teamId.value}: {}),cwd:form.elements.cwd.value,name:resumeSource ? resumeSource.title || resumeSource.name || '' : '',prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
+    const codex=launchEngine()==='codex'
+    const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource && !codex ? {teamId:form.elements.teamId.value}: {}),...(codex ? {engine:'codex'} : {}),cwd:form.elements.cwd.value,name:resumeSource ? resumeSource.title || resumeSource.name || '' : '',prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:codex ? '' : form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
     const team=form.elements.teamId?.value && !resumeSource
     if(!resumeSource)store.set(LAST_CWD,form.elements.cwd.value.trim())
     form.elements.prompt.value='';launchRequestId=null;resumeSource=null
@@ -234,11 +249,16 @@ function refreshOutside() {
   const s=outsideSession
   if(!s || !$('outside-state'))return
   const busy=s.state==='busy'
-  $('outside-state').textContent=s.alive ? (busy ? 'Working in a terminal' : 'Open in a terminal') : 'From a terminal · stopped'
+  const codex=s.engine==='codex'
+  $('outside-state').textContent=codex ? (busy ? 'Codex is working on it' : 'From Codex · stopped') : s.alive ? (busy ? 'Working in a terminal' : 'Open in a terminal') : 'From a terminal · stopped'
   const step=busy && s.turn?.current
-  setNow(step ? `Running ${toolName(step.t)}${step.target ? ` · ${step.target}` : ''}` : busy ? 'Working in the terminal' : '',{since:step?.at || s.turn?.turnStartedAt || null})
-  $('send-message').innerHTML=s.alive ? 'Continue a copy here <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Continue here <i class="ico ico-arrow" aria-hidden="true"></i>'
-  $('composer-hint').textContent=!(s.sessionId && s.cwd) ? 'This session has no saved conversation to continue.' : s.alive ? 'Sends to a copy in Fleet. The terminal keeps the original.' : 'Your message continues this conversation in Fleet.'
+  setNow(step ? `Running ${toolName(step.t)}${step.target ? ` · ${step.target}` : ''}` : busy ? (codex ? 'Working in Codex' : 'Working in the terminal') : '',{since:step?.at || s.turn?.turnStartedAt || null})
+  // Codex has no copy to continue: its session is taken over once it is idle.
+  const blocked=codex && s.alive
+  $('send-message').innerHTML=s.alive && !codex ? 'Continue a copy here <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Continue here <i class="ico ico-arrow" aria-hidden="true"></i>'
+  $('send-message').disabled=blocked || !(s.sessionId && s.cwd)
+  $('message-input').disabled=blocked || !(s.sessionId && s.cwd)
+  $('composer-hint').textContent=!(s.sessionId && s.cwd) ? 'This session has no saved conversation to continue.' : blocked ? 'Codex is still working on this in its own window. Continue it here once it finishes.' : codex ? 'Your message continues this Codex conversation in Fleet.' : s.alive ? 'Sends to a copy in Fleet. The terminal keeps the original.' : 'Your message continues this conversation in Fleet.'
   $('message-input').placeholder=s.alive ? 'Continue a copy of this conversation…' : 'Continue this conversation…'
   // Read the transcript again only when the session has moved.
   const mark=`${s.sessionId}:${s.lastActivity}:${s.alive}`
@@ -250,7 +270,7 @@ function refreshOutside() {
     const log=$('conversation')
     if(log.querySelector(':scope > p.note'))log.innerHTML=''
     if(data.truncated && !log.querySelector('.outside-earlier'))log.insertAdjacentHTML('afterbegin','<p class="note outside-earlier">Earlier messages are in the transcript; this shows the most recent part.</p>')
-    window.FleetBlocks.renderBlocks(log,data.messages,{onCopy:toast})
+    window.FleetBlocks.renderBlocks(log,data.messages,{onCopy:toast,agent:outsideSession?.engine==='codex' ? 'CODEX' : 'CLAUDE'})
     if(!data.messages.length && !log.querySelector('.block'))log.innerHTML='<p class="note">No messages in this conversation yet.</p>'
   }).catch(error=>{if(outsideSession?.sessionId===id && $('conversation'))$('conversation').innerHTML=`<p class="note">${esc(error.message)}</p>`;outsideSeen=null}).finally(()=>{outsideLoading=null})
 }
@@ -260,7 +280,7 @@ async function continueOutside(event) {
   if(!s || !text)return
   const button=$('send-message');button.disabled=true;$('send-error').hidden=true
   try{
-    const data=await api('/api/managed',{cwd:s.cwd,name:s.title || s.name || '',prompt:text,requestId:crypto.randomUUID(),resumeSessionId:s.sessionId,...(s.alive ? {fork:true}:{})})
+    const data=await api('/api/managed',{cwd:s.cwd,name:s.title || s.name || '',prompt:text,requestId:crypto.randomUUID(),resumeSessionId:s.sessionId,...(s.engine==='codex' ? {engine:'codex'} : s.alive ? {fork:true}:{})})
     $('message-input').value=''
     await tick()
     window.Fleet.setFilter('all')
@@ -361,7 +381,7 @@ function renderControl() {
     if(!log.querySelector('.note')) log.innerHTML='<p class="note">Send your first instruction below.</p>'
   }else if(window.FleetBlocks){
     log.querySelector('.note')?.remove()
-    window.FleetBlocks.renderBlocks(log,gated && window.FleetDay?.messages ? window.FleetDay.messages(s.messages) : s.messages,{streamingId,onCopy:toast})
+    window.FleetBlocks.renderBlocks(log,gated && window.FleetDay?.messages ? window.FleetDay.messages(s.messages) : s.messages,{streamingId,onCopy:toast,agent:s.engine==='codex' ? 'CODEX' : 'CLAUDE'})
   }else{
     // Console assets unavailable — usually a page loaded from an older running server.
     update('conversation',s.messages.map(m=>`<article class="block" data-role="${esc(m.role)}"><div class="block-head"><span class="block-tool">${m.role==='tool' ? esc(m.tool) : m.role==='user' ? 'YOU' : 'CLAUDE'}</span><span class="block-meta">${new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><pre class="block-plain">${esc(m.role==='tool' ? [m.target,m.result].filter(Boolean).join('\n\n') : m.text)}</pre></article>`).join(''))
@@ -372,6 +392,11 @@ function renderControl() {
   const ids=s.approvals.map(p=>p.id).join(',')
   if($('approvals').dataset.ids!==ids){$('approvals').dataset.ids=ids;renderApprovals(s.approvals)}
   managedNow(s)
+  // A Codex agent: its own model (no Claude picker), and the approval setting is its sandbox.
+  const codex=s.engine==='codex'
+  $('conversation-title').dataset.engine=codex ? 'codex' : ''
+  const modelPicker=$('model-choice')?.closest('label');if(modelPicker)modelPicker.hidden=codex
+  $('approval-mode').title=codex ? CODEX_SANDBOX[s.approvalMode] || CODEX_SANDBOX.auto : ''
   const working=isWorking(s)
   const held=s.openElsewhere
   const heldText=held ? `Open ${held.entrypoint==='cli' ? 'in a terminal' : 'in another program'}${held.name ? ' · '+held.name : ''}${held.startedAt ? ' · since '+new Date(held.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}. Close it there to continue here.` : null

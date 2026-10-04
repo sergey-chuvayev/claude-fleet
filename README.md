@@ -518,6 +518,23 @@ the reply being written, and a line above the composer says what is happening ri
 now (running a command and for how long, thinking, writing, waiting for you), for Fleet
 sessions and for sessions working in a terminal alike.
 
+### Codex alongside Claude
+
+Where [Codex](https://github.com/openai/codex) is installed and signed in, Fleet works
+with it too. Your own Codex sessions from the last 30 days (terminal, desktop app, VS
+Code, `codex exec`) appear in the session list with a **Codex** tag and open in the
+same console; once Codex has finished with one, **Continue here** picks it up in Fleet.
+Codex's internal auto-review sessions, and Codex runs started by Claude Code's Codex
+plugin, are left out.
+
+**New agent → Agent: Codex** launches a Codex agent: the same console, follow-ups,
+Stop, queue and live status, with replies labelled CODEX. Fleet runs the installed
+`codex exec --json` (the way OpenAI's SDK does), so it adds no dependency and uses your
+Codex login, model and config. Codex cannot stop to ask before a command in this mode,
+so Fleet's approval setting picks its sandbox instead: **Ask every time** reads only,
+**Auto** edits inside the project without network access, **Approve everything** adds
+network access. Teams, the Day agent and project managers stay on Claude.
+
 ### Continue a terminal session in Fleet
 
 Select a session you started with `claude` in a terminal and it opens in the same
