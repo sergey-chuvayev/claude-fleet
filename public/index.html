@@ -8,11 +8,12 @@
 <header class="draft-head"><div class="draft-heading"><h3>New agent</h3><span class="subtle">Nothing starts until you send.</span></div><button type="button" class="button" id="draft-discard">Discard</button></header>
 <div class="draft-setup">
 <label class="draft-field draft-field-dir"><span>Directory</span><input name="cwd" id="launch-cwd" placeholder="~/projects/my-project" maxlength="4096" autocomplete="off" spellcheck="false"></label>
+<label class="draft-field" id="launch-engine-field" for="launch-engine" hidden><span>Agent</span><select id="launch-engine" name="engine"><option value="claude">Claude</option><option value="codex">Codex</option></select></label>
 <label class="draft-field" for="launch-team"><span>Team</span><select id="launch-team" name="teamId" aria-describedby="launch-team-note"><option value="">No team · single agent</option></select></label>
 <label class="draft-field"><span>Model</span><select name="model" id="launch-model" aria-describedby="launch-model-status"></select></label>
 <label class="draft-field"><span>Approvals</span><select name="approvalMode" id="launch-mode"><option value="auto" data-description="Asks only for destructive or networked shell commands">Auto · ask for risky commands</option><option value="ask" data-description="Every tool waits for you">Ask every time</option><option value="all" selected data-description="Nothing waits, destructive commands included">Approve everything</option></select></label>
 </div>
-<p class="draft-notes note"><span id="launch-team-note" role="status"></span> <button type="button" class="draft-link" id="customize-team">Customize team…</button><span id="launch-model-status" role="status" hidden></span><span id="launch-model-note" hidden>Auto · Jev sends the task brief to Vercel AI Gateway to select a model, billed separately. Its choice stays pinned; you can switch models later.</span></p>
+<p class="draft-notes note"><span id="launch-team-note" role="status"></span><span id="launch-engine-note" role="status"></span> <button type="button" class="draft-link" id="customize-team">Customize team…</button><span id="launch-model-status" role="status" hidden></span><span id="launch-model-note" hidden>Auto · Jev sends the task brief to Vercel AI Gateway to select a model, billed separately. Its choice stays pinned; you can switch models later.</span></p>
 <div class="draft-empty"><h2 id="draft-title">What are we working on?</h2><p id="draft-lead" class="note">One agent, one task. Pick a team to hand it to a manager instead.</p></div>
 <p id="launch-blocked" class="rate-warning" role="status" hidden></p>
 <p id="launch-error" class="form-error" role="alert" hidden></p>
