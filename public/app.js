@@ -909,7 +909,9 @@ function watchConversation(element) {
   if (!element) return
   const container = element.parentElement
   const disposers = []
-  const addPanel = (panel, { key, label, min, initial, before = false }) => {
+  // grow: the size is a floor, not a fixed height, so the panel can still fit what is in
+  // it (the composer with an image attached, or several lines).
+  const addPanel = (panel, { key, label, min, initial, before = false, grow = false }) => {
     const divider = document.createElement('div')
     divider.className = 'panel-splitter'
     divider.tabIndex = 0
@@ -929,10 +931,10 @@ function watchConversation(element) {
       const mobile = matchMedia('(max-width:720px)').matches
       const collapsed = panel.tagName === 'DETAILS' && !panel.open
       divider.hidden = mobile || collapsed
-      if (mobile || collapsed) { panel.style.removeProperty('height'); return }
+      if (mobile || collapsed) { panel.style.removeProperty('height'); panel.style.removeProperty('min-height'); return }
       const max = Math.floor(maximum())
       const value = Math.round(Math.max(min, Math.min(preferred, max)))
-      panel.style.height = `${value}px`
+      panel.style[grow ? 'minHeight' : 'height'] = `${value}px`
       divider.setAttribute('aria-valuemin', String(min))
       divider.setAttribute('aria-valuemax', String(max))
       divider.setAttribute('aria-valuenow', String(value))
@@ -986,7 +988,7 @@ function watchConversation(element) {
     return dispose
   }
   const composer = $('composer')
-  if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true })
+  if (composer) addPanel(composer, { key: 'fleet:minimal-composer-height', label: 'Resize message composer', min: 110, initial: 130, before: true, grow: true })
   let board = null, disposeBoard = null
   const syncBoard = () => {
     const next = $('initiative-board')

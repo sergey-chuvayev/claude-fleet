@@ -540,16 +540,28 @@ test('a managed conversation resumed in a terminal is shown as held there, and s
     const detail = (await (await fetch(base + `/api/managed/${s.id}`)).json()).session
     assert.equal(detail.openElsewhere.name, 'projects-ac')
 
-    // Sending is refused, and the refusal says which window has it.
-    assert.throws(() => manager.send(s.id, { message:'continue', requestId:randomUUID() }), /open in a terminal \(projects-ac since \d{1,2}:\d{2}(?: [AP]M)?\)/)
-    // A program, not a person, gets the other wording.
-    holders = [{ ...terminal, entrypoint:'sdk-ts', name:'observer-sessions-6d' }]
-    assert.throws(() => manager.send(s.id, { message:'continue', requestId:randomUUID() }), /open in another program \(observer-sessions-6d/)
-    // Once it exits, Fleet takes the conversation back without ceremony.
-    holders = []
+    // While the terminal has it, a message waits in Fleet; nothing reaches the session.
+    const sentBefore = s.messages.filter(m => m.role === 'user').length
     manager.send(s.id, { message:'continue', requestId:randomUUID() })
-    await until(() => s.status === 'idle')
-    assert.equal(s.messages.filter(m => m.role === 'user').length, 2)
+    assert.equal(s.waitingForRelease, true)
+    assert.deepEqual(s.queue.map(q => q.message), ['continue'])
+    assert.equal(s.messages.filter(m => m.role === 'user').length, sentBefore, 'nothing is sent while another program drives the session')
+    assert.equal(manager.summaries().find(x => x.managedId === s.id).waitingForRelease, true)
+    // Stop drops what is waiting.
+    manager.stop(s.id)
+    assert.deepEqual([s.queue.length, s.waitingForRelease], [0, false])
+    // A program, not a person, holding it: the same wait.
+    holders = [{ ...terminal, entrypoint:'sdk-ts', name:'observer-sessions-6d' }]
+    manager.send(s.id, { message:'continue', requestId:randomUUID() })
+    manager.releaseHeld()
+    assert.equal(s.queue.length, 1, 'still held: still waiting')
+    // Once it exits, the waiting message goes as an ordinary turn.
+    holders = []
+    manager.releaseHeld()
+    await until(() => s.status === 'idle' && !s.queue.length)
+    assert.equal(s.waitingForRelease, false)
+    assert.equal(s.messages.filter(m => m.role === 'user').length, sentBefore + 1)
+    assert.equal(s.messages.filter(m => m.role === 'user').at(-1).text, 'continue')
   } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive:true, force:true }) }
 })
 
