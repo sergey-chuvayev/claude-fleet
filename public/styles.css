@@ -3412,15 +3412,23 @@ details.project-brief[open]>summary { margin-bottom:8px }
 }
 
 /* Review loop: PR state, CI, and feedback to the session */
-#review-panel { flex:none; padding:var(--space-3) var(--space-7) 0 }
-.review-strip { display:flex; align-items:center; gap:10px; min-width:0 }
+#review-panel { flex:none; padding:0 var(--space-7) var(--space-3) }
+/* The strip takes only its own height under the composer; without fixed rows the grid
+   stretched it into a tall empty band. The inspector column spans both rows. */
+.detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
+.detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
+.detail:has(#composer) #detail-content { grid-row:1 / -1 }
+.review-strip { display:flex; align-items:center; gap:var(--space-2); min-width:0; min-height:24px }
 .review-strip #review-status { flex:1; min-width:0 }
-.review-prs { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px 14px }
+.review-prs { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px }
 .review-pr { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0 }
-.review-pr .work-link { height:24px; padding:0 8px; border-radius:var(--radius-md); font-size:var(--text-sm) }
-.review-pr .note { font-size:var(--text-sm) }
+.review-pr .work-link, .review-pr .ui-pill, #review-panel .review-toggle { display:inline-flex; align-items:center; gap:5px; box-sizing:border-box; height:22px; min-height:0; line-height:1; font-size:var(--text-xs) }
+.review-pr .work-link { padding:0 8px; border-radius:999px }
+.review-pr .ui-pill { padding:0 8px }
+.review-pr .work-link .ico { width:12px; height:12px }
+.review-pr .note { font-size:var(--text-xs) }
 .review-failing { flex-basis:100%; margin:0; overflow-wrap:anywhere }
-#review-panel .review-toggle { flex:none; min-height:0; height:24px; padding:0 10px; font-size:var(--text-sm) }
+#review-panel .review-toggle { flex:none; padding:0 10px }
 .review-toggle[aria-expanded="true"] { border-color:var(--accent) }
 .review-form { display:grid; gap:10px; margin-top:10px }
 .review-field { display:grid; gap:6px; font-size:var(--text-sm); color:var(--muted) }
