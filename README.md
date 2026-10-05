@@ -497,8 +497,8 @@ Each project has a manager you can ask: "where are we", "what is blocking", "are
 the 30th". It reads the project's sessions as summaries (state, branch, PR and ticket links,
 last words), can look closer at one, reads code in the project's repositories and Linear,
 GitHub and Slack to check facts, keeps the deliverables' state and notes honest, and logs
-decisions and risks. It never starts work or sends anything outside Fleet: next steps go onto
-your Day as proposals, where launches still need your approval.
+decisions and risks. It never starts work, puts anything on your Day, or sends anything outside
+Fleet: it says what should start next, and you put that deliverable on Today with **＋ Today**.
 
 ### Start a deliverable from Today
 

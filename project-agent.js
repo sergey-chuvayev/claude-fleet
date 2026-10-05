@@ -15,7 +15,7 @@ The project lives in ONE Markdown file, its source of truth, which you keep curr
 - session: a closer look at one of those sessions (its recent messages and error) by id.
 - deliverable: set a deliverable's state (${STATES.join(', ')}) and a one-line note with the evidence (a merged PR, a passing check, a blocker). Only move a deliverable when the evidence supports it.
 - note: add a short entry to the project log (a decision, a risk, a date that moved). Keep the file the place someone could read to know everything about the project.
-- suggest: put a concrete next step on the operator's Day as a proposal (title, context, priority, and mode: "agent" for code work, which the Day turns into a launch the operator approves; "ask" to find something out; "me" for things only they can do). This is how work starts: you never start sessions yourself.
+You never put anything on the operator's Day and never start sessions yourself. Work starts when the operator chooses: they put a deliverable on Today with its ＋ Today button. When something should start, say which deliverable and why in your reply.
 
 You may read code in the project's repositories, and read Linear, GitHub and Slack through their connectors to check facts. You do not send, post, comment or change anything outside Fleet.
 
@@ -44,12 +44,10 @@ async function server(projectId, ctx, changed) {
     if (input.action==='session') return ctx.session(projectId,input.sessionId)
     if (input.action==='deliverable') return ctx.projects.deliverable(projectId,input.deliverableId,{state:input.state,note:input.note})
     if (input.action==='note') return ctx.projects.note(projectId,input.note)
-    if (input.action==='suggest') return ctx.suggest(projectId,input)
     throw new Error('Unknown project action.')
   }
-  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('project','This project, and only this project, kept in its Markdown file. status: fields, tagged sessions and today\'s Day items (read it first, every turn). read: the whole file. define: set name, deadline, brief, deliverables, repos, links. section: write another section by heading (Sources, Decisions, Risks...). session: one tagged session in more depth, by sessionId. deliverable: set state and note of one deliverable by deliverableId. note: add to the project log. suggest: propose a next step on the operator\'s Day (title, context, priority must|should|could, mode agent|ask|draft|me, optional links, estimateMin).',{
-    action:z.enum(['status','read','define','section','session','deliverable','note','suggest']),name:z.string().optional(),deadline:z.string().optional(),brief:z.string().optional(),deliverables:z.array(z.string()).optional(),repos:z.array(z.string()).optional(),heading:z.string().optional(),body:z.string().optional(),sessionId:z.string().optional(),deliverableId:z.string().optional(),state:z.enum(STATES).optional(),note:z.string().optional(),
-    title:z.string().optional(),context:z.string().optional(),priority:z.enum(['must','should','could']).optional(),mode:z.enum(['me','draft','agent','ask']).optional(),links:z.array(z.string()).optional(),estimateMin:z.number().optional(),
+  return createSdkMcpServer({name:'fleet',version:'1.0.0',tools:[tool('project','This project, and only this project, kept in its Markdown file. status: fields, tagged sessions and today\'s Day items (read it first, every turn). read: the whole file. define: set name, deadline, brief, deliverables, repos, links. section: write another section by heading (Sources, Decisions, Risks...). session: one tagged session in more depth, by sessionId. deliverable: set state and note of one deliverable by deliverableId. note: add to the project log.',{
+    action:z.enum(['status','read','define','section','session','deliverable','note']),name:z.string().optional(),deadline:z.string().optional(),brief:z.string().optional(),deliverables:z.array(z.string()).optional(),repos:z.array(z.string()).optional(),heading:z.string().optional(),body:z.string().optional(),sessionId:z.string().optional(),deliverableId:z.string().optional(),state:z.enum(STATES).optional(),note:z.string().optional(),
   },async input=>{
     try {const result=run(input);changed();return {content:[{type:'text',text:JSON.stringify(result)}]}}
     catch(error){return {isError:true,content:[{type:'text',text:error.message}]}}

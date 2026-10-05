@@ -100,7 +100,7 @@ test('sessions belong to a project, and a launch from the Day carries the item\'
   } finally { await manager.close() }
 })
 
-test('the project manager starts on the first question, reads its sessions as summaries, and hands work to the Day',async()=>{
+test('the project manager starts on the first question, reads its sessions as summaries, and leaves the Day to the operator',async()=>{
   const {directory,manager,calls}=setup()
   try{
     fs.mkdirSync(path.join(directory,'api-allo'))
@@ -121,13 +121,9 @@ test('the project manager starts on the first question, reads its sessions as su
     assert.deepEqual(status.sessions.map(x=>[x.id,x.lastWords]),[[agent.id,'On track.']],'its own session is not one of the project\'s')
     assert.equal(status.deliverables.length,3)
     assert.throws(()=>manager.projectSession(p.id,pm.id),/not part of this project/)
-    assert.throws(()=>manager.suggestForProject(p.id,{title:'Rebase #3799',mode:'agent'}),/no Day running today/)
-    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
-    await until(()=>d.status==='idle')
-    const {item}=manager.suggestForProject(p.id,{title:'Rebase #3799',mode:'agent',priority:'should'})
-    assert.equal(item.projectId,p.id)
-    assert.equal(item.status,'proposed','a suggestion is a proposal for the operator to triage')
-    assert.deepEqual(manager.projectStatus(p.id).today.map(i=>i.title),['Rebase #3799'])
+    // Nothing reaches the Day from the manager: only the operator's ＋ Today does.
+    assert.doesNotMatch(first.options.systemPrompt.append,/\bsuggest:/)
+    assert.match(first.options.systemPrompt.append,/never put anything on the operator's Day/)
   } finally { await manager.close() }
 })
 
@@ -168,22 +164,13 @@ test('a new project is just a title, and its manager starts setting it up at onc
   } finally { await manager.close() }
 })
 
-test('a manager\'s suggestion, as its tool sends it, lands on today\'s Day with the project set',async()=>{
-  const {directory,manager}=setup()
-  try{
-    const p=make(manager.projects)
-    // Exactly what the project tool passes on: its own action and unrelated keys included.
-    const input={action:'suggest',title:'Rebase #3799 onto main',context:'Stalled since July.',priority:'must',mode:'agent',links:['https://github.com/acme/api-allo/pull/3799'],estimateMin:30,deliverableId:'queue-as-a-ring-option',sessionId:'x'}
-    assert.throws(()=>manager.suggestForProject(p.id,input),/There is no Day running today/,'without a Day the manager is told to ask the operator to start one')
-    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
-    await until(()=>d.status==='idle')
-    const {item}=manager.suggestForProject(p.id,input)
-    assert.equal(item.projectId,p.id)
-    assert.equal(item.status,'proposed')
-    assert.deepEqual([item.title,item.context,item.priority,item.mode,item.estimateMin,item.links],['Rebase #3799 onto main','Stalled since July.','must','agent',30,['https://github.com/acme/api-allo/pull/3799']])
-    assert.equal(item.deliverableId,undefined,'keys a Day item does not take stay out')
-    assert.ok(d.dayBoard.items.some(i=>i.id===item.id),'it is on today\'s board')
-  } finally { await manager.close() }
+test('a project manager has no way to put anything on the Day',async()=>{
+  const projectAgent=require('./project-agent')
+  const server=await projectAgent.server('p',{projects:{},status:()=>({}),session:()=>({})},()=>{})
+  const tool=server.instance?._registeredTools?.project || null
+  const actions=tool?.inputSchema?.shape?.action?.options || tool?.inputSchema?.def?.shape?.action?.options || null
+  if (actions) assert.ok(!actions.includes('suggest'),'the project tool has no suggest action')
+  assert.doesNotMatch(projectAgent.SYSTEM,/^- suggest:/m)
 })
 
 test('a deliverable goes on today as work to start, once, and the project knows it is there',async()=>{
