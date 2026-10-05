@@ -1,6 +1,6 @@
 {
   "name": "@sergeychuvayev/claude-fleet",
-  "version": "0.47.0",
+  "version": "0.48.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
     "claude",
@@ -42,6 +42,7 @@
     "managed.js",
     "open.js",
     "owner-review.js",
+    "pr-status.js",
     "paths.js",
     "permissions.js",
     "references.js",

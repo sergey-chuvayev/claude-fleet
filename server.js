@@ -22,6 +22,7 @@ const { progress: projectProgress } = require('./projects')
 const weekly = require('./progress')
 const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
+const { createPrStatus } = require('./pr-status.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
@@ -33,7 +34,7 @@ const MODEL_FALLBACK = [
 const PUBLIC = path.join(__dirname,'public')
 const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null} = {}) {
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null, prStatus = createPrStatus()} = {}) {
   const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
   const clients=new Set(), changes=new Set()
@@ -257,6 +258,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         return res.end(themeCss(currentTheme()))
       }
       if(url.pathname==='/api/service')return json(res,200,{service:service.status()})
+      // PR state and CI for a link a session mentioned, read with gh and cached.
+      if(url.pathname==='/api/pr-status')return json(res,200,{status:await prStatus.get(url.searchParams.get('url') || '')})
       // A terminal session's conversation, for the console. Only a session Fleet can
       // see in its list, read from that session's own transcript.
       if(url.pathname==='/api/sessions/history'){
@@ -303,7 +306,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/progress.js':'progress.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/review.js':'review.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/progress.js':'progress.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))

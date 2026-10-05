@@ -441,6 +441,7 @@ function render() {
   }
   if (childId) {
     renderChildDetail(current, childId)
+    window.FleetReview?.show(null)
     // A sub-agent is not addressable: clearing the control panel drops its composer
     // and conversation from the DOM entirely, not merely hiding them.
     window.FleetControl?.selectControl(null)
@@ -501,6 +502,7 @@ document.addEventListener('change', async event => {
 })
 function renderDetail(s) {
   const UI = window.FleetUI
+  window.FleetReview?.show(s)
   if (!s) { update('detail-content', UI.empty({ title: 'The full picture.', text: 'Select a session to inspect it.' })); return }
   const p = percent(s)
   const links = (s.links || []).filter(l => /^https:\/\/(github\.com|linear\.app)\//.test(l.url))

@@ -3387,3 +3387,13 @@ details.project-brief[open]>summary { margin-bottom:8px }
   .modal-launch .composer-footer .note { order:3; width:100%; margin:8px 0 0; text-align:center; }
   .modal-launch #launch-submit { margin-left:auto; }
 }
+
+/* Review loop: PR state, CI, and feedback to the session */
+#review-panel { flex:none; padding:var(--space-5) var(--space-7) 0 }
+.review-prs { list-style:none; margin:0; padding:0; display:grid; gap:10px }
+.review-pr { display:flex; flex-wrap:wrap; align-items:center; gap:8px }
+.review-failing { flex-basis:100%; margin:0; overflow-wrap:anywhere }
+.review-form { display:grid; gap:10px; margin-top:14px }
+.review-field { display:grid; gap:6px; font-size:var(--text-sm); color:var(--muted) }
+.review-form textarea { width:100%; resize:vertical; min-height:72px }
+.review-form .note { margin:0 }
