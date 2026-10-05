@@ -543,19 +543,6 @@ class ManagedSessions extends EventEmitter {
     for (const i of this.todayDay()?.dayBoard?.items || []) if (i.projectId === projectId && i.deliverableId && i.status !== 'dropped') out[i.deliverableId] = {itemId:i.id,status:i.status}
     return out
   }
-  // A manager's suggestion lands on today's Day as a proposal, tagged with the project.
-  suggestForProject(projectId, input) {
-    this.projects.require(projectId)
-    const today = this.todayDay()
-    if (!today) fail('There is no Day running today. Ask the operator to start their day first.')
-    // Only the fields a Day item takes. The manager's tool input also carries its own
-    // action ('suggest') and other keys; spread whole, they overrode the Day action and
-    // every suggestion failed with "Unknown Day board action."
-    const {title,context,priority,mode,links,estimateMin} = input || {}
-    const result = day.act(today,{title,context,priority,mode,links,estimateMin,source:'me',projectId,action:'add'},'agent')
-    this.changed(today,true)
-    return result
-  }
   // What the Day sees of the sessions it launched: enough to follow them, not their transcripts.
   launchedStatus(id) {
     const x = this.sessions.get(id)
@@ -768,7 +755,7 @@ class ManagedSessions extends EventEmitter {
       options.systemPrompt = {type:'preset',preset:'claude_code',append:projectAgent.SYSTEM}
       options.model = boundedModel(selectedModel,'sonnet')
       options.disallowedTools = ['Edit','Write','NotebookEdit']
-      options.mcpServers = {fleet:await projectAgent.server(s.projectId,{projects:this.projects,status:id=>this.projectStatus(id),session:(id,sid)=>this.projectSession(id,sid),suggest:(id,input)=>this.suggestForProject(id,input)},()=>this.changed(s))}
+      options.mcpServers = {fleet:await projectAgent.server(s.projectId,{projects:this.projects,status:id=>this.projectStatus(id),session:(id,sid)=>this.projectSession(id,sid)},()=>this.changed(s))}
       options.hooks = {PreToolUse:[{hooks:[async input=>{
         if (!['Agent','Task'].includes(input.tool_name) || !input.tool_input?.run_in_background) return {}
         return {hookSpecificOutput:{hookEventName:'PreToolUse',updatedInput:{...input.tool_input,run_in_background:false}}}
