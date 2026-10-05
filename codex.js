@@ -26,17 +26,30 @@ const MAX_TEXT = 24000
 const home = () => process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
 
 // ── The installed Codex ──────────────────────────────────────────────────────────
-let found
 function executable() {
-  if (process.env.CLAUDE_FLEET_CODEX) return process.env.CLAUDE_FLEET_CODEX === 'none' ? null : process.env.CLAUDE_FLEET_CODEX
-  if (found !== undefined) return found
-  found = null
-  for (const dir of (process.env.PATH || '').split(path.delimiter)) {
-    if (!dir) continue
-    const candidate = path.join(dir, process.platform === 'win32' ? 'codex.cmd' : 'codex')
-    try { fs.accessSync(candidate, fs.constants.X_OK); found = candidate; break } catch {}
+  const override = process.env.CLAUDE_FLEET_CODEX
+  if (override === 'none') return null
+  const runnable = file => {
+    try { fs.accessSync(file, fs.constants.X_OK); return fs.statSync(file).isFile() } catch { return false }
   }
-  return found
+  if (override) return runnable(override) ? override : null
+  // Desktop services inherit a smaller PATH than the user's interactive shell.
+  // Recheck on each request so installing Codex does not require restarting Fleet.
+  const userHome = os.homedir()
+  const dirs = [...(process.env.PATH || '').split(path.delimiter).filter(Boolean),
+    path.join(userHome, '.local', 'bin'), path.join(userHome, '.npm-global', 'bin'),
+    path.dirname(process.execPath), '/opt/homebrew/bin', '/usr/local/bin']
+  const nvm = path.join(process.env.NVM_DIR || path.join(userHome, '.nvm'), 'versions', 'node')
+  try {
+    for (const version of fs.readdirSync(nvm).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))) {
+      dirs.push(path.join(nvm, version, 'bin'))
+    }
+  } catch {}
+  for (const dir of new Set(dirs)) {
+    const candidate = path.join(dir, process.platform === 'win32' ? 'codex.cmd' : 'codex')
+    if (runnable(candidate)) return candidate
+  }
+  return null
 }
 const available = () => !!executable()
 // The model Codex will use when Fleet does not pick one: whatever its config says.

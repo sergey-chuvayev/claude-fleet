@@ -154,7 +154,7 @@ Past 90% the countdown replaces the bar, because by then the question is when it
 not how full it is.
 
 When a request is actually refused, the bar turns into the refusal, and the new-agent
-New agent pane says so before you write a prompt:
+New agent dialog says so before you write a prompt:
 
 ```
 ⊘ Rate limited · five-hour window · resets 11:42 (35m) · organisation spend cap reached
@@ -526,6 +526,11 @@ Code, `codex exec`) appear in the session list with a **Codex** tag and open in 
 same console; once Codex has finished with one, **Continue here** picks it up in Fleet.
 Codex's internal auto-review sessions, and Codex runs started by Claude Code's Codex
 plugin, are left out.
+
+Both Claude and Codex stay visible in the New agent dialog. If Codex is unavailable,
+Fleet explains how to set it up and checks again when you reopen the dialog. Desktop
+launches also check common local and nvm installation paths. For a custom executable,
+set `CLAUDE_FLEET_CODEX` on the Fleet server.
 
 **New agent → Agent: Codex** launches a Codex agent: the same console, follow-ups,
 Stop, queue and live status, with replies labelled CODEX. Fleet runs the installed

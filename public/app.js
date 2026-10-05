@@ -347,12 +347,8 @@ function pixelAvatar(seed, initial, tone, working) {
   const sweep = working ? `<defs><linearGradient id="sweep-${tone}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect class="avatar-sweep" x="-38" y="0" width="38" height="38" fill="url(#sweep-${tone})" style="animation-delay:-${(now % 2.8).toFixed(2)}s"/>` : ''
   return `<svg class="avatar-pixels" viewBox="0 0 38 38" shape-rendering="crispEdges" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}${sweep}</svg>`
 }
-// A new agent starts as a draft: one row at the top of the list that is not a session
-// yet. Nothing exists on the server until its first message is sent, so discarding it
-// leaves nothing behind. The form it edits lives in #draft-panel (see control.js).
-const DRAFT_KEY = 'draft'
+// Draft contents survive modal dismissal until launch or explicit discard.
 let draftOpen = false
-const draftRowHtml = () => `<button class="session session-draft" data-session="${DRAFT_KEY}" aria-pressed="${selected === DRAFT_KEY}" aria-controls="detail"><span class="agent-avatar avatar-draft" aria-hidden="true">+</span><span class="session-summary"><span class="session-title-row"><span class="session-title">New agent</span></span><span class="session-preview">Not started · nothing sent yet</span></span></button>`
 function sessionRowHtml(s, spawnCounts) {
   // A row holding the selected sub-agent is an ancestor of the selection, not the
   // selection itself, so it gives up aria-pressed to the child row below it.
@@ -418,10 +414,8 @@ function render() {
   // The Today tab shows exactly one conversation, today's Day, or none before it starts.
   const today = window.FleetDay?.active() ? window.FleetDay.current(days, live) : window.FleetProjects?.active() ? window.FleetProjects.current(live) : undefined
   const shown = today !== undefined ? (today ? [today] : []) : pool.filter(s => (filter === 'all' || filter === 'background' || filter === 'archived' || s.state === filter) && matchesDate(s, dateFilter))
-  // The draft only exists in the Sessions view, where its row is.
-  const draftVisible = draftOpen && today === undefined
-  if (selected === DRAFT_KEY && !draftVisible) selected = null
-  if (selected !== DRAFT_KEY && !shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
+
+  if (!shown.some(s => key(s) === selected)) selected = shown[0] ? key(shown[0]) : null
   $('shown-count').textContent = shown.length
   renderStatusbar(snapshot.usage, live)
   // Date counts sit against the foreground pool, same base the status counts use,
@@ -429,13 +423,10 @@ function render() {
   const dateCounts = { all: foreground.length, today: foreground.filter(s => matchesDate(s, 'today')).length, week: foreground.filter(s => matchesDate(s, 'week')).length }
   update('filters', filterMenuHtml(visibleCounts, foreground.length, background.length, archived.length, dateCounts))
   renderArchiveBar(live.filter(s => s.state === 'dead'), archived.length)
-  update('session-list', (draftVisible ? draftRowHtml() : '') + (shown.length
+  update('session-list', (shown.length
     ? shown.map(s => sessionRowHtml(s, spawnCounts)).join('')
-    : draftVisible ? '' : `<div class="empty">${emptyListHtml(total)}</div>`))
-  const onDraft = draftVisible && selected === DRAFT_KEY
-  $('draft-panel').hidden = !onDraft
-  $('control-panel').hidden = onDraft
-  const current = onDraft ? undefined : shown.find(s => key(s) === selected)
+    : `<div class="empty">${emptyListHtml(total)}</div>`))
+  const current = shown.find(s => key(s) === selected)
   if (current) markSeen(key(current), current.lastActivity)
   // A delegation belongs to whichever session is actually current; switching sessions,
   // or the owning session dropping out of the current filter, clears a stale child pick.
@@ -448,10 +439,7 @@ function render() {
     lastChildId = childId
     if (childId) { childDetail = null; childDetailFor = null; childDetailError = null; loadChildDetail(current.managedId, childId) }
   }
-  if (onDraft) {
-    // The form is built once and survives every poll; only the console is torn down.
-    window.FleetControl?.selectControl(null)
-  } else if (childId) {
+  if (childId) {
     renderChildDetail(current, childId)
     // A sub-agent is not addressable: clearing the control panel drops its composer
     // and conversation from the DOM entirely, not merely hiding them.
@@ -771,9 +759,9 @@ window.Fleet = {
   setSnapshot(next) { snapshot = next; render() },
   setFilter(next) { filter = next; render() },
   select(sessionKey, delegationId = null) { selected = sessionKey; selectedChild = delegationId; render() },
-  // Opening a draft selects it; closing it hands the selection back to the list.
+  // The launch modal does not change the current session.
   draft: () => draftOpen,
-  setDraft(open) { draftOpen = open; if (open) { selected = DRAFT_KEY; selectedChild = null } else if (selected === DRAFT_KEY) selected = null; render() },
+  setDraft(open) { draftOpen = open },
   setChildrenCollapsed(sessionKey, collapsed) { setChildrenCollapsed(sessionKey, collapsed); render() },
   // What loadChildDetail's completion does: hand over the delegation the session
   // route returned, then redraw. Select the delegation first; a detail handed over
@@ -1014,7 +1002,7 @@ function syncDetails() {
   const toggle = $('details-toggle'), content = $('detail-content'), hasConsole = !!$('composer')
   if (!toggle || !content) return
   // Today is two panels, the board and the console; the inspector has nothing to add.
-  if (window.FleetDay?.active() || window.FleetProjects?.active() || window.FleetProgress?.active() || !$('draft-panel').hidden) { toggle.hidden = true; content.hidden = true; return }
+  if (window.FleetDay?.active() || window.FleetProjects?.active() || window.FleetProgress?.active()) { toggle.hidden = true; content.hidden = true; return }
   toggle.hidden = !hasConsole
   const preference = store.get(DETAILS_KEY)
   const open = !hasConsole || (preference === null ? matchMedia('(min-width:1200px)').matches : preference === '1')

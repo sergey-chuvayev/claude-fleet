@@ -28,16 +28,15 @@ async function initializeControls() {
   // update, and without this the difference is invisible until something 404s.
   if(data.version) $('app-version').textContent=`v${data.version}`
   referencesAvailable=data.supportsSessionReferences===true
-  if(data.defaultApprovalMode) $('launch-mode').value=data.defaultApprovalMode
-  // Codex is offered only where it is installed.
+  if(data.defaultApprovalMode && !window.Fleet.draft()) $('launch-mode').value=data.defaultApprovalMode
   codexInfo=data.codex || {available:false}
-  if($('launch-engine-field'))$('launch-engine-field').hidden=!codexInfo.available
+  updateLaunchTeam()
   if(!$('launch-cwd').value) $('launch-cwd').value=store.get(LAST_CWD) || data.defaultCwd
 }
 let launchTeams=null, launchTeamsLoading=false, codexInfo={available:false}
 // What Fleet's approval setting means for Codex, which cannot ask before each command.
 const CODEX_SANDBOX={ask:'Codex reads the project but changes nothing.',auto:'Codex edits inside the project, without network access. It does not ask before each command.',all:'Codex edits inside the project and can use the network. It does not ask before each command.'}
-const launchEngine=()=>codexInfo.available && $('launch-engine')?.value==='codex' ? 'codex' : 'claude'
+const launchEngine=()=>$('launch-engine')?.value==='codex' ? 'codex' : 'claude'
 // The terminal session the console is showing, if it is one.
 let outsideSession=null
 function updateLaunchTeam() {
@@ -57,10 +56,11 @@ function updateLaunchTeam() {
   // Codex runs one agent, on its own model, inside a sandbox chosen by the approval setting.
   $('launch-model').closest('label').hidden=codex
   $('customize-team').hidden=!!resumeSource || codex
-  $('launch-engine-note').textContent=codex ? `${CODEX_SANDBOX[$('launch-mode').value] || CODEX_SANDBOX.auto}${codexInfo.model ? ` Model: ${codexInfo.model}.` : ''}` : ''
-  if(codex)$('draft-title').textContent='What should Codex work on?'
+  $('launch-engine-note').textContent=codex ? (codexInfo.available ? `${CODEX_SANDBOX[$('launch-mode').value] || CODEX_SANDBOX.auto}${codexInfo.model ? ` Model: ${codexInfo.model}.` : ''}` : 'Codex was not found. Install the Codex CLI and sign in, then reopen this dialog to check again.') : ''
+  if(codex){$('draft-title').textContent='What should Codex work on?';$('draft-lead').textContent='Start a focused coding task with Codex.'}
+  $('launch-model-note').hidden=codex || $('launch-model').value!=='auto-jev'
   $('launch-team-note').textContent=team ? [team.description, `Roles: ${team.roles.map(r=>r.name).join(', ')}.`].filter(Boolean).join(' ') : launchTeamsLoading ? 'Loading teams…' : launchTeams ? '' : 'Teams unavailable. Reopen New agent to retry; single agents still work.'
-  $('launch-model-note').hidden=$('launch-model').value!=='auto-jev'
+
 }
 async function loadLaunchTeams() {
   if(!$('customize-team').dataset.wired) {
@@ -81,7 +81,7 @@ async function loadLaunchTeams() {
   } catch { launchTeams=null }
   finally {launchTeamsLoading=false;updateLaunchTeam()}
 }
-// A new agent is a draft row, not a dialog. Opening it again keeps whatever was typed;
+// Opening the modal again keeps whatever was typed;
 // only continuing an existing conversation starts the form over, because that one is
 // pinned to a directory and a transcript.
 function openLaunch(source=null) {
@@ -100,8 +100,8 @@ function openLaunch(source=null) {
   window.Fleet.setDraft(true)
   loadLaunchTeams()
   fillLaunchModels()
-  if(matchMedia('(max-width:720px)').matches)$('detail').scrollIntoView({block:'start',behavior:'instant'})
-  $('launch-prompt').focus()
+  window.Fleet.openModal('launch-backdrop','#launch-prompt')
+  initializeControls().catch(error=>{ $('launch-error').textContent=error.message; $('launch-error').hidden=false })
 }
 function discardDraft() {
   window.FleetTeams?.reset()
@@ -109,6 +109,7 @@ function discardDraft() {
   resumeSource=null;launchRequestId=null
   $('launch-error').hidden=true
   window.Fleet.setDraft(false)
+  window.Fleet.closeModal()
 }
 // ── What the rest of the page may use ───────────────────────────────────────
 // Published before the boot wiring below, for the same reason app.js does it there:
@@ -152,17 +153,19 @@ $('launch-form')?.addEventListener('submit',async event=>{
   const form=event.currentTarget
   if(!form.elements.prompt.value.trim()){form.elements.prompt.focus();return}
   if(!form.elements.cwd.value.trim()){$('launch-error').textContent='Choose the directory this agent works in.';$('launch-error').hidden=false;form.elements.cwd.focus();return}
+  if(launchEngine()==='codex' && !codexInfo.available){$('launch-error').textContent='Codex is unavailable. Check the setup instructions above, then reopen New agent to retry.';$('launch-error').hidden=false;return}
   button.disabled=true;button.textContent='Launching…';$('launch-error').hidden=true
   form.querySelectorAll('input,textarea,select').forEach(el=>el.disabled=true)
   launchRequestId ||= crypto.randomUUID()
   try{
     const codex=launchEngine()==='codex'
     const data=await api('/api/managed',{...(form.elements.teamId?.value && !resumeSource && !codex ? {teamId:form.elements.teamId.value}: {}),...(codex ? {engine:'codex'} : {}),cwd:form.elements.cwd.value,name:resumeSource ? resumeSource.title || resumeSource.name || '' : '',prompt:form.elements.prompt.value,approvalMode:form.elements.approvalMode.value,model:codex ? '' : form.elements.model.value,requestId:launchRequestId,...(resumeSource ? {resumeSessionId:resumeSource.sessionId}: {})})
-    const team=form.elements.teamId?.value && !resumeSource
+    const team=form.elements.teamId?.value && !resumeSource && !codex
     if(!resumeSource)store.set(LAST_CWD,form.elements.cwd.value.trim())
     form.elements.prompt.value='';launchRequestId=null;resumeSource=null
     await tick()
     window.Fleet.setDraft(false)
+    window.Fleet.closeModal()
     window.Fleet.setFilter('all')
     // A new agent lives in Sessions; launched from Today or Projects, go there to see it.
     window.FleetViews?.switchView('sessions')
