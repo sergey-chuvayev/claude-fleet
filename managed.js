@@ -365,6 +365,14 @@ class ManagedSessions extends EventEmitter {
       else if (body.op === 'answer') {
         result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer,body.decision)
         if (result.need.kind === 'launch' && ['approve','edit'].includes(result.need.decision)) this.launchFromDay(s,result,body)
+        // An agent's report is settled here, not by the Day agent: Done closes the item,
+        // anything else leaves it open. No run is needed for that.
+        if (result.need.report) {
+          if (result.need.decision === 'choose' && result.need.answer === 'Done') day.triage(s,result.item.id,{status:'done'})
+          this.changed(s,true)
+          this.syncThreads(s)
+          return result
+        }
       }
       else if (body.op === 'triage') {
         if (body.projectId) this.projects.require(text(body.projectId,'Project',100))
@@ -379,6 +387,34 @@ class ManagedSessions extends EventEmitter {
     this.syncThreads(s)
     this.scheduleDayResume(s, body.op === 'answer' ? DAY_ANSWER_DELAY_MS : DAY_RESUME_DELAY_MS)
     return result
+  }
+  // When an agent launched from a Day item finishes a turn (or stops on an error), it
+  // reports back on that item: its last words in the log, any pull request it opened in
+  // the item's links, and a question that puts the item in Waiting on you. One report per
+  // reply: a newer one replaces an unanswered older one.
+  reportToDay(s) {
+    if (s.status !== 'idle' && s.status !== 'error') return
+    for (const d of this.sessions.values()) {
+      if (d.kind !== 'day' || !d.dayBoard) continue
+      const item = d.dayBoard.items.find(i => (i.launched || []).includes(s.id))
+      if (!item || item.status === 'dropped') continue
+      const last = [...s.messages].reverse().find(m => m.role === 'assistant')
+      const key = s.status === 'error' ? `error:${s.updatedAt}` : last?.id
+      if (!key || item.reported?.[s.id] === key) return
+      item.reported = {...(item.reported || {}), [s.id]:key}
+      const prs = linksFromMessages(s.messages).map(l => l.url).filter(u => /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(u))
+      item.links = [...new Set([...item.links, ...prs])].slice(0, 20)
+      const words = (s.status === 'error' ? `It stopped with an error: ${s.error || 'unknown error'}` : last.text || 'Finished.').replace(/\s+/g,' ').trim()
+      const gist = words.length > 280 ? words.slice(0, 279) + '…' : words
+      item.log.push({at:Date.now(), text:`${s.status === 'error' ? 'Agent stopped' : 'Agent finished'}: ${gist}`.slice(0, 2000)})
+      item.log = item.log.slice(-50)
+      item.needs = item.needs.filter(n => !(n.report && n.answer === undefined))
+      const opened = prs.length ? ` and opened ${prs.length === 1 ? 'a pull request' : `${prs.length} pull requests`}` : ''
+      const need = day.act(d, {action:'ask', itemId:item.id, kind:'choose', question:`${s.status === 'error' ? 'The agent stopped' : `The agent finished${opened}`}: ${gist}`.slice(0, 1000), options:['Done','Needs more work']})
+      need.report = s.id
+      this.changed(d, true)
+      return
+    }
   }
   // "Agent does it", carried out by Fleet rather than by the Day: the Day cannot edit
   // files or start sessions, so an approved brief becomes an ordinary Fleet session, the
@@ -897,6 +933,8 @@ class ManagedSessions extends EventEmitter {
       else if (s.status !== 'error') s.status='idle'
       if (s.kind === 'day') { s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0; if (s.dayBoard) s.dayBoard.focus = null }
       if (s.kind === 'thread' && s.status === 'idle') this.threadSummary(s)
+      // An agent the Day launched says how it went, on the item it came from.
+      if (!run.background && ['agent','initiative'].includes(s.kind || 'agent')) { try { this.reportToDay(s) } catch (error) { this.emit('storage-error',error) } }
       s.currentTool=null
       this.runs.delete(s.id)
       // A clean finish with something waiting picks it straight back up. A stop already

@@ -18,6 +18,8 @@ window.FleetSettings=(()=>{
       <section class="settings-section" aria-labelledby="startup-title"><h3 id="startup-title">Startup</h3><p class="note">Run Fleet in the background, without a terminal: it starts when you log in, comes back if it ever stops, and updates from the Update button.</p>
       <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="service-enabled"> Start Fleet at login and keep it running</label></div>
       <p class="note" id="service-status" role="status"></p><p class="form-error" id="service-error" role="alert" hidden></p></section>
+      <section class="settings-section" aria-labelledby="notify-title"><h3 id="notify-title">Notifications</h3><p class="note">When an agent you launched from Today finishes or stops, it reports on its item and the item waits on you. Fleet always shows a note on the page; this adds one from macOS too.</p>
+      <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="notify-enabled"> Desktop notification when an agent reports back</label></div><p class="note" id="notify-status" role="status"></p></section>
       <section class="settings-section" aria-labelledby="gateway-title"><h3 id="gateway-title">AI Gateway</h3><p id="gateway-status" role="status">Loading…</p><form id="gateway-form"><label for="gateway-key">Vercel AI Gateway API key</label><input id="gateway-key" type="password" autocomplete="off" spellcheck="false" maxlength="4096" placeholder="Paste your key" aria-describedby="gateway-help" required><p class="note" id="gateway-help">Stored in a private file on this Mac, outside your projects. Fleet never sends the saved key back to this page.</p><div class="gateway-actions"><button class="button resume" type="submit">Save key</button><button class="button" id="gateway-test" type="button">Test connection</button><button class="button" id="gateway-remove" type="button">Remove saved key</button></div></form><p id="gateway-result" role="status" aria-live="polite"></p><p class="note">Select <strong>Auto · Jev</strong> when creating a session. New sessions use your saved key immediately; existing model decisions stay pinned.</p><p class="note">Testing sends a short sample to Jev and may incur a small AI Gateway charge. Routing is billed separately from your Claude subscription.</p></section></div><footer class="modal-foot"><span>No restart needed.</span><span><kbd>Esc</kbd> close</span></footer></section>`
     document.body.append(backdrop)
     $('gateway-form').addEventListener('submit',event=>{event.preventDefault();act('save')})
@@ -138,5 +140,22 @@ window.FleetSettings=(()=>{
     finally{if(ticket===request)busy=false}
   }
   $('open-settings')?.addEventListener('click',open)
-  return {open}
+  // Desktop notifications are this browser's choice, so they live in this browser.
+  const NOTIFY_KEY='fleet.notify'
+  const notifyOn=()=>{try{return localStorage.getItem(NOTIFY_KEY)==='1' && 'Notification' in window && Notification.permission==='granted'}catch{return false}}
+  function renderNotify(){
+    const box=$('notify-enabled'),status=$('notify-status')
+    if(!box)return
+    box.checked=notifyOn()
+    status.textContent=!('Notification' in window) ? 'This browser has no desktop notifications.' : Notification.permission==='denied' ? 'Notifications are blocked for this page. Allow them in the browser settings.' : ''
+  }
+  document.addEventListener('change',async event=>{
+    if(event.target.id!=='notify-enabled')return
+    const wanted=event.target.checked
+    if(wanted && 'Notification' in window && Notification.permission==='default')await Notification.requestPermission().catch(()=>{})
+    try{localStorage.setItem(NOTIFY_KEY,wanted && Notification.permission==='granted' ? '1':'0')}catch{}
+    renderNotify()
+  })
+  $('open-settings')?.addEventListener('click',renderNotify)
+  return {open,notifyOn}
 })()

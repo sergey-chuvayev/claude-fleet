@@ -263,6 +263,21 @@ window.FleetDay=(()=>{
     else parts.push(UI.stat('Plan limits','After the next run',{tone:'quiet'}))
     return parts.join('')
   }
+  // An agent launched from Today reported back: say so once, wherever you are in Fleet,
+  // and from macOS too when that is switched on. The first snapshot only sets the mark,
+  // so opening Fleet does not replay old reports.
+  let reportSeen=null
+  function announce(report){
+    if(reportSeen===null){reportSeen=report?.at || 0;return}
+    if(!report || report.at<=reportSeen)return
+    reportSeen=report.at
+    window.Fleet.toast(`${report.title}: ${report.question}`.slice(0,220))
+    if(!window.FleetSettings?.notifyOn?.())return
+    try{
+      const note=new Notification(report.title,{body:report.question.slice(0,300),tag:`fleet-report-${report.itemId}`})
+      note.onclick=()=>{window.focus();showItem(report.itemId);note.close()}
+    }catch{}
+  }
   // Called on every snapshot: the tab's badge, and the pane's state before a Day exists.
   function render(days) {
     const day=days.find(s=>s.dayDate===today()) || null,badge=document.getElementById('today-count')
@@ -276,6 +291,7 @@ window.FleetDay=(()=>{
     if(day && document.getElementById('today-usage'))window.Fleet.update('today-usage',usageHtml(day))
     const waiting=day?.dayProgress?.waiting || 0,proposed=day?.dayProgress?.proposed || 0
     if(badge){badge.textContent=waiting || proposed || '';badge.dataset.alert=String(!!waiting);badge.title=waiting ? `${waiting} waiting on you` : proposed ? `${proposed} to triage` : ''}
+    announce(day?.dayProgress?.report)
     if(!pane())return
     if(day){if(!document.getElementById('day-board'))pane().querySelector('.today-empty')?.remove();return}
     document.getElementById('day-board')?.remove()
