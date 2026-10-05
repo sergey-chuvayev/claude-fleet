@@ -3274,6 +3274,17 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
 .detail:has(#composer) .composer { flex:none }
 .composer textarea { flex:1 0 auto; min-height:50px; max-height:40vh; overflow-y:auto }
 
+/* The pinned question: a compact copy of your last message above the fold, laid over
+   the top of the conversation. It eases in when a new question takes its place. */
+.question-pin { position:relative; height:0; z-index:4; flex:none }
+.question-pin-bubble { position:absolute; top:8px; right:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:min(86%,720px); padding:8px 14px 9px; border:1px solid color-mix(in oklab,var(--line) 80%,transparent); border-radius:16px 16px 5px 16px; background:color-mix(in oklab,#2b2b30 86%,transparent); -webkit-backdrop-filter:blur(12px) saturate(1.2); backdrop-filter:blur(12px) saturate(1.2); box-shadow:0 10px 28px -8px rgba(0,0,0,.55); color:var(--text); font:inherit; text-align:left; cursor:pointer;
+  opacity:0; transform:translateY(-8px) scale(.97); transform-origin:top right; pointer-events:none; transition:opacity .18s ease, transform .28s cubic-bezier(.2,.8,.2,1), background-color .15s ease }
+.question-pin.is-shown .question-pin-bubble { opacity:1; transform:none; pointer-events:auto }
+.question-pin-bubble:hover { background:color-mix(in oklab,#323238 92%,transparent) }
+.question-pin-label { color:var(--faint); font-size:var(--text-2xs); font-weight:600; letter-spacing:.1em }
+.question-pin-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:var(--text-lg); line-height:1.5 }
+@media(prefers-reduced-motion:reduce) { .question-pin-bubble { transition:opacity .1s linear; transform:none } }
+
 /* ── Today: what is particular to the Day board ─────────────────────────────── */
 #day-board .day-check-state { font-size:var(--text-md) }
 .day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }

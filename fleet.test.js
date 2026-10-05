@@ -148,7 +148,7 @@ test('each browser script keeps its own scope and leaks only its namespace', () 
   for (const [name, keys] of [
     ['Fleet', ['$', 'esc', 'update', 'key', 'age', 'money', 'status', 'usageHtml', 'snapshot', 'render', 'tick', 'setSnapshot', 'setFilter', 'select', 'setChildrenCollapsed', 'setChildDetail', 'toast', 'modalIsOpen', 'openModal', 'closeModal', 'watchConversation', 'syncDetails']],
     ['FleetControl', ['selectControl', 'isWorking', 'updateLaunchTeam', 'renderUpdate', 'api', 'session', 'launchTeams', 'setLaunchTeams', 'setLaunchRequestId']],
-    ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight']],
+    ['FleetBlocks', ['renderBlocks', 'proseHtml', 'codeHtml', 'highlight', 'pinQuestions']],
     ['FleetTeams', ['open', 'board', 'reset', 'save', 'isEditing']],
     ['FleetConnections', ['open']],
     ['FleetSync', ['get', 'forget']],
