@@ -206,6 +206,23 @@ session you can still talk to is the one thing this dashboard exists to show you
 Restoring a session by hand also exempts it from the rule permanently, so the next
 refresh cannot quietly undo the decision you just made.
 
+### Worktrees shows what agents left behind
+
+Agents leave a git worktree per task, and they pile up after the pull requests merge.
+The **Worktrees** tab lists the checkout every session worked in: its branch, whether
+that branch is merged into `main`, whether a pull request is open, and whether it holds
+uncommitted or unpushed work. Merged is measured against the trunk as last fetched, and
+pull requests come from your own `gh` when it is signed in. Without `gh`, a
+squash-merged branch reads as unmerged, which only ever keeps it.
+
+**Clear…** appears only on a worktree that is merged, clean and unpushed-free, and has
+no session running in it. It opens a confirmation that names the folder and the local
+branch that will be removed, and what is left alone. Fleet checks again when you
+confirm, runs `git worktree remove` without `--force` from the main checkout, and
+deletes the branch only if it still points at the commit it checked. Dirty, unpushed,
+unmerged, locked, detached and main checkouts are never removed, and the remote branch
+is never touched.
+
 ### The conversation is a stack of blocks
 
 ![A Fleet session: the agent list on the left, and on the right a conversation where each tool call is its own block, including a failed test run, followed by a rendered Markdown answer with a table](docs/session-view.png)

@@ -5,13 +5,13 @@ const assert=require('node:assert/strict')
 const fs=require('node:fs')
 const path=require('node:path')
 const vm=require('node:vm')
-function load(saved,panes=['sessions-pane','today-pane','projects-pane','progress-pane']) {
+function load(saved,panes=['sessions-pane','today-pane','projects-pane','progress-pane','worktrees-pane']) {
   const elements=new Map(),stored={'fleet:view':saved},renders=[]
   const element=id=>{
     if (!elements.has(id)) elements.set(id,{id,hidden:false,attrs:{},handlers:{},addEventListener(type,fn){this.handlers[type]=fn},setAttribute(name,value){this.attrs[name]=value}})
     return elements.get(id)
   }
-  for (const id of [...panes,'view-today','view-projects','view-progress','view-sessions']) element(id)
+  for (const id of [...panes,'view-today','view-projects','view-progress','view-worktrees','view-sessions']) element(id)
   const workspace={dataset:{},setAttribute(){}}
   const context=vm.createContext({document:{querySelector:()=>workspace},console})
   context.window=context
@@ -42,4 +42,13 @@ test('a remembered Work queue, or a view without its pane, falls back to Session
   assert.equal(views.view(),'sessions','Projects without its pane falls back')
   views.switchView('nope')
   assert.equal(views.view(),'sessions')
+})
+test('Worktrees is a view of its own and shows only its pane',()=>{
+  const {views,element,stored}=load('sessions')
+  element('view-worktrees').handlers.click()
+  assert.equal(views.view(),'worktrees')
+  assert.deepEqual(['sessions-pane','today-pane','projects-pane','progress-pane','worktrees-pane'].map(id=>element(id).hidden),[true,true,true,true,false])
+  assert.equal(element('view-worktrees').attrs['aria-pressed'],'true')
+  assert.equal(stored['fleet:view'],'worktrees')
+  assert.equal(load('worktrees',['sessions-pane']).views.view(),'sessions','Worktrees without its pane falls back')
 })

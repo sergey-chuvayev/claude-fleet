@@ -26,6 +26,7 @@
     "public/",
     "build/make-app.sh",
     "archive.js",
+    "checkouts.js",
     "service.js",
     "history.js",
     "codex.js",

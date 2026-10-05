@@ -453,6 +453,7 @@ function render() {
   window.FleetDay?.render(days)
   window.FleetProjects?.render(live)
   window.FleetProgress?.render()
+  window.FleetWorktrees?.render()
 }
 // ── The archive ──────────────────────────────────────────────────────────────
 // Putting a session away hides its row and nothing else: the transcript stays in
@@ -1004,7 +1005,7 @@ function syncDetails() {
   const toggle = $('details-toggle'), content = $('detail-content'), hasConsole = !!$('composer')
   if (!toggle || !content) return
   // Today is two panels, the board and the console; the inspector has nothing to add.
-  if (window.FleetDay?.active() || window.FleetProjects?.active() || window.FleetProgress?.active()) { toggle.hidden = true; content.hidden = true; return }
+  if (window.FleetDay?.active() || window.FleetProjects?.active() || window.FleetProgress?.active() || window.FleetWorktrees?.active()) { toggle.hidden = true; content.hidden = true; return }
   toggle.hidden = !hasConsole
   const preference = store.get(DETAILS_KEY)
   const open = !hasConsole || (preference === null ? matchMedia('(min-width:1200px)').matches : preference === '1')

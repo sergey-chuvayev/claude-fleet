@@ -1,11 +1,11 @@
 'use strict'
-// Which view the workspace shows: Today, Projects, Progress or Sessions, and the one place that
-// switches between them. Today's, Projects' and Progress' panes and tabs are mounted by day.js and
-// projects.js before this runs; a view whose pane is missing falls back to Sessions, and
+// Which view the workspace shows: Today, Projects, Progress, Worktrees or Sessions, and the one
+// place that switches between them. Each other view mounts its own pane and tab (day.js,
+// projects.js, progress.js, worktrees.js) before this runs; a view whose pane is missing falls back to Sessions, and
 // so does a view that no longer exists (the Work queue, remembered from an older Fleet).
 window.FleetViews=(()=>{
-  const VIEWS=['today','projects','sessions','progress']
-  const LABEL={today:'Today',projects:'Projects',progress:'Progress',sessions:'Sessions'}
+  const VIEWS=['today','projects','sessions','progress','worktrees']
+  const LABEL={today:'Today',projects:'Projects',progress:'Progress',worktrees:'Worktrees',sessions:'Sessions'}
   const {$,store}=window.Fleet
   const saved=store.get('fleet:view')
   let mode=VIEWS.includes(saved) ? saved : 'sessions'
