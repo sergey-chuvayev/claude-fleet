@@ -104,9 +104,12 @@
     const form = !!(session.managed && session.managedId)
     current = { key: window.Fleet.key(session), managedId: session.managedId, links, urls: links.map(l => l.url).join(' '), statuses: [], form }
     panel.hidden = false
-    panel.innerHTML = UI.section('Pull request', `<div id="review-status"></div>${form
-      ? `<form id="review-form" class="review-form"><label class="review-field">Feedback to this session<select id="review-preset" aria-label="Feedback to send">${options([], CUSTOM).html}</select></label><textarea id="review-text" rows="3" maxlength="16000" placeholder="What should it change?" aria-label="Feedback message">${esc(drafts.get(current.key) || '')}</textarea><div class="ui-actions"><button type="button" class="button" id="review-ci-send" hidden>Send CI fix request</button><button type="submit" class="button resume">Send feedback <i class="ico ico-arrow" aria-hidden="true"></i></button></div><p id="review-sent" class="note" role="status"></p><p id="review-error" class="form-error" role="alert" hidden></p></form>`
-      : '<p class="note">Continue this session in Fleet to send it feedback.</p>'}`, { aside: 'via gh', cls: 'review-section' })
+    // One slim strip: the PR, its state, and a Feedback button that opens the form.
+    // The form stays folded unless something was already typed into it.
+    const draft = drafts.get(current.key) || ''
+    panel.innerHTML = `<div class="review-strip" title="Pull request status via gh${form ? '' : '. Continue this session in Fleet to send it feedback.'}"><div id="review-status"></div>${form ? `<button type="button" class="button review-toggle" id="review-toggle" aria-expanded="${!!draft}" aria-controls="review-form">Feedback</button>` : ''}</div>${form
+      ? `<form id="review-form" class="review-form"${draft ? '' : ' hidden'}><label class="review-field">Feedback to this session<select id="review-preset" aria-label="Feedback to send">${options([], CUSTOM).html}</select></label><textarea id="review-text" rows="3" maxlength="16000" placeholder="What should it change?" aria-label="Feedback message">${esc(draft)}</textarea><div class="ui-actions"><button type="button" class="button" id="review-ci-send" hidden>Send CI fix request</button><button type="submit" class="button resume">Send feedback <i class="ico ico-arrow" aria-hidden="true"></i></button></div><p id="review-sent" class="note" role="status"></p><p id="review-error" class="form-error" role="alert" hidden></p></form>`
+      : ''}`
     renderStatus()
     load()
   }
@@ -135,6 +138,13 @@
   })
   document.addEventListener('click', event => {
     if (event.target.closest('#review-ci-send')) send(ciFeedback(current?.statuses))
+    const toggle = event.target.closest('#review-toggle')
+    if (toggle) {
+      const form = $('review-form'), open = form.hidden
+      form.hidden = !open
+      toggle.setAttribute('aria-expanded', String(open))
+      if (open) $('review-text').focus()
+    }
   })
   document.addEventListener('change', event => {
     if (event.target.id !== 'review-preset' || !current) return

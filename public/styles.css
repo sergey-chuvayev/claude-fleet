@@ -3412,11 +3412,17 @@ details.project-brief[open]>summary { margin-bottom:8px }
 }
 
 /* Review loop: PR state, CI, and feedback to the session */
-#review-panel { flex:none; padding:var(--space-5) var(--space-7) 0 }
-.review-prs { list-style:none; margin:0; padding:0; display:grid; gap:10px }
-.review-pr { display:flex; flex-wrap:wrap; align-items:center; gap:8px }
+#review-panel { flex:none; padding:var(--space-3) var(--space-7) 0 }
+.review-strip { display:flex; align-items:center; gap:10px; min-width:0 }
+.review-strip #review-status { flex:1; min-width:0 }
+.review-prs { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px 14px }
+.review-pr { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0 }
+.review-pr .work-link { height:24px; padding:0 8px; border-radius:var(--radius-md); font-size:var(--text-sm) }
+.review-pr .note { font-size:var(--text-sm) }
 .review-failing { flex-basis:100%; margin:0; overflow-wrap:anywhere }
-.review-form { display:grid; gap:10px; margin-top:14px }
+#review-panel .review-toggle { flex:none; min-height:0; height:24px; padding:0 10px; font-size:var(--text-sm) }
+.review-toggle[aria-expanded="true"] { border-color:var(--accent) }
+.review-form { display:grid; gap:10px; margin-top:10px }
 .review-field { display:grid; gap:6px; font-size:var(--text-sm); color:var(--muted) }
 .review-form textarea { width:100%; resize:vertical; min-height:72px }
 .review-form .note { margin:0 }
