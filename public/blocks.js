@@ -216,5 +216,50 @@ function renderBlocks(container, messages, { streamingId = null, onCopy = () => 
   for (const element of [...container.children]) if (!seen.has(element.dataset?.block)) element.remove()
 }
 
-return { renderBlocks, proseHtml, codeHtml, highlight, toolLabel }
+// The question above its answer. As the conversation scrolls, the last message the
+// operator sent that is now above the fold stays pinned at the top, compact, until the
+// next one takes its place; clicking it scrolls back to where it was asked. One pin per
+// conversation, laid over its top edge; the messages themselves never move.
+function pinQuestions(log) {
+  if (!log || log.dataset.questionPin) return
+  log.dataset.questionPin = '1'
+  const pin = document.createElement('div')
+  pin.className = 'question-pin'
+  pin.innerHTML = '<button type="button" class="question-pin-bubble" tabindex="-1"><span class="question-pin-label">YOU</span><span class="question-pin-text"></span></button>'
+  log.before(pin)
+  const bubble = pin.firstElementChild, text = bubble.lastElementChild
+  let shown = null, frame = 0
+  const observers = []
+  const update = () => {
+    frame = 0
+    if (!log.isConnected) { for (const o of observers) o.disconnect(); pin.remove(); return }
+    const box = log.getBoundingClientRect()
+    let current = null
+    for (const el of log.querySelectorAll('.block[data-role="user"]')) {
+      if (el.getBoundingClientRect().bottom < box.top + 4) current = el
+      else break
+    }
+    if (current === shown) return
+    shown = current
+    if (current) {
+      const words = (current.querySelector('.block-body')?.innerText || '').replace(/\s+/g, ' ').trim()
+      text.textContent = words || 'Your message'
+      bubble.title = `Back to: ${words.slice(0, 200)}`
+      bubble.setAttribute('aria-label', `Back to your message: ${words.slice(0, 200)}`)
+      // Replay the entrance for each new question, not only the first.
+      pin.classList.remove('is-shown'); void pin.offsetWidth; pin.classList.add('is-shown')
+    } else pin.classList.remove('is-shown')
+  }
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+  log.addEventListener('scroll', schedule, { passive: true })
+  const resize = new ResizeObserver(schedule); resize.observe(log); observers.push(resize)
+  const content = new MutationObserver(schedule); content.observe(log, { childList: true }); observers.push(content)
+  bubble.addEventListener('click', () => {
+    if (!shown) return
+    const box = log.getBoundingClientRect()
+    log.scrollTo({ top: log.scrollTop + shown.getBoundingClientRect().top - box.top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  })
+  schedule()
+}
+return { renderBlocks, proseHtml, codeHtml, highlight, toolLabel, pinQuestions }
 })()
