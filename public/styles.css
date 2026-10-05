@@ -3310,12 +3310,7 @@ button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--ac
 details.project-brief>summary { cursor:pointer; color:var(--muted); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600 }
 details.project-brief[open]>summary { margin-bottom:8px }
 
-/* ── A new agent starts as a draft ────────────────────────────────────────────
-   One row in the list and one pane in the inspector, styled like the conversation it
-   becomes. Nothing exists on the server until the first message is sent. */
-.avatar-draft { background:transparent; border:1px dashed var(--line); color:var(--muted); border-radius:12px }
-.session-draft .session-preview { color:var(--muted) }
-.detail:has(#draft-panel:not([hidden])) { display:flex; flex-direction:column; overflow:hidden; padding:0 }
+/* New-agent form shared by the launch dialog and its team editor. */
 #draft-panel { flex:1; min-height:0; display:flex; flex-direction:column }
 #draft-panel[hidden] { display:none }
 .draft-form { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; padding:14px 16px 0 }
@@ -3351,3 +3346,33 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .conversation-header h3.is-renameable { cursor:text; border-radius:var(--radius-sm,4px) }
 .conversation-header h3.is-renameable:hover { text-decoration:underline dotted var(--faint); text-underline-offset:4px }
 .rename-input { min-width:0; width:min(420px,100%); height:var(--control-sm); padding:0 8px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg); color:var(--text); font:inherit; font-size:15px; font-weight:600 }
+
+/* Launch stays close to the task: a compact dialog over the current conversation. */
+#draft-panel.modal-launch { flex:initial; width:min(780px,100%); }
+.modal-launch .draft-form { padding:24px 28px; gap:0; }
+.modal-launch .draft-head { order:0; padding-bottom:20px; }
+.modal-launch .draft-heading { flex-direction:column; align-items:flex-start; gap:5px; }
+.modal-launch .draft-heading h3 { display:flex; align-items:center; gap:9px; font-size:15px; }
+.launch-mark { color:var(--muted); font-size:22px; }
+.modal-launch .draft-empty { order:1; flex:none; min-height:0; align-items:flex-start; padding:24px 0 16px; text-align:left; }
+.modal-launch .draft-empty h2 { font-size:26px; letter-spacing:-.6px; }
+.modal-launch .draft-empty .note { max-width:none; }
+.modal-launch .draft-composer { display:contents; }
+.modal-launch .draft-composer textarea { order:2; flex:none; width:100%; min-height:150px; padding:16px; background:var(--bg); border:1px solid var(--line); font:inherit; font-size:15px; line-height:1.6; resize:vertical; }
+.modal-launch .draft-setup { order:3; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding-top:20px; }
+.modal-launch .draft-field-dir { grid-column:1/-1; }
+.modal-launch .draft-field input, .modal-launch .draft-field select, .modal-launch .draft-field .fleet-select { height:40px; width:100%; }
+.modal-launch .draft-notes { order:4; margin:12px 0; }
+.modal-launch .draft-notes>span:not(:empty) { display:block; }
+.modal-launch #launch-blocked, .modal-launch #launch-error { order:5; margin:8px 0; }
+.modal-launch .composer-footer { order:6; margin-top:12px; padding-top:18px; border-top:1px solid var(--line); }
+.modal-launch .composer-footer .note { margin-left:auto; font-size:11px; }
+.modal-launch #team-editor { order:7; }
+.modal-launch [hidden], .modal-launch .draft-composer[hidden] { display:none !important; }
+@media(max-width:540px) {
+  .modal-launch .draft-form { padding:18px; }
+  .modal-launch .draft-empty h2 { font-size:23px; }
+  .modal-launch .composer-footer { flex-wrap:wrap; }
+  .modal-launch .composer-footer .note { order:3; width:100%; margin:8px 0 0; text-align:center; }
+  .modal-launch #launch-submit { margin-left:auto; }
+}

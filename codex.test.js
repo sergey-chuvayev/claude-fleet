@@ -135,3 +135,45 @@ let input='';process.stdin.on('data',d=>input+=d).on('end',()=>{
     assert.notEqual(stopped,'still running','Stop ends the Codex process')
   } finally { process.env.CLAUDE_FLEET_CODEX=previous ?? ''; if(previous===undefined)delete process.env.CLAUDE_FLEET_CODEX; fs.rmSync(dir,{recursive:true,force:true}) }
 })
+
+
+test('Codex detection rechecks PATH and rejects invalid explicit executables',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-codex-detection-'))
+  const previous={PATH:process.env.PATH,CLAUDE_FLEET_CODEX:process.env.CLAUDE_FLEET_CODEX}
+  const bin=path.join(dir,process.platform==='win32'?'codex.cmd':'codex')
+  const codex=require('./codex')
+  try {
+    delete process.env.CLAUDE_FLEET_CODEX
+    process.env.PATH=dir
+    codex.executable()
+    fs.writeFileSync(bin,'#!/bin/sh\nexit 0\n',{mode:0o755})
+    assert.equal(codex.executable(),bin,'a newly installed CLI takes precedence without restarting')
+    process.env.CLAUDE_FLEET_CODEX=dir
+    assert.equal(codex.available(),false,'an executable directory is not a CLI')
+    process.env.CLAUDE_FLEET_CODEX=bin
+    assert.equal(codex.executable(),bin)
+    process.env.CLAUDE_FLEET_CODEX='none'
+    assert.equal(codex.available(),false)
+  } finally {
+    for(const [key,value] of Object.entries(previous))if(value===undefined)delete process.env[key];else process.env[key]=value
+    fs.rmSync(dir,{recursive:true,force:true})
+  }
+})
+
+test('desktop discovery finds nvm Codex outside the service PATH',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-codex-nvm-'))
+  const bin=path.join(dir,'.nvm','versions','node','v24.0.0','bin',process.platform==='win32'?'codex.cmd':'codex')
+  fs.mkdirSync(path.dirname(bin),{recursive:true});fs.writeFileSync(bin,'#!/bin/sh\n',{mode:0o755})
+  const previous={PATH:process.env.PATH,NVM_DIR:process.env.NVM_DIR,CLAUDE_FLEET_CODEX:process.env.CLAUDE_FLEET_CODEX}
+  const access=fs.accessSync
+  t.mock.method(os,'homedir',()=>dir)
+  t.mock.method(fs,'accessSync',(file,mode)=>{if(file!==bin)throw new Error('Not installed');return access(file,mode)})
+  try {
+    process.env.PATH='/usr/bin:/bin';delete process.env.NVM_DIR;delete process.env.CLAUDE_FLEET_CODEX
+    assert.equal(require('./codex').executable(),bin)
+  } finally {
+    t.mock.restoreAll()
+    for(const [key,value] of Object.entries(previous))if(value===undefined)delete process.env[key];else process.env[key]=value
+    fs.rmSync(dir,{recursive:true,force:true})
+  }
+})
