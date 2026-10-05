@@ -185,7 +185,7 @@ function selectControl(session) {
     window.Fleet.watchConversation($('conversation'))
     catalog=[];catalogFor=null;closePicker();renderTray();renderReferences()
     window.Fleet.syncDetails()
-    $('message-input').value=drafts.get(next)?.text || ''
+    $('message-input').value=drafts.get(next)?.text || '';fitComposer()
     $('message-input').addEventListener('input',()=>drafts.set(next,{text:$('message-input').value,requestId:crypto.randomUUID()}))
     $('message-input').addEventListener('keydown',event=>{
       if(event.isComposing) return
@@ -194,6 +194,7 @@ function selectControl(session) {
       if(event.key==='Enter' && !event.shiftKey && !event.isComposing){event.preventDefault();if(!$('send-message').disabled)$('composer').requestSubmit()}
     })
     $('message-input').addEventListener('input',composerInput)
+    $('message-input').addEventListener('input',fitComposer)
     $('message-input').addEventListener('paste',event=>{
       const files=[...(event.clipboardData?.items || [])].filter(i=>i.kind==='file' && i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean)
       if(!files.length) return            // ordinary text paste proceeds untouched
@@ -399,12 +400,12 @@ function renderControl() {
   $('approval-mode').title=codex ? CODEX_SANDBOX[s.approvalMode] || CODEX_SANDBOX.auto : ''
   const working=isWorking(s)
   const held=s.openElsewhere
-  const heldText=held ? `Open ${held.entrypoint==='cli' ? 'in a terminal' : 'in another program'}${held.name ? ' · '+held.name : ''}${held.startedAt ? ' · since '+new Date(held.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}. Close it there to continue here.` : null
+  const heldText=held ? `Open ${held.entrypoint==='cli' ? 'in a terminal' : 'in another program'}${held.name ? ' · '+held.name : ''}${held.startedAt ? ' · since '+new Date(held.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}. Messages wait here and send once it is closed there.` : ''
   if(held){ $('agent-state').textContent=held.state==='busy' ? 'Working in a terminal' : 'Open in a terminal'; $('agent-state').className='subtle stale' }
-  // Sending no longer waits on idle: mid-turn, a message joins the queue and the run's
-  // own completion starts it. Only another live process on this session still blocks it.
-  $('send-message').disabled=inFlight.has(s.id) || !!held
-  $('send-message').innerHTML=working ? 'Queue <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Send <i class="ico ico-arrow" aria-hidden="true"></i>'
+  // Nothing blocks writing: mid-turn, or while another program holds the session, a
+  // message joins the queue and goes the moment it can.
+  $('send-message').disabled=inFlight.has(s.id)
+  $('send-message').innerHTML=working || held ? 'Queue <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Send <i class="ico ico-arrow" aria-hidden="true"></i>'
   $('stop-agent').hidden=!working && s.status!=='queued'
   $('stop-agent').innerHTML=s.status==='queued' ? 'Cancel queued task' : '<i class="ico ico-stop" aria-hidden="true"></i> Stop'
   $('stop-agent').disabled=s.status==='stopping' || inFlight.has(`stop:${s.id}`)
@@ -483,12 +484,23 @@ async function attachImages(files) {
 function removeImage(index) {
   const list=attachedImages(); list.splice(index,1); pendingImages.set(controlId,list); renderTray()
 }
+// The text box takes the height of its text, within the CSS limits.
+function fitComposer() {
+  const box=$('message-input')
+  if(!box)return
+  box.style.height='auto'
+  box.style.height=`${box.scrollHeight}px`
+}
 function renderTray() {
   const tray=$('attach-tray'); if(!tray) return
   const list=attachedImages()
   tray.hidden=!list.length
   tray.innerHTML=list.map((img,i)=>`<figure class="attach-thumb"><img src="${img.dataUrl}" alt="${esc(img.name)}"><figcaption>${esc(img.name)} · ${Math.round(img.bytes/1024)} KB</figcaption><button type="button" class="attach-remove" data-remove="${i}" aria-label="Remove ${esc(img.name)}">×</button></figure>`).join('')
-  const hint=$('composer-hint'); if(hint && list.length && !isWorking(controlSession || {})) hint.textContent=`${list.length} image${list.length===1?'':'s'} attached · Enter to send`
+  const hint=$('composer-hint')
+  if(hint && list.length && !isWorking(controlSession || {})) hint.textContent=`${list.length} image${list.length===1?'':'s'} attached · Enter to send`
+  // The last image removed: the note goes back to what the console says otherwise.
+  else if(hint && !list.length && /attached/.test(hint.textContent)) controlSession ? renderControl() : hint.textContent='Enter to send · Shift + Enter for a new line'
+  fitComposer()
 }
 async function sendMessage(event) {
   event.preventDefault()
@@ -502,7 +514,7 @@ async function sendMessage(event) {
   inFlight.add(id);renderControl();$('send-error').hidden=true
   try{
     await api(`/api/managed/${id}/messages`,{message,...(images.length ? {images} : {}),...(references.length ? {references} : {}),requestId:draft.requestId})
-    if(drafts.get(id)?.requestId===draft.requestId){drafts.delete(id);pendingReferences.delete(id);if(controlId===id){$('message-input').value='';renderReferences()}}
+    if(drafts.get(id)?.requestId===draft.requestId){drafts.delete(id);pendingReferences.delete(id);if(controlId===id){$('message-input').value='';fitComposer();renderReferences()}}
     pendingImages.delete(id); if(controlId===id) renderTray()
     await refreshControl();await tick()
   }catch(error){if(controlId===id){$('send-error').hidden=false;$('send-error').textContent=error.message}}

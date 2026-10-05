@@ -41,6 +41,7 @@ const DAY_HOURS = [8, 20]
 // clicks into one run instead of ten.
 const DAY_RESUME_DELAY_MS = 20000
 const DAY_ANSWER_DELAY_MS = 4000
+const HELD_CHECK_MS = 3000
 const MAX_DAY_SUBAGENTS = 40
 const DAY_MAX_FAILURES = 3
 // Pasted images: a handful per message, bounded in size, only the formats the API
@@ -98,6 +99,8 @@ class ManagedSessions extends EventEmitter {
     this.usage = new UsageTracker()
     this.dayTimers = new Map()
     this.sweepTimer = setInterval(() => this.sweepDays(), DAY_SWEEP_MINUTES * 60000)
+    this.heldTimer = setInterval(() => this.releaseHeld(), HELD_CHECK_MS)
+    this.heldTimer.unref?.()
     this.sweepTimer.unref?.()
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.file = path.join(directory, 'sessions.json')
@@ -207,7 +210,7 @@ class ManagedSessions extends EventEmitter {
       model:s.model, contextTokens:s.contextTokens || null, contextLimit:s.contextLimit || 200000,
       permissionMode:'default', approvalMode:s.approvalMode || DEFAULT_MODE, selectedModel:s.selectedModel || '', messages:s.messages.filter(m=>m.role!=='tool').length, links:linksFromMessages(s.messages), approvals:s.approvals.length,
       turn:turnSummary(managedEvents(s.messages), { working: ACTIVE.has(s.status) && s.status !== 'approval' }),
-      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? (s.engine === 'codex' ? `codex resume ${s.sessionId}` : `claude --resume ${s.sessionId}`) : null, forkPending:!!s.forkPending, continuedFrom:s.continuedFrom || null,
+      error:s.error, currentTool:s.currentTool, resumeCmd:s.sessionId ? (s.engine === 'codex' ? `codex resume ${s.sessionId}` : `claude --resume ${s.sessionId}`) : null, forkPending:!!s.forkPending, waitingForRelease:!!s.waitingForRelease, continuedFrom:s.continuedFrom || null,
       kind:s.kind || 'agent', teamId:s.teamId || null, teamName:s.teamName || null, taskProgress:tasks.progress(s), dayProgress:day.progress(s), dayDate:s.dayBoard?.date || null, projectId:s.projectId || null, parentDayId:s.parentDayId || null, itemId:s.itemId || null, threadOpen:s.kind === 'thread' ? !this.dayFor(s)?.dayBoard?.items.find(i => i.id === s.itemId)?.thread?.closed && !!this.dayFor(s) : null, tokenUsage:s.tokenUsage || null,
       worktreeBranch:s.worktree?.branch || null, costUsd:s.costUsd || 0,
       // 0 unless this session is waiting for an agent slot, so a row can say "3rd in
@@ -624,15 +627,11 @@ class ManagedSessions extends EventEmitter {
     if (s.requestIds.includes(rid)) return s
     const hasImages = Array.isArray(body.images) && body.images.length > 0
     const message = hasImages && !(body.message || '').trim() ? '' : text(body.message,'Message',16000)
-    // Another live process on the same session would write the same transcript.
-    // Refuse, and name the holder so the operator can find that window.
-    // A fork reads the terminal's conversation and writes a new one, so it may proceed.
-    const holder = s.sessionId && !s.forkPending ? this.externalSessions().find(x => x.sessionId === s.sessionId && x.alive) : null
-    if (holder) {
-      const where = holder.entrypoint === 'cli' ? 'a terminal' : 'another program'
-      const since = holder.startedAt ? ` since ${new Date(holder.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
-      fail(`This conversation is open in ${where}${holder.name ? ` (${holder.name}${since})` : since ? ` (${since.trim()})` : ''}. Fleet will not send while another process is driving the same session; close it there, or keep working there.`,409)
-    }
+    // Another live process on the same session would write the same transcript, so Fleet
+    // never sends while one holds it. A message waits instead, and goes the moment that
+    // window lets go of the session (releaseHeld). A fork writes a new conversation, so it
+    // may proceed.
+    const holder = this.holderOf(s)
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
@@ -641,6 +640,7 @@ class ManagedSessions extends EventEmitter {
     // the run's own completion (see the `finally` in run()) start it the moment the
     // agent is free, instead of making the operator retry once it's idle.
     if (this.runs.has(id)) { s.queue = [...s.queue, queued]; this.changed(s,true); return s }
+    if (holder) { s.queue = [...s.queue, queued]; s.waitingForRelease = true; this.changed(s,true); return s }
     this.checkCapacity()
     // Every agent slot is busy: take a place in line and park the payload on the session,
     // the same place a mid-turn message already waits. dispatchNext() starts it when a
@@ -653,6 +653,24 @@ class ManagedSessions extends EventEmitter {
     }
     this.startTurn(s, queued)
     return s
+  }
+  holderOf(s) {
+    return s.sessionId && !s.forkPending ? this.externalSessions().find(x => x.sessionId === s.sessionId && x.alive) || null : null
+  }
+  // Messages held back while another program had the session: send the first once it is
+  // free, as an ordinary turn (the rest follow it, like any queue).
+  releaseHeld() {
+    for (const s of this.sessions.values()) {
+      if (!s.waitingForRelease || this.runs.has(s.id)) continue
+      if (!s.queue.length) { s.waitingForRelease = false; continue }
+      if (this.holderOf(s)) continue
+      try { this.checkCapacity() } catch { continue }
+      if (this.queueing && !this.dispatch.admit(s.id, this.runs.size)) continue
+      s.waitingForRelease = false
+      const next = s.queue[0]
+      s.queue = s.queue.slice(1)
+      try { this.startTurn(s, next) } catch (error) { this.emit('storage-error', error) }
+    }
   }
   startTurn(s, {message,attachments,references,runPrompt,background}) {
     const entry = {id:randomUUID(),role:'user',text:message,at:Date.now(),...(attachments.length ? {attachments} : {}),...(references.length ? {references} : {}),...(runPrompt ? {runPrompt,background:!!background} : {})}
@@ -1162,6 +1180,7 @@ class ManagedSessions extends EventEmitter {
   cancelApprovals(id,message) { for (const p of [...this.pending.values()]) if (p.sessionId===id) p.finish({behavior:'deny',message}) }
   stop(id) {
     const s=this.get(id),run=this.runs.get(id)
+    if (!run && s.waitingForRelease) { s.queue=[]; s.waitingForRelease=false; this.changed(s,true); return s }
     // Stopping something that is only waiting has no run to abort: give up its place
     // and drop what it was going to send. Without this, Stop looks broken on a queued
     // session — the one state where the operator is most likely to press it.
@@ -1203,6 +1222,7 @@ class ManagedSessions extends EventEmitter {
   async close() {
     this.closed=true
     clearInterval(this.sweepTimer)
+    clearInterval(this.heldTimer)
     for (const timer of this.dayTimers.values()) clearTimeout(timer)
     const running=[...this.runs.values()]
     for (const id of this.runs.keys()) this.stop(id)
