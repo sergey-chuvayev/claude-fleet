@@ -92,7 +92,7 @@ test('a new day carries unfinished work and its open questions, and drops what w
 test('progress counts triaged work and what is waiting on the operator',()=>{
   const s={},a=add(s,{},'operator');add(s)
   day.act(s,{action:'ask',itemId:a.id,kind:'info',question:'?'})
-  assert.deepEqual(day.progress(s),{total:1,done:0,proposed:1,waiting:1})
+  assert.deepEqual(day.progress(s),{total:1,done:0,proposed:1,waiting:1,report:null})
   assert.equal(day.progress({}),null)
 })
 test('a reply talks to the agent about any question and never licenses a send',()=>{

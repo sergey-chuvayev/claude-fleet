@@ -66,6 +66,12 @@ A Day cannot edit files itself. For an **Agent does it** item it writes a brief 
 asks to launch it. You see the brief, the repository and who does the work, can edit
 any of them, and press **Launch**. The new session then appears under **Sessions**.
 
+When that session finishes a turn, or stops on an error, it reports back on the item
+it came from: its last words go in the item's log, any pull request it opened joins the
+item's links, and the item moves to **Waiting on you** with **Done** or **Needs more
+work**. Fleet shows a note wherever you are. To get a macOS notification as well, turn
+it on in **Settings → Notifications**.
+
 You can also start one yourself:
 
 1. Press **New agent** in the top bar (`Cmd+N`).

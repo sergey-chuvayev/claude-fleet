@@ -190,7 +190,9 @@ function waiting(s) {
 function progress(s) {
   if (!s.dayBoard) return null
   const items=s.dayBoard.items.filter(i=>!['dropped'].includes(i.status))
-  return {total:items.filter(i=>i.status!=='proposed').length,done:items.filter(i=>i.status==='done').length,proposed:items.filter(i=>i.status==='proposed').length,waiting:waiting(s).length}
+  // The newest open report from an agent this Day launched, for the page to announce.
+  const reports=items.flatMap(i=>open(i).filter(n=>n.report).map(n=>({itemId:i.id,title:i.title,question:n.question,at:n.at || 0}))).sort((a,b)=>b.at-a.at)
+  return {total:items.filter(i=>i.status!=='proposed').length,done:items.filter(i=>i.status==='done').length,proposed:items.filter(i=>i.status==='proposed').length,waiting:waiting(s).length,report:reports[0] || null}
 }
 // A new day keeps what was unfinished and forgets what was settled. Open questions carry
 // over with their item: the operator still owes them an answer.

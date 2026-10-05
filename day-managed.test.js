@@ -224,6 +224,41 @@ test('approving a launch makes Fleet start that session, once, and the Day can f
   } finally { await manager.close() }
 })
 
+test('a launched agent reports back on its item when it finishes, and Done closes it',async()=>{
+  const {directory,manager,calls}=setup()
+  const original=manager.queryFactory
+  try{
+    const s=startDay(manager,directory)
+    await until(()=>s.status==='idle')
+    const item=day.act(s,{action:'add',title:'Fix TECH-7166 retry',source:'linear'},'operator').item
+    const need=day.act(s,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Fix it.',cwd:directory})
+    manager.queryFactory=async args=>({close(){},async *[Symbol.asyncIterator](){
+      yield {type:'system',subtype:'init',session_id:'agent-1',model:'claude-sonnet'}
+      const text='Okay, I created the pull request: https://github.com/acme/app/pull/42'
+      yield {type:'assistant',message:{id:'msg-1',content:[{type:'text',text}]}}
+      yield {type:'result',result:text,is_error:false}
+    }})
+    manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:need.id,answer:'approve'})
+    const launched=manager.sessions.get(need.launched)
+    await until(()=>launched.status==='idle' && item.needs.some(n=>n.report))
+    const report=item.needs.find(n=>n.report)
+    assert.equal(item.status,'waiting_on_you')
+    assert.deepEqual(report.options,['Done','Needs more work'])
+    assert.match(report.question,/finished and opened a pull request: Okay, I created the pull request/)
+    assert.ok(item.links.includes('https://github.com/acme/app/pull/42'))
+    assert.match(item.log.at(-1).text,/^Agent finished: /)
+    assert.equal(day.progress(s).report.itemId,item.id)
+    manager.reportToDay(launched)
+    assert.equal(item.needs.filter(n=>n.report).length,1,'the same reply reports once')
+    const turns=calls.length
+    manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:report.id,answer:'Done',decision:'choose'})
+    assert.equal(item.status,'done')
+    assert.equal(day.progress(s).report,null)
+    await delay(50)
+    assert.equal(calls.length,turns,'answering a report does not wake the Day agent')
+  } finally { manager.queryFactory=original; await manager.close() }
+})
+
 test('a launch that cannot start rolls the answer back so it can be retried',async()=>{
   const {directory,manager}=setup()
   try{
