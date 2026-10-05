@@ -4,8 +4,10 @@ A short tour of the four things most people do in Fleet: plan the day, triage wh
 comes in, launch sessions, and hand bigger jobs to a team. For install steps, see the
 [README](../README.md#install-and-quick-start). The screenshots use demo data.
 
-Fleet has four tabs across the top: **Today**, **Projects**, **Sessions** and
-**Progress**. This guide covers Today and Sessions.
+Fleet has five tabs across the top: **Today**, **Projects**, **Sessions**,
+**Progress** and **Worktrees**. Worktrees lists the git worktrees your agents left
+behind and clears merged, clean ones after you confirm. This guide covers Today and
+Sessions.
 
 ## The Day board
 

@@ -20,6 +20,7 @@ const { Service, RESTART_CODE } = require('./service.js')
 const { defaultCwd, stateDir } = require('./paths.js')
 const { progress: projectProgress } = require('./projects')
 const weekly = require('./progress')
+const checkouts = require('./checkouts')
 const { TOOL_OPTIONS } = require('./team-store.js')
 const { openDashboard } = require('./open.js')
 const { createPrStatus } = require('./pr-status.js')
@@ -136,6 +137,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
     const usage=manager.usage ? manager.usage.snapshot({rejection:rateLimit}) : null
     return {...rest,sessions,counts,total:sessions.length-archived,archived,archiveRule:archive.rule,queue:manager.queueState(),storageError,usage}
   }
+  // Every session with a folder, whoever started it, in the shape the Worktrees tab reads.
+  const worktreeSessions=()=>getSnapshot().sessions.filter(s=>s.cwd).map(s=>({id:s.managedId || s.sessionId || `session:${s.pid}`,name:s.title || s.name || null,cwd:s.cwd,alive:!!s.alive,engine:s.engine || 'claude',lastActivity:s.lastActivity || null}))
   const authorized=(req)=>{
     const supplied=req.headers['x-fleet-token']
     if(typeof supplied!=='string' || supplied.length!==token.length) return false
@@ -191,6 +194,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           manager.emit('change','projects')
           return json(res,200,result)
         }
+        // The verdict is re-derived from git here; the page only names the path.
+        if(url.pathname==='/api/worktrees/clear') return json(res,200,{cleared:await checkouts.clear(worktreeSessions(),data.path)})
         if(url.pathname==='/api/managed') return json(res,201,{session:manager.detail(manager.create(data).id)})
         // Keyword hits come back at once; the answer is fetched by id while Claude reads them.
         if(url.pathname==='/api/search') return json(res,201,{job:search.start(data)})
@@ -278,6 +283,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(url.pathname==='/api/projects') return json(res,200,{projects:manager.projects.list({archived:url.searchParams.get('archived')==='1'}).map(p=>({...p,progress:projectProgress(p),sessions:manager.members(p.id).length,onToday:manager.deliverablesOnToday(p.id),managerId:manager.managerOf(p.id)?.id || null}))})
       // The weekly look: what shipped, what stalled, what ran, read from the Day boards and sessions.
       if(url.pathname==='/api/progress') return json(res,200,weekly.summarize(manager.sessions.values(),{days:Math.min(30,Math.max(1,Number(url.searchParams.get('days')) || weekly.WINDOW_DAYS))}))
+      // Each session's git checkout, with what is in it, for the Worktrees tab.
+      if(url.pathname==='/api/worktrees') return json(res,200,await checkouts.collect(worktreeSessions()))
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
       if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
       if(url.pathname==='/api/sessions') return respond(req,res,getSnapshot(),{paths:['sessions'],volatile:['generatedAt']})
@@ -306,7 +313,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/review.js':'review.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/progress.js':'progress.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
+      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/review.js':'review.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/projects.js':'projects.js','/progress.js':'progress.js','/worktrees.js':'worktrees.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
       const file=files[url.pathname]
       if(!file) return json(res,404,{error:'Not found.'})
       const data=await fs.promises.readFile(path.join(PUBLIC,file))
