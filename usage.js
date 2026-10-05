@@ -48,6 +48,18 @@ class UsageTracker {
       this.available=true
       changed=true
     }
+    // Newer Claude Code sends every window at once, as `unifiedWindows`, with utilization
+    // as a fraction (0.81 is 81%) and no top-level utilization at all. Reading only the
+    // old field left the gauge empty on every run.
+    for (const [name,w] of Object.entries(info.unifiedWindows && typeof info.unifiedWindows==='object' ? info.unifiedWindows : {})) {
+      if (!WINDOWS.includes(name) || !w || typeof w.utilization!=='number' || !Number.isFinite(w.utilization)) continue
+      const percent=Math.round(w.utilization<=1 ? w.utilization*100 : w.utilization)
+      if (!valid(percent)) continue
+      this.windows.set(name,{utilization:percent,resetsAt:resetTime(w.resetsAt)})
+      this.observedAt=now
+      this.available=true
+      changed=true
+    }
     if (info.status==='rejected' && type) {
       this.blocked={rateLimitType:type,resetsAt:resetTime(info.resetsAt),reason:info.overageDisabledReason || null,at:now,source:'run'}
       changed=true

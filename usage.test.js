@@ -75,3 +75,19 @@ test('the newer of two blocks wins and an allowed turn clears the one from a run
   assert.equal(snap.blocked.rateLimitType,'seven_day','the transcript block stands until its own window resets')
   assert.equal(snap.windows[0].utilization,5)
 })
+
+// The event as Claude Code sends it now: no top-level utilization, every window in
+// `unifiedWindows` as a fraction. Reading only the old field left the gauge empty.
+test('a rate-limit event with unifiedWindows is read, fractions as percentages',()=>{
+  const usage=new UsageTracker()
+  const week=Math.round((now+6*24*HOUR)/1000)
+  usage.recordEvent({status:'allowed',resetsAt:soon,rateLimitType:'five_hour',overageStatus:'allowed',isUsingOverage:false,unifiedWindows:{five_hour:{utilization:0.8,resetsAt:soon},seven_day:{utilization:0.09,resetsAt:week},something_new:{utilization:0.5}}},now)
+  const snap=usage.snapshot({now})
+  assert.equal(snap.known,true)
+  assert.deepEqual(snap.windows.map(w=>[w.name,w.utilization]),[['five_hour',80],['seven_day',9]],'0.8 is 80%; a window Fleet does not know is left out')
+  assert.equal(snap.windows[0].resetsAt,soon*1000)
+  assert.equal(snap.binding,'five_hour')
+  // The old shape still works.
+  usage.recordEvent({status:'allowed',rateLimitType:'five_hour',utilization:85,resetsAt:soon},now)
+  assert.equal(usage.snapshot({now}).windows.find(w=>w.name==='five_hour').utilization,85)
+})
