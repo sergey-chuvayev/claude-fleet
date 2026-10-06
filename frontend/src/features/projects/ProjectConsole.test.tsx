@@ -8,7 +8,7 @@ import projectsFixture from '../../test/fixtures/projects-collision/get-projects
 import { deferred, jsonResponse } from '../../test/fakes'
 import type { Project } from '../../transport/contracts'
 import { ProjectConsole } from './ProjectConsole'
-import { fakeFleet, mount, unmount } from './testing'
+import { fakeFleet, mount, mounted, unmount } from './testing'
 
 const ALPHA = '00000001-f1e1-4000-8000-000000000000'
 const alpha = (projectsFixture.response.body.projects as unknown as Project[]).find(p => p.id === ALPHA)!
@@ -102,5 +102,13 @@ describe('ProjectConsole', () => {
     await waitFor(() => expect(box().value).toBe(''))
     // Nothing went to the project page's ask route.
     expect(fleet.posted.filter(p => p.path.endsWith('/ask'))).toHaveLength(0)
+  })
+
+  it('has the composer height divider, on the preference the Sessions console uses', async () => {
+    setup()
+    const divider = await screen.findByRole('separator', { name: 'Resize message composer' })
+    expect(divider.nextElementSibling?.id).toBe('composer')
+    fireEvent.keyDown(divider, { key: 'Home' })
+    expect(mounted().storage.getItem('fleet:minimal-composer-height')).toBe('110')
   })
 })

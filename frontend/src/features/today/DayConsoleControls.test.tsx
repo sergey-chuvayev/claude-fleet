@@ -91,4 +91,13 @@ describe('The Day console controls', () => {
     await waitFor(() => expect(composer()?.placeholder).toBe('Ask about this item…'))
     expect(composer().id).toBe('message-input')
   })
+
+  it('has the composer height divider, on the preference the Sessions console uses', async () => {
+    const { harness } = await open()
+    const divider = await screen.findByRole('separator', { name: 'Resize message composer' })
+    expect(divider.nextElementSibling?.id).toBe('composer')
+    fireEvent.keyDown(divider, { key: 'Home' })
+    expect(harness.storage.getItem('fleet:minimal-composer-height')).toBe('110')
+    expect((document.getElementById('composer') as HTMLElement).style.minHeight).toBe('110px')
+  })
 })
