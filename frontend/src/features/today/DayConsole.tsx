@@ -6,7 +6,7 @@
 // you, so a subagent view is read-only: no composer.
 import { useEffect, useState } from 'react'
 import { useActions, useSelection } from '../../app/AppStore'
-import type { DayItemId } from '../../domain/ids'
+import type { DayItemId, ManagedId } from '../../domain/ids'
 import { useToast } from '../../components/Toast'
 import type { DayItem, DaySubagent } from '../../transport/contracts'
 import { Conversation, toolLabel } from '../conversation'
@@ -48,7 +48,7 @@ function threadOf(itemId: string | null, items: readonly DayItem[], rows: Readon
 
 function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<string, RowInfo> }) {
   const toast = useToast()
-  const { select, clearSelection } = useActions()
+  const { select, clearSelection, openModal } = useActions()
   const selection = useSelection('today')
   const { session, detail, items } = useDayDetail(dayId)
   const [agentId, setAgentId] = useState<string | null>(null)
@@ -110,6 +110,9 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
           >
             Sends need your approval
           </span>
+          <button type="button" id="agent-connections" className="button" onClick={() => openModal({ kind: 'connections', managedId: shownId as ManagedId })}>
+            Connections
+          </button>
         </div>
       </div>
       <DayTabs

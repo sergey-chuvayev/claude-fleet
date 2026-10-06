@@ -59,6 +59,17 @@ describe('The Day console (A15)', () => {
     expect(screen.getByRole('heading', { name: 'Day agent' })).toBeTruthy()
   })
 
+  it('an item sent from another view without a thread is shown on the board, opened', async () => {
+    const { fleet, harness } = await open()
+    const item: string = fleet.day().session.dayBoard.items.find((i: Json) => i.status === 'today' && !i.thread).id
+    act(() => harness.store.dispatch({ type: 'select', selection: { kind: 'day-thread', itemId: item as never }, reveal: true }))
+    const row = document.querySelector(`#day-board li[data-card="${item}"]`) as HTMLElement
+    await waitFor(() => expect(row.querySelector('details')?.open).toBe(true))
+    expect(row.classList.contains('is-flash')).toBe(true)
+    await waitFor(() => expect(harness.store.getState().selection.today).toBeNull())
+    expect(screen.getByRole('heading', { name: 'Day agent' })).toBeTruthy()
+  })
+
   it('a scout tab shows its latest run read-only; an earlier run picked stays picked when a newer run arrives', async () => {
     const { fleet, harness } = await open()
     fireEvent.click(tab(/Slack/))

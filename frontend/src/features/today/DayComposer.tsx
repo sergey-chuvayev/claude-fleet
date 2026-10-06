@@ -80,7 +80,7 @@ export function DayComposer({ sessionId, placeholder, working }: { sessionId: st
             <Icon name="stop" /> Stop
           </button>
         ) : null}
-        <button type="submit" className="button resume" disabled={sending || !text.trim()}>
+        <button type="submit" className="button resume" disabled={sending}>
           Send <Icon name="arrow" />
         </button>
       </div>

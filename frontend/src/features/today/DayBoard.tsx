@@ -2,7 +2,7 @@
 // priority, a way to add your own, and what is later or done. Ported from
 // public/day.js renderBoard; same markup and classes, so the legacy styles apply.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useActions } from '../../app/AppStore'
+import { useActions, useSelection } from '../../app/AppStore'
 import { Fold } from '../../components/Disclosure'
 import { Icon } from '../../components/Icon'
 import { Markdown } from '../../components/markdown/Markdown'
@@ -792,6 +792,7 @@ export function DayBoard({ dayId, today }: { dayId: string; today: TodayRows }) 
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set())
   const [flash, setFlash] = useState<string | null>(null)
   const reveal = usePendingReveal()
+  const selection = useSelection('today')
 
   const items = useMemo(() => all.filter(i => i.status !== 'dropped'), [all])
   const subagents = detail?.subagents ?? NO_SUBAGENTS
@@ -814,6 +815,15 @@ export function DayBoard({ dayId, today }: { dayId: string; today: TodayRows }) 
       else next.delete(id)
       return next
     })
+
+  // Another view sent the operator to an item (Projects' "On Today"): with no open
+  // thread to show in the console, the board shows the item itself.
+  const selectedItem = selection?.kind === 'day-thread' ? selection.itemId : null
+  useEffect(() => {
+    if (!selectedItem) return
+    const item = items.find(i => i.id === selectedItem)
+    if (item && (!item.thread || item.thread.closed)) requestReveal(selectedItem)
+  }, [selectedItem, items])
 
   // Show one item, opened, in the middle of the board's own scroller (scrollIntoView
   // would move the whole window too), with a short flash.
