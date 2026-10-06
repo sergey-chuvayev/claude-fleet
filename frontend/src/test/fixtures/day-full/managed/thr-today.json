@@ -1,0 +1,56 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/thr-today"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "thr-today",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000043",
+        "name": "Reply to Thomas",
+        "cwd": "/fixture/repos/day-repo",
+        "createRequestId": "req-thr-today",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280260000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "th-u",
+            "role": "user",
+            "text": "What did Thomas ask exactly?",
+            "at": 1791280200000,
+            "h": "7ujM1c4ZefvRH-KZ"
+          },
+          {
+            "id": "th-a",
+            "role": "assistant",
+            "text": "He asked whether the migration can ship on Friday.",
+            "at": 1791280260000,
+            "h": "jqAeBoDr5yBfLix-"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "thread",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "parentDayId": "day-today",
+        "itemId": "00000004-f1e1-4000-8000-000000000000"
+      }
+    }
+  }
+}

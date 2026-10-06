@@ -1,0 +1,126 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions",
+    "headers": {
+      "X-Fleet-Known": "<every h in get-sessions>"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "generatedAt": 1791280800000,
+      "counts": {
+        "busy": 6,
+        "idle": 9,
+        "stale": 1,
+        "dead": 4
+      },
+      "total": 20,
+      "sessions": [
+        {
+          "h": "FMXIaT1EiLzaaAmJ"
+        },
+        {
+          "h": "kA9YBoHWowsojBqF"
+        },
+        {
+          "h": "duVQbAsE74DMdZV8"
+        },
+        {
+          "h": "HaWruqDxhyyXc7Hj"
+        },
+        {
+          "h": "WC0El_HyjSLbeLb3"
+        },
+        {
+          "h": "56_1nG_G5FRfbj_v"
+        },
+        {
+          "h": "FBm8C1RnAK2mfBhZ"
+        },
+        {
+          "h": "wm14vqenG5i8SOOL"
+        },
+        {
+          "h": "JkmND7DGNg-EAUdw"
+        },
+        {
+          "h": "4jENF6vCWEZdho7N"
+        },
+        {
+          "h": "eWuu1djw-6hL_qXG"
+        },
+        {
+          "h": "yvNjoU_seHJ_EUSN"
+        },
+        {
+          "h": "XGVXYd_hANGeChnv"
+        },
+        {
+          "h": "wi0XKy9BJ8eme-sL"
+        },
+        {
+          "h": "LCqSj9pkYSMBr03N"
+        },
+        {
+          "h": "OXgoKcwoGBUtCBJU"
+        },
+        {
+          "h": "ga8mDIZNppBziaG9"
+        },
+        {
+          "h": "pyy0JXK2K7WBdwJQ"
+        },
+        {
+          "h": "CatOYSMpSS7BL7xD"
+        },
+        {
+          "h": "99ZeQXgdNrQYWbRn"
+        },
+        {
+          "h": "smoxqTXUbN4XbGTZ"
+        },
+        {
+          "h": "Bo7S7f87YyG14q6r"
+        }
+      ],
+      "archived": 2,
+      "archiveRule": {
+        "enabled": true,
+        "days": 7
+      },
+      "queue": {
+        "enabled": false,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": null,
+      "usage": {
+        "available": true,
+        "known": true,
+        "windows": [
+          {
+            "name": "five_hour",
+            "label": "5h",
+            "utilization": 81,
+            "resetsAt": 1791288000000
+          },
+          {
+            "name": "seven_day",
+            "label": "week",
+            "utilization": 34,
+            "resetsAt": 1791540000000
+          }
+        ],
+        "binding": "five_hour",
+        "subscription": null,
+        "observedAt": 1791280800000,
+        "stale": false,
+        "blocked": null
+      }
+    }
+  }
+}

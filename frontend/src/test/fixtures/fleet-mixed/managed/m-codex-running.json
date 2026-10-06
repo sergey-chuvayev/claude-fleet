@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-codex-running"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-codex-running",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000008",
+        "name": "Codex: add retry logic",
+        "cwd": "/fixture/repos/api-service",
+        "createRequestId": "req-m-codex-running",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280792000,
+        "status": "running",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m8-u",
+            "role": "user",
+            "text": "Add retry logic",
+            "at": 1791279600000,
+            "h": "c-O17j2XaZhfi15s"
+          },
+          {
+            "id": "m8-a",
+            "role": "assistant",
+            "text": "Adding exponential backoff.",
+            "at": 1791279660000,
+            "h": "RS7uuAtyQuvhibw7"
+          }
+        ],
+        "approvals": [],
+        "model": "gpt-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "engine": "codex"
+      }
+    }
+  }
+}

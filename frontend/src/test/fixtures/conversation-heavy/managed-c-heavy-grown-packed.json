@@ -1,0 +1,603 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/c-heavy",
+    "headers": {
+      "X-Fleet-Known": "<every message h in managed/c-heavy>"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "session": {
+        "id": "c-heavy",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000020",
+        "name": "Fix flaky checkout test",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-heavy",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280800000,
+        "status": "running",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "h": "acnek35LcdR_uBNx"
+          },
+          {
+            "h": "iibR8aABBxXReer_"
+          },
+          {
+            "h": "wcRKikhnoz_Btc6O"
+          },
+          {
+            "h": "Zu7-uXrrAFUU3n3f"
+          },
+          {
+            "h": "wuz_N0XZuvaUPNL2"
+          },
+          {
+            "h": "8BGbirA0mmpb3Y_6"
+          },
+          {
+            "h": "rUxKRuwJpmEV1GLR"
+          },
+          {
+            "h": "eUj0zDSHqttP7KYS"
+          },
+          {
+            "h": "CQ61JLJ_X5jsXHC7"
+          },
+          {
+            "h": "MI72ZK6uD2Sssvaf"
+          },
+          {
+            "h": "I31Bari1FHjewk9H"
+          },
+          {
+            "h": "T-yxn8ebuM0kcQ5E"
+          },
+          {
+            "h": "bJ0sUCjrnxJnGNvz"
+          },
+          {
+            "h": "sej_hjpklnN8Tc4G"
+          },
+          {
+            "h": "1ar_P2kggeo21dmq"
+          },
+          {
+            "h": "QUlsGfX11xTFBAa8"
+          },
+          {
+            "h": "oiFEMAwbBfbX6ocq"
+          },
+          {
+            "h": "H5eew5LKQ3UN7uZ6"
+          },
+          {
+            "h": "01QEl2I7jx8iLKEb"
+          },
+          {
+            "h": "baBj00AnJj2ZSTNG"
+          },
+          {
+            "h": "ORivqGcfIn7uloaM"
+          },
+          {
+            "h": "hWBWdbaUScdogxon"
+          },
+          {
+            "h": "tgzlbdXrKkt15yMh"
+          },
+          {
+            "h": "MFW1GdR2I2lmKotF"
+          },
+          {
+            "h": "6jcBZsIt5tCoonPb"
+          },
+          {
+            "h": "na0rMlXuCWmTmMwu"
+          },
+          {
+            "h": "uKN1cao8X1rMCGhI"
+          },
+          {
+            "h": "-Hv31mwd0tGuEb3F"
+          },
+          {
+            "h": "Jh4_S9AdWUwUATQ_"
+          },
+          {
+            "h": "sFcexNYUSQAk1Agx"
+          },
+          {
+            "h": "bSkHbddKcqRasj_6"
+          },
+          {
+            "h": "Xd4SuEr6cEou7AJf"
+          },
+          {
+            "h": "SAp2ZJQB4zzopxZg"
+          },
+          {
+            "h": "YlAh2wRWz9kNnqyg"
+          },
+          {
+            "h": "ZD56E-eTUZ-l4dlu"
+          },
+          {
+            "h": "6VYxa0ca8K8MYMQN"
+          },
+          {
+            "h": "YjUqNSOLNM6viOjm"
+          },
+          {
+            "h": "fyGCnXVAu93dIIz-"
+          },
+          {
+            "h": "8X5v9S82C3cQANk0"
+          },
+          {
+            "h": "xmAb9z1M7m2qg_GA"
+          },
+          {
+            "h": "6InBH1BUWFddce4w"
+          },
+          {
+            "h": "etspD0QDgN-jdq2X"
+          },
+          {
+            "h": "_uOPSZRgWotAXJdV"
+          },
+          {
+            "h": "qo69n36sYzBZSqFB"
+          },
+          {
+            "h": "prcUABDjSu5JUmEp"
+          },
+          {
+            "h": "O5KDCfRV8YUFe1zg"
+          },
+          {
+            "h": "a0gh7yHAjNSrsXKB"
+          },
+          {
+            "h": "31mMyO63tvWQ7z1i"
+          },
+          {
+            "h": "H7jOH4hr-wRGqK7n"
+          },
+          {
+            "h": "PNLLB3AkFdhXgDvU"
+          },
+          {
+            "h": "iUr32aKIQEAR0TbP"
+          },
+          {
+            "h": "jLvF0GY7AJ7fwzhl"
+          },
+          {
+            "h": "k3TBvXpehWH_y2He"
+          },
+          {
+            "h": "kKooH8GK4hWs_kY_"
+          },
+          {
+            "h": "TkEmHK6wD1XhDQsQ"
+          },
+          {
+            "h": "4InXoNZhrFVWfMCF"
+          },
+          {
+            "h": "644GALXkThkUcTnd"
+          },
+          {
+            "h": "3BhemAIEChwZvB6g"
+          },
+          {
+            "h": "TAX5mgS3kSvvEp6P"
+          },
+          {
+            "h": "8RZElB96dYfdUfaV"
+          },
+          {
+            "h": "LR27M-ZG_deZ5rl8"
+          },
+          {
+            "h": "gWWVkb3lr4QEDrlw"
+          },
+          {
+            "h": "5Thgh8YyTV4F6Zeb"
+          },
+          {
+            "h": "MA4aVQPf1p9K7Xzl"
+          },
+          {
+            "h": "AfLpq3Xw8wAoVXP4"
+          },
+          {
+            "h": "Nn8cqK88PtSma-UY"
+          },
+          {
+            "h": "sGQBMOt3itcVDlFL"
+          },
+          {
+            "h": "Kgs64VNo6zms6THw"
+          },
+          {
+            "h": "-vxptdd8HOFpVfoz"
+          },
+          {
+            "h": "UjiU5UhzzrEyYrpP"
+          },
+          {
+            "h": "_F_aw7CTDS5_E0dF"
+          },
+          {
+            "h": "06EH2R0cBNdrq0Ll"
+          },
+          {
+            "h": "bFcoNlMb9hjqSK_c"
+          },
+          {
+            "h": "11ADZoq-Pci1ytgq"
+          },
+          {
+            "h": "5ROa3Y-TCJdkZjXh"
+          },
+          {
+            "h": "H3f1ZS4ZM7KF8a5A"
+          },
+          {
+            "h": "JPfG0mtY7CJNzfW2"
+          },
+          {
+            "h": "GbT0kY8KdXUsgAMG"
+          },
+          {
+            "h": "p4bBcgtV1Ae6_1Sj"
+          },
+          {
+            "h": "DA-wg28lGwV8i65q"
+          },
+          {
+            "h": "VDpl2HLKCKWRmhP0"
+          },
+          {
+            "h": "N8kfKYFRXENk30hJ"
+          },
+          {
+            "h": "Dk9gSrnxh0ASfcmV"
+          },
+          {
+            "h": "SNnch7YIIpm_xEhZ"
+          },
+          {
+            "h": "XTlUgdFjuL4gfyTM"
+          },
+          {
+            "h": "JSVu8UWcLGyefSzb"
+          },
+          {
+            "h": "tfW5KNUnsjUx8nz9"
+          },
+          {
+            "h": "i96V4OWOzOuypw9k"
+          },
+          {
+            "h": "cECPBTO2s6m0-alg"
+          },
+          {
+            "h": "0t4mpxBJBlrxbHIr"
+          },
+          {
+            "h": "BKTMBpUTzvmQxaMe"
+          },
+          {
+            "h": "aJWKQYjwk_6R8Wc-"
+          },
+          {
+            "h": "7itp3F5KlbKmYXfn"
+          },
+          {
+            "h": "agmU7TTqc5EZfV-D"
+          },
+          {
+            "h": "HbU8jHEx4tmjaSyC"
+          },
+          {
+            "h": "9f4XrI518DuMTa54"
+          },
+          {
+            "h": "Ykua6LFVGIfoGXLY"
+          },
+          {
+            "h": "jAh8DtqtvBEsWPyY"
+          },
+          {
+            "h": "2swHBMXEoUoRykHl"
+          },
+          {
+            "h": "Y6RXCPE-iwXlBRjL"
+          },
+          {
+            "h": "ZheKaBz5UtSqaW0o"
+          },
+          {
+            "h": "5-SQuQY13-BaaUMj"
+          },
+          {
+            "h": "XOxS1d6azZu9JKPl"
+          },
+          {
+            "h": "fYrZ8ArZVn7Q4BWY"
+          },
+          {
+            "h": "IwE9gg5mYwR-BQ7_"
+          },
+          {
+            "h": "KNEjKzD5PCFbxU96"
+          },
+          {
+            "h": "QHu6h7eqqSl1qAgH"
+          },
+          {
+            "h": "1Vp0x4fOJwQCWpDx"
+          },
+          {
+            "h": "4USYgiC0aIekDo68"
+          },
+          {
+            "h": "d81QinVpYFNGpu3h"
+          },
+          {
+            "h": "z4HzMPWCVMPx1zuQ"
+          },
+          {
+            "h": "uXwuVJLvSrQrUnWI"
+          },
+          {
+            "h": "IhYLL4zEYxMxp1Vy"
+          },
+          {
+            "h": "AoTsEX5ifsZ7VePX"
+          },
+          {
+            "h": "fSAW0PcIiRMspqLs"
+          },
+          {
+            "h": "l3vR1Ef2Wfsjr-s7"
+          },
+          {
+            "h": "SgpUwTdzL03Nbtbs"
+          },
+          {
+            "h": "lY821b0w74CN7RLv"
+          },
+          {
+            "h": "ss839fA2Pp_BdqKy"
+          },
+          {
+            "h": "6yKEJnqewfduA0dl"
+          },
+          {
+            "h": "rMUDGYvCKHMgLwmj"
+          },
+          {
+            "h": "sWCJQHshTGnrkSjv"
+          },
+          {
+            "h": "d6Qxs3lcFMSgMhe8"
+          },
+          {
+            "h": "b81nMfc0v_38r5Oz"
+          },
+          {
+            "h": "7ldSFuMS3Av11Ieh"
+          },
+          {
+            "h": "chYKXqy2M8y0YftS"
+          },
+          {
+            "h": "Ve6Ntpwk1yfkFeTS"
+          },
+          {
+            "h": "HqpdG-jjSz423txd"
+          },
+          {
+            "h": "FhVZQBliOGr7xjOg"
+          },
+          {
+            "h": "d5Q4ooXid4S7V420"
+          },
+          {
+            "h": "YAz692MWvRKFLCKs"
+          },
+          {
+            "h": "fGj3KVXkxWi_nmJ-"
+          },
+          {
+            "h": "pUmeI6ESwxieyVb7"
+          },
+          {
+            "h": "fCE2dDw5S2WfwYyn"
+          },
+          {
+            "h": "lOoWfHPPX1NZv4tq"
+          },
+          {
+            "h": "zsTwyiW7FeBngzpl"
+          },
+          {
+            "h": "fWeNTM-kVFPYmy3B"
+          },
+          {
+            "h": "NmhQAzcmTWi5rhLm"
+          },
+          {
+            "h": "R_gw5dJvuWr9zLUV"
+          },
+          {
+            "h": "MzjU4cc5N6xPXsPZ"
+          },
+          {
+            "h": "cTglqozgMZytLrRZ"
+          },
+          {
+            "h": "Wi-WOUV9KV-wFAWR"
+          },
+          {
+            "h": "aCo69ftgvnp9elxk"
+          },
+          {
+            "h": "LLeCFwP_JxckD2d5"
+          },
+          {
+            "h": "3tgv4xVM9woV166c"
+          },
+          {
+            "h": "lBNN3Ugio9XBCaoS"
+          },
+          {
+            "h": "jRXWpkLtaU4D8W4Q"
+          },
+          {
+            "h": "q95a44ykt9FE6fM7"
+          },
+          {
+            "h": "jjHNISu4VK8cezoj"
+          },
+          {
+            "h": "b0h4KFcYZaGkB_8C"
+          },
+          {
+            "h": "Ode8baFMunCmvu26"
+          },
+          {
+            "h": "0QhIDsC0DE2Srjdq"
+          },
+          {
+            "h": "lLUVGRXD-t7lcoKq"
+          },
+          {
+            "h": "3l6Mtqjz9NkkLWI1"
+          },
+          {
+            "h": "bUZzV6kWF-RF49as"
+          },
+          {
+            "h": "cPeoawrVLpYaCrNY"
+          },
+          {
+            "h": "uVvlgfEy2GXVX1Tw"
+          },
+          {
+            "h": "BNMeirwHDK-DZbtG"
+          },
+          {
+            "h": "_jvNAzxDVu5vgaBN"
+          },
+          {
+            "h": "MxneDvZkfJF9nCZy"
+          },
+          {
+            "h": "Q_gT0OzUpMbwVvav"
+          },
+          {
+            "h": "xY4wN3G61bH4zfl6"
+          },
+          {
+            "h": "bHyx9V0_9NM3XRCh"
+          },
+          {
+            "id": "h-a-stream",
+            "role": "assistant",
+            "text": "Summary so far: the checkout test waited on a fixed timer, so the real event is awaited instead. The change is in `checkout.ts` and a regression test covers the slow path.",
+            "at": 1791276740000,
+            "h": "VUEuEiVUibwxGzjx"
+          }
+        ],
+        "approvals": [
+          {
+            "id": "ap-current",
+            "tool": "Bash",
+            "input": {
+              "command": "git push --force origin feat/checkout"
+            },
+            "at": 1791280740000,
+            "reason": "Force pushes",
+            "description": "Force push the branch",
+            "role": null
+          },
+          {
+            "id": "ap-ask",
+            "tool": "AskUserQuestion",
+            "input": {
+              "questions": [
+                {
+                  "question": "Which test runner should I use?",
+                  "header": "Runner",
+                  "multiSelect": false,
+                  "options": [
+                    {
+                      "label": "vitest",
+                      "description": "Fast, ESM native"
+                    },
+                    {
+                      "label": "jest",
+                      "description": "Already configured"
+                    }
+                  ]
+                },
+                {
+                  "question": "Which areas to cover?",
+                  "header": "Areas",
+                  "multiSelect": true,
+                  "options": [
+                    {
+                      "label": "unit",
+                      "description": ""
+                    },
+                    {
+                      "label": "e2e",
+                      "description": ""
+                    }
+                  ]
+                }
+              ]
+            },
+            "at": 1791280770000,
+            "reason": "Asks you a question",
+            "description": null,
+            "role": null
+          }
+        ],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 168000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [
+          {
+            "message": "After that, update the changelog",
+            "attachments": [],
+            "references": []
+          },
+          {
+            "message": "And open the PR",
+            "attachments": [],
+            "references": []
+          }
+        ],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

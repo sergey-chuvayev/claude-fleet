@@ -1,0 +1,125 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/progress?days=7"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "since": 1790726400000,
+      "days": 7,
+      "staleDays": 3,
+      "shipped": {
+        "items": [],
+        "count": 0,
+        "prs": 0
+      },
+      "stalled": {
+        "items": [],
+        "count": 0
+      },
+      "ran": {
+        "count": 11,
+        "outcomes": {
+          "running": 3,
+          "needs you": 1,
+          "queued": 1,
+          "finished": 4,
+          "failed": 1,
+          "stopped": 1
+        },
+        "sessions": [
+          {
+            "id": "m-fork-pending",
+            "name": "Copy of api-review",
+            "outcome": "running",
+            "projectId": null,
+            "at": 1791280795000,
+            "teamName": null
+          },
+          {
+            "id": "m-codex-running",
+            "name": "Codex: add retry logic",
+            "outcome": "running",
+            "projectId": null,
+            "at": 1791280792000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-running",
+            "name": "Migrate settings screen",
+            "outcome": "running",
+            "projectId": null,
+            "at": 1791280790000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-approval",
+            "name": "Clean up stale branches",
+            "outcome": "needs you",
+            "projectId": null,
+            "at": 1791280680000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-queued",
+            "name": "Waiting for a free agent",
+            "outcome": "queued",
+            "projectId": null,
+            "at": 1791280620000,
+            "teamName": null
+          },
+          {
+            "id": "m-held",
+            "name": "Waiting on the terminal",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791280560000,
+            "teamName": null
+          },
+          {
+            "id": "m-tagged",
+            "name": "Tagged to a project",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791279900000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-idle",
+            "name": "Fix flaky checkout test",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791279660000,
+            "teamName": null
+          },
+          {
+            "id": "m-codex-idle",
+            "name": "Codex: tidy imports",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791279300000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-error",
+            "name": "Broken deploy script",
+            "outcome": "failed",
+            "projectId": null,
+            "at": 1791278400000,
+            "teamName": null
+          },
+          {
+            "id": "m-claude-stopped",
+            "name": "Interrupted by restart",
+            "outcome": "stopped",
+            "projectId": null,
+            "at": 1791262800000,
+            "teamName": null
+          }
+        ]
+      }
+    }
+  }
+}

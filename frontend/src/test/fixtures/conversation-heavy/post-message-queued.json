@@ -1,0 +1,1996 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-heavy/messages",
+    "body": {
+      "requestId": "conv-msg-1",
+      "message": "One more thing"
+    },
+    "note": "a turn is running, so the message queues"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "c-heavy",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000020",
+        "name": "Fix flaky checkout test",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-heavy",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "h-u-0",
+            "role": "user",
+            "text": "Question 0: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791268800000
+          },
+          {
+            "id": "h-t-0-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791268840000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-0-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791268880000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-0",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791268920000
+          },
+          {
+            "id": "h-u-1",
+            "role": "user",
+            "text": "Follow-up 1",
+            "at": 1791268960000
+          },
+          {
+            "id": "h-t-1-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269000000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-1-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791269040000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-1",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791269080000
+          },
+          {
+            "id": "h-u-2",
+            "role": "user",
+            "text": "Follow-up 2",
+            "at": 1791269120000
+          },
+          {
+            "id": "h-t-2-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269160000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-2-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791269200000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-2",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791269240000
+          },
+          {
+            "id": "h-u-3",
+            "role": "user",
+            "text": "Follow-up 3",
+            "at": 1791269280000
+          },
+          {
+            "id": "h-t-3-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269320000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-3-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791269360000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-3",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791269400000
+          },
+          {
+            "id": "h-u-4",
+            "role": "user",
+            "text": "Follow-up 4",
+            "at": 1791269440000
+          },
+          {
+            "id": "h-t-4-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269480000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-4-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791269520000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-4",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791269560000
+          },
+          {
+            "id": "h-u-5",
+            "role": "user",
+            "text": "Follow-up 5",
+            "at": 1791269600000
+          },
+          {
+            "id": "h-t-5-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269640000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-5-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791269680000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-5",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791269720000
+          },
+          {
+            "id": "h-u-6",
+            "role": "user",
+            "text": "Follow-up 6",
+            "at": 1791269760000
+          },
+          {
+            "id": "h-t-6-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269800000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-6-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791269840000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-6",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791269880000
+          },
+          {
+            "id": "h-u-7",
+            "role": "user",
+            "text": "Question 7: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791269920000
+          },
+          {
+            "id": "h-t-7-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791269960000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-7-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791270000000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-7",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791270040000
+          },
+          {
+            "id": "h-u-8",
+            "role": "user",
+            "text": "Follow-up 8",
+            "at": 1791270080000
+          },
+          {
+            "id": "h-t-8-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270120000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-8-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791270160000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-8",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791270200000
+          },
+          {
+            "id": "h-u-9",
+            "role": "user",
+            "text": "Follow-up 9",
+            "at": 1791270240000
+          },
+          {
+            "id": "h-t-9-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270280000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-9-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791270320000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-9",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791270360000
+          },
+          {
+            "id": "h-u-10",
+            "role": "user",
+            "text": "Follow-up 10",
+            "at": 1791270400000
+          },
+          {
+            "id": "h-t-10-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270440000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-10-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791270480000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-10",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791270520000
+          },
+          {
+            "id": "h-u-11",
+            "role": "user",
+            "text": "Follow-up 11",
+            "at": 1791270560000
+          },
+          {
+            "id": "h-t-11-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270600000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-11-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791270640000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-11",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791270680000
+          },
+          {
+            "id": "h-u-12",
+            "role": "user",
+            "text": "Follow-up 12",
+            "at": 1791270720000
+          },
+          {
+            "id": "h-t-12-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270760000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-12-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791270800000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-12",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791270840000
+          },
+          {
+            "id": "h-u-13",
+            "role": "user",
+            "text": "Follow-up 13",
+            "at": 1791270880000
+          },
+          {
+            "id": "h-t-13-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791270920000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-13-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791270960000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-13-c",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791271000000,
+            "status": "error",
+            "input": {
+              "command": "cat build.log"
+            },
+            "target": "cat build.log",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 150: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 151: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 152: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 153: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 154: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 155: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 156: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 157: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 158: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 159: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 160: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 161: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 162: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 163: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 164: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 165: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 166: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 167: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 168: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 169: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 170: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 171: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 172: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 173: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 174: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 175: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 176: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 177: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 178: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 179: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 180: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 181: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 182: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 183: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 184: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 185: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 186: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 187: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 188: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 189: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 190: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 191: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 192: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 193: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 194: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 195: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 196: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 197: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 198: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 199: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 200: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 201: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 202: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 203: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 204: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 205: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 206: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 207: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 208: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 209: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 210: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 211: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 212: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 213: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 214: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 215: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 216: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 217: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 218: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 219: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 220: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 221: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 222: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 223: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 224: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 225: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 226: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 227: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 228: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 229: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 230: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 231: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 232: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 233: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 234: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 235: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 236: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 237: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 238: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 239: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 240: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 241: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 242: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 243: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 244: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 245: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 246: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 247: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 248: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 249: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 250: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 251: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 252: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 253: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 254: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 255: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 256: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 257: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 258: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 259: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 260: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 261: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 262: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 263: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 264: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 265: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 266: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 267: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 268: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 269: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 270: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 271: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 272: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 273: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 274: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 275: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 276: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 277: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 278: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 279: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 280: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 281: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 282: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 283: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 284: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 285: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 286: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 287: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 288: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 289: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 290: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 291: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 292: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 293: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 294: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 295: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 296: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 297: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 298: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 299: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 300: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 301: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 302: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 303: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 304: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 305: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 306: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 307: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 308: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 309: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 310: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 311: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 312: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 313: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 314: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 315: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 316: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 317: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 318: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 319: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 320: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 321: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 322: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 323: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 324: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 325: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 326: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 327: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 328: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 329: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 330: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 331: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 332: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 333: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 334: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 335: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 336: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 337: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 338: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 339: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 340: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 341: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 342: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 343: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 344: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 345: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 346: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 347: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 348: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 349: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 350: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 351: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 352: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 353: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 354: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 355: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 356: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 357: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 358: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 359: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 360: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 361: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 362: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 363: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 364: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 365: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 366: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 367: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 368: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 369: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 370: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 371: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 372: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 373: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 374: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 375: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 376: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 377: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 378: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 379: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 380: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 381: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 382: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 383: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 384: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 385: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 386: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 387: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 388: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 389: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 390: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 391: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 392: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 393: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 394: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 395: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 396: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 397: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 398: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 399: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 400: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 90,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-13",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791271040000
+          },
+          {
+            "id": "h-u-14",
+            "role": "user",
+            "text": "Question 14: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791271080000
+          },
+          {
+            "id": "h-t-14-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271120000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-14-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791271160000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-14",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791271200000
+          },
+          {
+            "id": "h-u-15",
+            "role": "user",
+            "text": "Follow-up 15",
+            "at": 1791271240000
+          },
+          {
+            "id": "h-t-15-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271280000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-15-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791271320000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-15",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791271360000
+          },
+          {
+            "id": "h-u-16",
+            "role": "user",
+            "text": "Follow-up 16",
+            "at": 1791271400000
+          },
+          {
+            "id": "h-t-16-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271440000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-16-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791271480000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-16",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791271520000
+          },
+          {
+            "id": "h-u-17",
+            "role": "user",
+            "text": "Follow-up 17",
+            "at": 1791271560000
+          },
+          {
+            "id": "h-t-17-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271600000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-17-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791271640000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-17",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791271680000
+          },
+          {
+            "id": "h-u-18",
+            "role": "user",
+            "text": "Follow-up 18",
+            "at": 1791271720000
+          },
+          {
+            "id": "h-t-18-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271760000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-18-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791271800000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-18",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791271840000
+          },
+          {
+            "id": "h-u-19",
+            "role": "user",
+            "text": "Follow-up 19",
+            "at": 1791271880000
+          },
+          {
+            "id": "h-t-19-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791271920000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-19-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791271960000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-19",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791272000000
+          },
+          {
+            "id": "h-u-20",
+            "role": "user",
+            "text": "Follow-up 20",
+            "at": 1791272040000
+          },
+          {
+            "id": "h-t-20-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272080000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-20-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791272120000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-e-1",
+            "role": "event",
+            "text": "Context was compacted to keep the conversation going.",
+            "at": 1791272160000
+          },
+          {
+            "id": "h-a-20",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791272200000
+          },
+          {
+            "id": "h-u-21",
+            "role": "user",
+            "text": "Question 21: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791272240000
+          },
+          {
+            "id": "h-t-21-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272280000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-21-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791272320000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-21",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791272360000
+          },
+          {
+            "id": "h-u-22",
+            "role": "user",
+            "text": "Follow-up 22",
+            "at": 1791272400000
+          },
+          {
+            "id": "h-t-22-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272440000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-22-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791272480000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-22",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791272520000
+          },
+          {
+            "id": "h-u-23",
+            "role": "user",
+            "text": "Follow-up 23",
+            "at": 1791272560000
+          },
+          {
+            "id": "h-t-23-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272600000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-23-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791272640000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-23",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791272680000
+          },
+          {
+            "id": "h-u-24",
+            "role": "user",
+            "text": "Follow-up 24",
+            "at": 1791272720000
+          },
+          {
+            "id": "h-t-24-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272760000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-24-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791272800000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-24",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791272840000
+          },
+          {
+            "id": "h-u-25",
+            "role": "user",
+            "text": "Follow-up 25",
+            "at": 1791272880000
+          },
+          {
+            "id": "h-t-25-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791272920000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-25-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791272960000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-25",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791273000000
+          },
+          {
+            "id": "h-u-26",
+            "role": "user",
+            "text": "Follow-up 26",
+            "at": 1791273040000
+          },
+          {
+            "id": "h-t-26-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273080000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-26-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791273120000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-26",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791273160000
+          },
+          {
+            "id": "h-u-27",
+            "role": "user",
+            "text": "Follow-up 27",
+            "at": 1791273200000
+          },
+          {
+            "id": "h-t-27-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273240000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-27-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791273280000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-27",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791273320000
+          },
+          {
+            "id": "h-u-28",
+            "role": "user",
+            "text": "Question 28: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791273360000
+          },
+          {
+            "id": "h-t-28-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273400000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-28-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791273440000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-28",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791273480000
+          },
+          {
+            "id": "h-u-29",
+            "role": "user",
+            "text": "Follow-up 29",
+            "at": 1791273520000
+          },
+          {
+            "id": "h-t-29-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273560000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-29-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791273600000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-29",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791273640000
+          },
+          {
+            "id": "h-u-30",
+            "role": "user",
+            "text": "Follow-up 30",
+            "at": 1791273680000
+          },
+          {
+            "id": "h-t-30-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273720000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-30-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791273760000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-30",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791273800000
+          },
+          {
+            "id": "h-u-31",
+            "role": "user",
+            "text": "Follow-up 31",
+            "at": 1791273840000
+          },
+          {
+            "id": "h-t-31-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791273880000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-31-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791273920000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-31",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791273960000
+          },
+          {
+            "id": "h-u-32",
+            "role": "user",
+            "text": "Follow-up 32",
+            "at": 1791274000000
+          },
+          {
+            "id": "h-t-32-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274040000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-32-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791274080000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-32",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791274120000
+          },
+          {
+            "id": "h-u-33",
+            "role": "user",
+            "text": "Follow-up 33",
+            "at": 1791274160000
+          },
+          {
+            "id": "h-t-33-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274200000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-33-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791274240000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-33",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791274280000
+          },
+          {
+            "id": "h-u-34",
+            "role": "user",
+            "text": "Follow-up 34",
+            "at": 1791274320000
+          },
+          {
+            "id": "h-t-34-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274360000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-34-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791274400000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-34",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791274440000
+          },
+          {
+            "id": "h-u-35",
+            "role": "user",
+            "text": "Question 35: why does the checkout test flake on slow machines?\nPlease include the exact failing assertion.",
+            "at": 1791274480000
+          },
+          {
+            "id": "h-t-35-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274520000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-35-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791274560000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-35",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791274600000
+          },
+          {
+            "id": "h-u-36",
+            "role": "user",
+            "text": "Follow-up 36",
+            "at": 1791274640000
+          },
+          {
+            "id": "h-t-36-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274680000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-36-b",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791274720000,
+            "status": "done",
+            "input": {
+              "command": "npm test -- checkout"
+            },
+            "target": "npm test -- checkout",
+            "text": "",
+            "result": "line 1: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 2: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 3: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 4: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 5: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 6: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 7: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 8: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 10: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 11: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 12: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 14: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 15: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 16: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 17: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 18: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 19: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 20: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 21: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 22: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 23: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 24: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 25: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 26: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 27: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 28: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 29: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 30: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 31: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 32: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 33: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 34: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 35: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 36: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 37: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 38: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 39: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 40: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 41: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 42: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 43: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 44: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 45: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 46: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 47: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 48: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 49: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 50: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 51: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 52: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 53: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 54: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 55: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 56: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 57: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 58: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 59: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 60: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 61: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 62: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 63: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 64: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 65: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 66: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 67: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 68: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 69: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 70: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 71: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 72: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 73: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 74: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 75: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 76: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 77: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 78: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 79: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 80: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 81: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 82: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 83: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 84: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 85: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 86: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 87: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 88: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 89: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 90: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 91: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 92: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 93: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 94: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 95: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 96: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 97: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 98: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 99: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 100: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 101: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 102: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 103: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 104: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 105: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 106: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 107: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 108: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 109: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 110: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 111: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 112: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 113: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 114: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 115: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 116: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 117: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 118: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 119: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 120: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 121: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 122: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 123: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 124: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 125: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 126: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 127: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 128: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 129: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 130: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 131: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 132: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 133: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 134: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 135: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 136: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 137: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 138: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 139: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 140: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 141: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 142: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 143: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 144: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 145: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 146: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 147: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 148: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nline 149: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "ms": 8200,
+            "approval": "asked"
+          },
+          {
+            "id": "h-a-36",
+            "role": "assistant",
+            "text": "Here is the plan:\n\n1. Read the failing test\n2. Reproduce it\n3. Fix the cause, not the symptom\n\n> Note: the timer is the suspect.",
+            "at": 1791274760000
+          },
+          {
+            "id": "h-u-37",
+            "role": "user",
+            "text": "Follow-up 37",
+            "at": 1791274800000
+          },
+          {
+            "id": "h-t-37-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791274840000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-37-b",
+            "role": "tool",
+            "tool": "Edit",
+            "at": 1791274880000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts",
+              "old_string": "const wait = () => sleep(500)",
+              "new_string": "const wait = () => events.once(\"settled\")"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "The file has been updated.",
+            "ms": 30,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-37",
+            "role": "assistant",
+            "text": "I changed the helper:\n\n```js\nexport function wait(ms) {\n  return new Promise(resolve => setTimeout(resolve, ms))\n}\n```\n\nThe `wait` call now takes the real clock.",
+            "at": 1791274920000
+          },
+          {
+            "id": "h-u-38",
+            "role": "user",
+            "text": "Follow-up 38",
+            "at": 1791274960000
+          },
+          {
+            "id": "h-t-38-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791275000000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-38-b",
+            "role": "tool",
+            "tool": "TodoWrite",
+            "at": 1791275040000,
+            "status": "done",
+            "input": {
+              "todos": [
+                {
+                  "content": "Reproduce the flake",
+                  "status": "completed",
+                  "activeForm": "Reproducing"
+                },
+                {
+                  "content": "Fix the wait",
+                  "status": "in_progress",
+                  "activeForm": "Fixing the wait"
+                },
+                {
+                  "content": "Add a regression test",
+                  "status": "pending",
+                  "activeForm": "Adding a test"
+                }
+              ]
+            },
+            "target": null,
+            "text": "",
+            "result": "Todos updated.",
+            "ms": 4,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-38",
+            "role": "assistant",
+            "text": "The table below summarises the run.\n\n| Suite | Result |\n| --- | --- |\n| unit | pass |\n| e2e | fail |\n\nUnsafe markup must stay inert: <script>alert(1)</script> [click](javascript:alert(1)) <img src=x onerror=alert(1)>",
+            "at": 1791275080000
+          },
+          {
+            "id": "h-u-39",
+            "role": "user",
+            "text": "Follow-up 39",
+            "at": 1791275120000
+          },
+          {
+            "id": "h-t-39-a",
+            "role": "tool",
+            "tool": "Read",
+            "at": 1791275160000,
+            "status": "done",
+            "input": {
+              "file_path": "/fixture/repos/web-app/src/checkout.ts"
+            },
+            "target": "src/checkout.ts",
+            "text": "",
+            "result": "export const total = (items) => items.reduce((a, b) => a + b.price, 0)",
+            "ms": 12,
+            "approval": "auto"
+          },
+          {
+            "id": "h-t-39-b",
+            "role": "tool",
+            "tool": "Task",
+            "at": 1791275200000,
+            "status": "done",
+            "input": {
+              "description": "Review the change",
+              "subagent_type": "reviewer",
+              "prompt": "Review the checkout change for races."
+            },
+            "target": "Review the change",
+            "text": "",
+            "result": "The reviewer found no races but asked for one more test.",
+            "ms": 15000,
+            "approval": "auto"
+          },
+          {
+            "id": "h-a-39",
+            "role": "assistant",
+            "text": "Done. See https://github.com/example-org/web-app/pull/41 and https://linear.app/team/issue/TECH-101/checkout for context.",
+            "at": 1791275240000
+          },
+          {
+            "id": "h-u-last",
+            "role": "user",
+            "text": "Now summarise what changed.",
+            "at": 1791276700000,
+            "attachments": [
+              {
+                "id": "00000a77-0000-4000-8000-000000000001.png",
+                "mediaType": "image/png",
+                "bytes": 70
+              }
+            ],
+            "references": [
+              {
+                "id": "ref-1",
+                "sessionId": "000000c1-0000-4000-8000-000000000001",
+                "title": "checkout-refactor",
+                "project": "/fixture/repos/web-app",
+                "state": "busy",
+                "capturedAt": 1791268800000,
+                "context": "Recent activity: Edit: src/checkout.ts"
+              }
+            ]
+          },
+          {
+            "id": "h-a-stream",
+            "role": "assistant",
+            "text": "Summary so far: the checkout test waited on a fixed timer, so the real event is awaited instead. The change is in `checkout.ts` and a regression test covers the slow path.",
+            "at": 1791276740000
+          },
+          {
+            "id": "00000002-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "One more thing",
+            "at": 1791280800000
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 168000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "conv-msg-1"
+        ],
+        "queue": [
+          {
+            "message": "After that, update the changelog",
+            "attachments": [],
+            "references": []
+          },
+          {
+            "message": "And open the PR",
+            "attachments": [],
+            "references": []
+          }
+        ],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "One more thing"
+      }
+    }
+  }
+}

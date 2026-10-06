@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "requestId": "team-launch-2",
+      "cwd": "/fixture/repos/delivery-repo",
+      "prompt": "x",
+      "teamId": "nope"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "That team does not exist.",
+      "code": "VALIDATION"
+    }
+  }
+}

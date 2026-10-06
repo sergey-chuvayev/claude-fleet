@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-error/day",
+    "body": {
+      "op": "sweep"
+    },
+    "note": "a Day action on a session that is not a Day"
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "This session is not a Day.",
+      "code": "VALIDATION"
+    }
+  }
+}

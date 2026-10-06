@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-claude-stopped"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-claude-stopped",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000006",
+        "name": "Interrupted by restart",
+        "cwd": "/fixture/repos/docs-site",
+        "createRequestId": "req-m-claude-stopped",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791262800000,
+        "status": "stopped",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m6-u",
+            "role": "user",
+            "text": "Draft release notes",
+            "at": 1791279600000,
+            "h": "KrZTAnF5VLyrsy-K"
+          },
+          {
+            "id": "m6-a",
+            "role": "assistant",
+            "text": "Halfway through.",
+            "at": 1791279660000,
+            "h": "9o6Xr9PGgDnAYJUr"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": "Fleet restarted. Send a message to continue this conversation.",
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

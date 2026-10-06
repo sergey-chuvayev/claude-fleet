@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "requestId": "fixture-launch-3",
+      "cwd": "/fixture/repos",
+      "prompt": "x",
+      "engine": "codex",
+      "teamId": "anything"
+    }
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "Teams run on Claude. Start a Codex agent without a team.",
+      "code": "UNSUPPORTED_ENGINE"
+    }
+  }
+}

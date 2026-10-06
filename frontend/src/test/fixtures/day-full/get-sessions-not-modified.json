@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions",
+    "headers": {
+      "If-None-Match": "<etag of get-sessions>"
+    }
+  },
+  "response": {
+    "status": 304,
+    "body": null
+  }
+}

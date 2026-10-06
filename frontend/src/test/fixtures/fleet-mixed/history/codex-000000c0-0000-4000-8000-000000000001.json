@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=000000c0-0000-4000-8000-000000000001"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "m0",
+          "role": "user",
+          "text": "Fixture Codex prompt",
+          "at": 1791280620000,
+          "h": "2rKLyF0aBGbplc1r"
+        },
+        {
+          "id": "m1",
+          "role": "assistant",
+          "text": "Fixture Codex reply.",
+          "at": 1791280680000,
+          "h": "2DYZU6niFQnY5pxq"
+        }
+      ],
+      "truncated": false,
+      "alive": true
+    }
+  }
+}

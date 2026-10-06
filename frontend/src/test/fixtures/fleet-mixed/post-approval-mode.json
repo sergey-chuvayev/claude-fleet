@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/settings/approval-mode",
+    "body": {
+      "mode": "auto"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "defaultApprovalMode": "auto"
+    }
+  }
+}

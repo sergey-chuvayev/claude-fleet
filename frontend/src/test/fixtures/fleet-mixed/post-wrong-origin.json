@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": {
+      "enabled": true
+    },
+    "note": "foreign Origin"
+  },
+  "response": {
+    "status": 403,
+    "contentType": "application/json",
+    "body": {
+      "error": "Cross-origin requests are not allowed.",
+      "code": "FORBIDDEN_ORIGIN"
+    }
+  }
+}

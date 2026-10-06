@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000002-f1e1-4000-8000-000000000000/ask",
+    "body": {
+      "message": "What is the status of Beta?",
+      "requestId": "proj-ask-1"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "00000035-f1e1-4000-8000-000000000000",
+        "projectId": "00000002-f1e1-4000-8000-000000000000",
+        "sessionId": null,
+        "name": "Beta launch",
+        "cwd": "/fixture/user",
+        "createRequestId": "proj-ask-1",
+        "createdAt": 1791280800000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "auto",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "00000036-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "What is the status of Beta?",
+            "at": 1791280800000,
+            "runPrompt": "Read the project with the project tool (status) before answering.\n\nThe operator asks:\nWhat is the status of Beta?",
+            "background": false
+          }
+        ],
+        "approvals": [],
+        "model": null,
+        "contextTokens": null,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "proj-ask-1"
+        ],
+        "queue": [],
+        "kind": "project",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "What is the status of Beta?"
+      }
+    }
+  }
+}

@@ -1,0 +1,959 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/projects"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "projects": [
+        {
+          "id": "00000001-f1e1-4000-8000-000000000000",
+          "name": "Alpha launch",
+          "deadline": "2026-10-18",
+          "archived": false,
+          "repos": [
+            "/fixture/repos/projects-repo"
+          ],
+          "links": [
+            "https://github.com/example-org/web-app/pull/41"
+          ],
+          "brief": "Ship the Alpha launch.",
+          "deliverables": [
+            {
+              "id": "0000000df1e1",
+              "title": "Hand-added deliverable",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000003f1e1",
+              "title": "Ship it",
+              "state": "doing",
+              "note": "PR #41 rebasing",
+              "brief": "Cut the release.\nDone when: tagged and deployed.",
+              "links": [
+                "https://linear.app/team/issue/TECH-301/ship"
+              ]
+            },
+            {
+              "id": "00000004f1e1",
+              "title": "Fix login!",
+              "state": "review",
+              "note": "waiting on QA",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000005f1e1",
+              "title": "Fix login?",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000006f1e1",
+              "title": "Fix login",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000007f1e1",
+              "title": "Café menu (renamed by hand)",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000008f1e1",
+              "title": "Cafe menu",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "00000009f1e1",
+              "title": "Rewrite the whole checkout so that totals, taxes and shipping agree everywhere: part one",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "0000000af1e1",
+              "title": "Rewrite the whole checkout so that totals, taxes and shipping agree everywhere: part two",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            }
+          ],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            },
+            {
+              "at": 1791280800000,
+              "text": "Agreed scope with Franco."
+            },
+            {
+              "at": 1791280800000,
+              "text": "Comment on \"Hand-added deliverable\": Please add the rollback plan to the brief."
+            }
+          ],
+          "sections": [
+            {
+              "heading": "Sources",
+              "body": "- Notion: Alpha plan\n- Slack: #alpha"
+            },
+            {
+              "heading": "Decisions",
+              "body": "- 2026-10-02 Ship on Friday."
+            },
+            {
+              "heading": "Risks",
+              "body": "Vendor delay on the payments sandbox."
+            },
+            {
+              "heading": "Hand notes",
+              "body": "Written in an editor, not through Fleet."
+            }
+          ],
+          "file": "/fixture/home/projects/alpha-launch.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 9,
+            "done": 0,
+            "doing": 2
+          },
+          "sessions": 0,
+          "onToday": {
+            "00000003f1e1": {
+              "itemId": "00000038-f1e1-4000-8000-000000000000",
+              "status": "today"
+            }
+          },
+          "managerId": "0000003a-f1e1-4000-8000-000000000000"
+        },
+        {
+          "id": "00000002-f1e1-4000-8000-000000000000",
+          "name": "Beta launch",
+          "deadline": "2026-11-02",
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "Ship the Beta launch.",
+          "deliverables": [
+            {
+              "id": "0000000bf1e1",
+              "title": "Ship it",
+              "state": "doing",
+              "note": "",
+              "brief": "",
+              "links": []
+            },
+            {
+              "id": "0000000cf1e1",
+              "title": "Write the docs",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            }
+          ],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/beta-launch.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 2,
+            "done": 0,
+            "doing": 1
+          },
+          "sessions": 0,
+          "onToday": {
+            "0000000bf1e1": {
+              "itemId": "00000039-f1e1-4000-8000-000000000000",
+              "status": "today"
+            }
+          },
+          "managerId": "00000035-f1e1-4000-8000-000000000000"
+        },
+        {
+          "id": "00000032-f1e1-4000-8000-000000000000",
+          "name": "Created while busy",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            },
+            {
+              "at": 1791280800000,
+              "text": "Setup did not start: 8 agents are already running. Stop one or wait for it to finish. Ask the manager to set it up."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/created-while-busy.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000012-f1e1-4000-8000-000000000000",
+          "name": "Filler 03",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-03.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000013-f1e1-4000-8000-000000000000",
+          "name": "Filler 04",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-04.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000014-f1e1-4000-8000-000000000000",
+          "name": "Filler 05",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-05.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000015-f1e1-4000-8000-000000000000",
+          "name": "Filler 06",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-06.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000016-f1e1-4000-8000-000000000000",
+          "name": "Filler 07",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-07.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000017-f1e1-4000-8000-000000000000",
+          "name": "Filler 08",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-08.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000018-f1e1-4000-8000-000000000000",
+          "name": "Filler 09",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-09.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000019-f1e1-4000-8000-000000000000",
+          "name": "Filler 10",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-10.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001a-f1e1-4000-8000-000000000000",
+          "name": "Filler 11",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-11.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001b-f1e1-4000-8000-000000000000",
+          "name": "Filler 12",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-12.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001c-f1e1-4000-8000-000000000000",
+          "name": "Filler 13",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-13.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001d-f1e1-4000-8000-000000000000",
+          "name": "Filler 14",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-14.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001e-f1e1-4000-8000-000000000000",
+          "name": "Filler 15",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-15.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000001f-f1e1-4000-8000-000000000000",
+          "name": "Filler 16",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-16.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000020-f1e1-4000-8000-000000000000",
+          "name": "Filler 17",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-17.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000021-f1e1-4000-8000-000000000000",
+          "name": "Filler 18",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-18.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000022-f1e1-4000-8000-000000000000",
+          "name": "Filler 19",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-19.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000023-f1e1-4000-8000-000000000000",
+          "name": "Filler 20",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-20.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000024-f1e1-4000-8000-000000000000",
+          "name": "Filler 21",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-21.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000025-f1e1-4000-8000-000000000000",
+          "name": "Filler 22",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-22.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000026-f1e1-4000-8000-000000000000",
+          "name": "Filler 23",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-23.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000027-f1e1-4000-8000-000000000000",
+          "name": "Filler 24",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-24.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000028-f1e1-4000-8000-000000000000",
+          "name": "Filler 25",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-25.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "00000029-f1e1-4000-8000-000000000000",
+          "name": "Filler 26",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-26.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000002a-f1e1-4000-8000-000000000000",
+          "name": "Filler 27",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-27.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000002b-f1e1-4000-8000-000000000000",
+          "name": "Filler 28",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/filler-28.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": null
+        },
+        {
+          "id": "0000002d-f1e1-4000-8000-000000000000",
+          "name": "Fresh start",
+          "deadline": null,
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "",
+          "deliverables": [],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/fresh-start.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 0,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {},
+          "managerId": "0000002e-f1e1-4000-8000-000000000000"
+        }
+      ]
+    }
+  }
+}

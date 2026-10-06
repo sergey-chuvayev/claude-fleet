@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/search/does-not-exist"
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Search not found.",
+      "code": "NOT_FOUND"
+    }
+  }
+}

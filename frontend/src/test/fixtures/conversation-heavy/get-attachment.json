@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/attachments/00000007-f1e1-4000-8000-000000000000.png"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "image/png",
+    "body": "(69 bytes)"
+  }
+}

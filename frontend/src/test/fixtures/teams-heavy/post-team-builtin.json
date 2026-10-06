@@ -1,0 +1,66 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/teams",
+    "body": {
+      "id": "bugfix",
+      "name": "Docs team",
+      "description": "Writes and reviews docs.",
+      "manager": "lead",
+      "roles": {
+        "lead": {
+          "description": "Plans the docs",
+          "prompt": "Plan the docs work.",
+          "model": "sonnet",
+          "maxTurns": 20,
+          "effort": "medium",
+          "tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Bash"
+          ]
+        },
+        "writer": {
+          "description": "Writes the docs",
+          "prompt": "Write the docs.",
+          "model": "sonnet",
+          "maxTurns": 30,
+          "effort": "medium",
+          "tools": [
+            "Read",
+            "Write",
+            "Edit"
+          ]
+        },
+        "checker": {
+          "description": "Checks the docs",
+          "prompt": "Check the docs.",
+          "model": "haiku",
+          "maxTurns": 15,
+          "effort": "low",
+          "tools": [
+            "Read",
+            "Grep"
+          ]
+        }
+      },
+      "workflow": {
+        "mode": "team",
+        "reviewers": [
+          "checker"
+        ],
+        "maxAttempts": 2
+      }
+    },
+    "note": "built-in teams are read-only"
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Built-in teams are read-only. Save a copy with a new ID.",
+      "code": "VALIDATION"
+    }
+  }
+}

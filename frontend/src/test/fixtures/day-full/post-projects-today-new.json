@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/today",
+    "body": {
+      "deliverableId": "00000003f1e1"
+    },
+    "note": "the board already holds 200 items, so this surfaces as a plain 500; projects-collision captures the success path"
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "The Day board has reached its 200-item limit.",
+      "code": "CAPACITY",
+      "retryable": true
+    }
+  }
+}

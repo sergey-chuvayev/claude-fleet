@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/comment",
+    "body": {
+      "deliverableId": "0000000df1e1",
+      "message": ""
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Comment must contain 1–8000 characters.",
+      "code": "VALIDATION"
+    }
+  }
+}

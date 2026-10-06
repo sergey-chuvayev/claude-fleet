@@ -1,0 +1,58 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/worktrees"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "checkouts": [
+        {
+          "path": "/fixture/repos/projects-repo",
+          "pathShort": "/fixture/repos/projects-repo",
+          "isMain": true,
+          "branch": "main",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "projects-repo",
+            "root": "/fixture/repos/projects-repo"
+          },
+          "sessions": [
+            {
+              "id": "day-today",
+              "name": "Day 2026-10-06",
+              "cwd": "/fixture/repos/projects-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791280500000
+            }
+          ],
+          "lastActivity": 1791280500000
+        }
+      ],
+      "outside": 0
+    }
+  }
+}

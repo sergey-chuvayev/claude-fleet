@@ -1,0 +1,71 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/c-codex"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "c-codex",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000022",
+        "name": "Codex: add retries",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-codex",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791279120000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "x-u",
+            "role": "user",
+            "text": "Add retries to the client",
+            "at": 1791279000000,
+            "h": "oqBU0sHYyn9Bnrt2"
+          },
+          {
+            "id": "x-t",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791279060000,
+            "status": "done",
+            "input": {
+              "command": "rg retry src"
+            },
+            "target": null,
+            "text": "",
+            "result": "src/client.ts:12: // retry later",
+            "ms": 40,
+            "approval": "auto",
+            "h": "NntLodmXQa4b4FO7"
+          },
+          {
+            "id": "x-a",
+            "role": "assistant",
+            "text": "Added exponential backoff to `client.ts`.",
+            "at": 1791279120000,
+            "h": "yoxnlcnSS98H0ef5"
+          }
+        ],
+        "approvals": [],
+        "model": "gpt-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "engine": "codex"
+      }
+    }
+  }
+}

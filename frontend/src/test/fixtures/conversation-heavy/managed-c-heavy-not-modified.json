@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/c-heavy",
+    "headers": {
+      "If-None-Match": "<etag of managed/c-heavy>"
+    }
+  },
+  "response": {
+    "status": 304,
+    "body": null
+  }
+}

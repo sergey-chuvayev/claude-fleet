@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=000000c1-0000-4000-8000-000000000001"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "u0",
+          "role": "user",
+          "text": "Refactor checkout, see https://linear.app/team/issue/TECH-101/checkout",
+          "at": 1791280620000,
+          "h": "E3V8EVWrGzLoB-Ef"
+        },
+        {
+          "id": "a1",
+          "role": "assistant",
+          "text": "Working on https://github.com/example-org/web-app/pull/41 now.",
+          "at": 1791280740000,
+          "h": "-C60uMm4UpN2fx5n"
+        }
+      ],
+      "truncated": false,
+      "alive": true
+    }
+  }
+}

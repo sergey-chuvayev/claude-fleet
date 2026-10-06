@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000002-f1e1-4000-8000-000000000000/ask",
+    "body": {
+      "message": ""
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Message must contain 1–16000 characters.",
+      "code": "VALIDATION"
+    }
+  }
+}

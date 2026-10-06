@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/teams/owner-review"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "team": {
+        "id": "owner-review",
+        "name": "Owner + review",
+        "description": "One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.",
+        "manager": "owner",
+        "workflow": {
+          "mode": "owner-review",
+          "reviewers": [
+            "reviewer"
+          ],
+          "maxAttempts": 3
+        },
+        "roles": {
+          "owner": {
+            "description": "Owns implementation, tests, repairs and PR delivery in one session.",
+            "prompt": "Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.",
+            "model": "claude-opus-5-5",
+            "maxTurns": 100,
+            "effort": "medium",
+            "tools": [
+              "Read",
+              "Glob",
+              "Grep",
+              "WebSearch",
+              "WebFetch",
+              "Bash",
+              "Write",
+              "Edit",
+              "MultiEdit",
+              "NotebookEdit"
+            ]
+          },
+          "reviewer": {
+            "description": "Independently checks correctness and required behavior.",
+            "prompt": "Review the actual committed diff against the original request and acceptance criteria.\nRead relevant project instructions and inspect the supplied base and snapshot. Check\nthat tests exercise the affected behavior; reproduce relevant checks where useful.\nDo not edit source, commit, move the worktree, or create a PR. Report PASS if there\nare no blocking correctness, regression or required-evidence gaps. Report FAIL only\nfor concrete blocking findings, with file locations, evidence and a repair direction.\nSeparate optional improvements from blocking findings; optional suggestions do not\nturn a PASS into a FAIL. If verification cannot run, return REVIEW_ERROR and explain\nthe execution problem instead of inventing a defect. Keep review proportional to\nthe request; on re-review focus on repairs and their affected behavior.",
+            "model": "sonnet",
+            "maxTurns": 25,
+            "effort": "medium",
+            "tools": [
+              "Read",
+              "Glob",
+              "Grep",
+              "WebSearch",
+              "WebFetch",
+              "Bash"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

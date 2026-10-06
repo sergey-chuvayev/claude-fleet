@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": "enabled=1",
+    "note": "wrong media type"
+  },
+  "response": {
+    "status": 415,
+    "contentType": "application/json",
+    "body": {
+      "error": "JSON content type is required.",
+      "code": "UNSUPPORTED_MEDIA_TYPE"
+    }
+  }
+}

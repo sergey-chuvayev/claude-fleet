@@ -1,0 +1,87 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-error/messages",
+    "body": {
+      "requestId": "conv-msg-2",
+      "message": "Retry with this screenshot",
+      "images": [
+        {
+          "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          "mediaType": "image/png"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "c-error",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000021",
+        "name": "Run that failed",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-error",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "e-u",
+            "role": "user",
+            "text": "Run the full suite",
+            "at": 1791279600000
+          },
+          {
+            "id": "e-t",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791279660000,
+            "status": "error",
+            "input": {
+              "command": "npm run build"
+            },
+            "target": null,
+            "text": "",
+            "result": "Error: build failed",
+            "ms": 3000,
+            "approval": "auto"
+          },
+          {
+            "id": "00000008-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "Retry with this screenshot",
+            "at": 1791280800000,
+            "attachments": [
+              {
+                "id": "00000007-f1e1-4000-8000-000000000000.png",
+                "mediaType": "image/png",
+                "bytes": 70
+              }
+            ]
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "conv-msg-2"
+        ],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "Retry with this screenshot"
+      }
+    }
+  }
+}

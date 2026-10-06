@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-claude-error"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-claude-error",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000005",
+        "name": "Broken deploy script",
+        "cwd": "/fixture/repos/api-service",
+        "createRequestId": "req-m-claude-error",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791278400000,
+        "status": "error",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m5-u",
+            "role": "user",
+            "text": "Fix the deploy script",
+            "at": 1791279600000,
+            "h": "JlBjvlSsESmCiPGf"
+          },
+          {
+            "id": "m5-a",
+            "role": "assistant",
+            "text": "Trying again.",
+            "at": 1791279660000,
+            "h": "r9uVFyNRYN9c93Yw"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": "The agent stopped: model request failed.",
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

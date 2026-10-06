@@ -1,0 +1,58 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/progress?days=7"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "since": 1790726400000,
+      "days": 7,
+      "staleDays": 3,
+      "shipped": {
+        "items": [],
+        "count": 0,
+        "prs": 0
+      },
+      "stalled": {
+        "items": [],
+        "count": 0
+      },
+      "ran": {
+        "count": 3,
+        "outcomes": {
+          "running": 1,
+          "failed": 1,
+          "finished": 1
+        },
+        "sessions": [
+          {
+            "id": "c-heavy",
+            "name": "Fix flaky checkout test",
+            "outcome": "running",
+            "projectId": null,
+            "at": 1791280798000,
+            "teamName": null
+          },
+          {
+            "id": "c-error",
+            "name": "Run that failed",
+            "outcome": "failed",
+            "projectId": null,
+            "at": 1791279720000,
+            "teamName": null
+          },
+          {
+            "id": "c-codex",
+            "name": "Codex: add retries",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791279120000,
+            "teamName": null
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/approvals/missing",
+    "body": {
+      "decision": "allow"
+    },
+    "note": "an approval that no longer exists"
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "This approval is no longer pending.",
+      "code": "STALE_APPROVAL"
+    }
+  }
+}

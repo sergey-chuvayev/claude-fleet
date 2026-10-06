@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/archive",
+    "body": {
+      "ids": [
+        "000000c1-0000-4000-8000-000000000007"
+      ],
+      "archived": false
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "changed": 1,
+      "archived": 0
+    }
+  }
+}

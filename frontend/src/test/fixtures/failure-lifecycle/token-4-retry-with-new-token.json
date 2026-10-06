@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "queue": {
+        "enabled": true,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      }
+    }
+  }
+}

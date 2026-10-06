@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/close",
+    "body": {}
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "closed": {
+        "id": "00000003-f1e1-4000-8000-000000000000",
+        "sessionId": "00005e55-0000-4000-8000-000000000002",
+        "worktree": null,
+        "branch": null
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-launched"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-launched",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000042",
+        "name": "Totals cache",
+        "cwd": "/fixture/repos/day-repo",
+        "createRequestId": "req-m-launched",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791277800000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "ml-u",
+            "role": "user",
+            "text": "Implement the totals cache",
+            "at": 1791277200000,
+            "h": "SLmlRxK4zxyLnMeg"
+          },
+          {
+            "id": "ml-a",
+            "role": "assistant",
+            "text": "Done. Opened https://github.com/example-org/web-app/pull/120.",
+            "at": 1791277800000,
+            "h": "dvz6ak6ws9FSrZwc"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "parentDayId": "day-today"
+      }
+    }
+  }
+}

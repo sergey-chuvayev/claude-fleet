@@ -1,0 +1,131 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/teams"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "teams": [
+        {
+          "id": "bugfix",
+          "name": "Bug fix",
+          "description": "A manager who plans and delegates, a developer who implements, and a QA who independently verifies.",
+          "manager": "manager",
+          "mode": "team",
+          "custom": false,
+          "roles": [
+            {
+              "name": "manager",
+              "description": "Owns the goal, plans and delegates work, and talks to you.",
+              "model": "opus"
+            },
+            {
+              "name": "developer",
+              "description": "Implements scoped changes and fixes reported failures.",
+              "model": "sonnet"
+            },
+            {
+              "name": "qa",
+              "description": "Verifies acceptance criteria with reproducible evidence.",
+              "model": "haiku"
+            }
+          ]
+        },
+        {
+          "id": "delivery",
+          "name": "Software delivery",
+          "description": "Thorough workflow: scoped work, implementation, independent code review and QA.",
+          "manager": "manager",
+          "mode": "team",
+          "custom": false,
+          "roles": [
+            {
+              "name": "manager",
+              "description": "Owns the goal, plans and delegates work, and talks to you.",
+              "model": "opus"
+            },
+            {
+              "name": "product",
+              "description": "Defines scope and measurable acceptance criteria.",
+              "model": "opus"
+            },
+            {
+              "name": "developer",
+              "description": "Implements scoped changes and fixes reported failures.",
+              "model": "sonnet"
+            },
+            {
+              "name": "reviewer",
+              "description": "Independently reviews correctness and maintainability.",
+              "model": "sonnet"
+            },
+            {
+              "name": "qa",
+              "description": "Verifies acceptance criteria with reproducible evidence.",
+              "model": "haiku"
+            }
+          ]
+        },
+        {
+          "id": "quick",
+          "name": "Quick task",
+          "description": "Small, clear changes: one developer and one independent verifier, with focused checks.",
+          "manager": "manager",
+          "mode": "team",
+          "custom": false,
+          "roles": [
+            {
+              "name": "manager",
+              "description": "Owns the goal, plans and delegates work, and talks to you.",
+              "model": "sonnet"
+            },
+            {
+              "name": "developer",
+              "description": "Implements scoped changes and fixes reported failures.",
+              "model": "sonnet"
+            },
+            {
+              "name": "qa",
+              "description": "Verifies acceptance criteria with reproducible evidence.",
+              "model": "haiku"
+            }
+          ]
+        },
+        {
+          "id": "owner-review",
+          "name": "Owner + review",
+          "description": "One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.",
+          "manager": "owner",
+          "mode": "owner-review",
+          "custom": false,
+          "roles": [
+            {
+              "name": "owner",
+              "description": "Owns implementation, tests, repairs and PR delivery in one session.",
+              "model": "claude-opus-5-5"
+            },
+            {
+              "name": "reviewer",
+              "description": "Independently checks correctness and required behavior.",
+              "model": "sonnet"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "NotebookEdit",
+        "WebSearch",
+        "WebFetch"
+      ]
+    }
+  }
+}

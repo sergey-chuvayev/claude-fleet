@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/settings/gateway",
+    "body": {
+      "action": "explode"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Unknown settings action.",
+      "code": "VALIDATION"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-codex/messages",
+    "body": {
+      "requestId": "conv-msg-7",
+      "message": "gif",
+      "images": [
+        {
+          "data": "R0lGODlhAQABAAAAACw="
+        }
+      ]
+    },
+    "note": "Codex refuses GIF before accepting the message"
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Codex agents take PNG, JPEG and WebP images. Convert the GIF first.",
+      "code": "UNSUPPORTED_ENGINE"
+    }
+  }
+}

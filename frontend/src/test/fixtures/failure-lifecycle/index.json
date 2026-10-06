@@ -1,0 +1,28 @@
+{
+  "pack": "failure-lifecycle",
+  "clock": "2026-10-06T10:00:00.000Z",
+  "files": [
+    "asset-1-missing-attachment.json",
+    "asset-2-unknown-script.json",
+    "asset-3-traversal.json",
+    "conditional-1-not-modified.json",
+    "conditional-2-packed.json",
+    "conditional-3-header-too-large.json",
+    "conditional-4-retry-without-headers.json",
+    "scenarios.json",
+    "sse-1-twenty-first-connection.json",
+    "sse-2-burst-and-duplicates.json",
+    "storage-1-control-latched.json",
+    "storage-2-post-refused.json",
+    "storage-3-reads-still-work.json",
+    "storage-4-control-still-latched-after-read.json",
+    "storage-5-stop-allowed.json",
+    "storage-6-update-allowed.json",
+    "storage-7-control-recovered.json",
+    "storage-8-post-after-recovery.json",
+    "token-1-control.json",
+    "token-2-stale-token-rejected.json",
+    "token-3-control-after-restart.json",
+    "token-4-retry-with-new-token.json"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/name",
+    "body": {
+      "name": "Renamed in the fixture"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "00000003-f1e1-4000-8000-000000000000",
+        "projectId": null,
+        "sessionId": "00005e55-0000-4000-8000-000000000002",
+        "name": "Renamed in the fixture",
+        "cwd": "/fixture/repos",
+        "createRequestId": "fixture-launch-1",
+        "createdAt": 1791280800000,
+        "updatedAt": 1791280800000,
+        "status": "idle",
+        "approvalMode": "auto",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "00000004-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "Start a new fixture agent",
+            "at": 1791280800000
+          },
+          {
+            "id": "00000005-f1e1-4000-8000-000000000000",
+            "role": "assistant",
+            "text": "Created from the fixture launch.",
+            "at": 1791280800000
+          },
+          {
+            "id": "00000006-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "And a follow-up",
+            "at": 1791280800000
+          },
+          {
+            "id": "00000007-f1e1-4000-8000-000000000000",
+            "role": "assistant",
+            "text": "A follow-up reply.",
+            "at": 1791280800000
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": null,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "fixture-launch-1",
+          "fixture-msg-1"
+        ],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "And a follow-up",
+        "costUsd": 0,
+        "renamed": true
+      }
+    }
+  }
+}
