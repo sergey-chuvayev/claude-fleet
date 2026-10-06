@@ -327,3 +327,53 @@ test('a comment on a task is logged, reaches the task on Today, and asks the man
     assert.throws(()=>manager.commentOnTask(p.id,{deliverableId:task.id,message:'  '}),/Comment/)
   } finally { await manager.close() }
 })
+
+// Every agent busy is a reason the manager cannot start, not a disk failure: the project
+// is kept, the answer says setup did not start, and nothing locks the dashboard's writes.
+test('a project created while every agent is busy is kept, says setup did not start, and sets up when asked later',async()=>{
+  const {createApp}=require('./server')
+  const directory=tmp(),releases=[],calls=[]
+  const manager=new ManagedSessions({directory,queue:false,queryFactory:async args=>{
+    calls.push(args)
+    let release;const finished=new Promise(r=>{release=r});releases.push(release)
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'system',subtype:'init',session_id:randomUUID(),model:'claude-sonnet'}
+      await Promise.race([finished,new Promise(r=>args.options.abortController.signal.addEventListener('abort',r,{once:true}))])
+      yield {type:'result',result:'Done.',is_error:false}
+    }}
+  }})
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const base=`http://127.0.0.1:${app.server.address().port}`
+    const config=await (await fetch(base+'/api/control')).json()
+    const post=(url,data)=>fetch(base+url,{method:'POST',headers:{'content-type':'application/json','x-fleet-token':config.token,origin:base},body:JSON.stringify(data)})
+    const busy=Array.from({length:manager.dispatch.limit},()=>manager.create({cwd:directory,prompt:'Busy',requestId:randomUUID()}))
+    await until(()=>manager.runs.size===busy.length)
+    const response=await post('/api/projects',{name:'Live status for calls',note:'Spec is due Tue 6 Oct.',requestId:randomUUID()})
+    assert.equal(response.status,200)
+    const {project}=await response.json()
+    assert.equal(project.setup.started,false)
+    assert.match(project.setup.error,/already running/)
+    assert.equal(manager.projects.get(project.id).name,'Live status for calls','the project is kept')
+    assert.match(manager.projects.get(project.id).log.at(-1).text,/^Setup did not start: .*already running/)
+    assert.equal(manager.managerOf(project.id),null)
+    assert.equal((await (await fetch(base+'/api/control')).json()).storageError,null,'a busy Fleet is not a storage failure')
+    assert.equal((await post('/api/settings/approval-mode',{mode:'auto'})).status,200,'unrelated writes still work')
+    // A slot frees; asking the manager now runs the setup, once.
+    releases[0]()
+    await until(()=>manager.runs.size<busy.length)
+    const asked=await post(`/api/projects/${project.id}/ask`,{message:'Go ahead.',requestId:randomUUID()})
+    assert.equal(asked.status,200)
+    const pms=[...manager.sessions.values()].filter(x=>x.kind==='project' && x.projectId===project.id)
+    assert.equal(pms.length,1)
+    assert.match(calls.at(-1).prompt,/only a title: "Live status for calls"[\s\S]*Go ahead\./,'the first ask is the setup')
+    // A real write failure does latch writes, and only a write that lands clears it.
+    manager.emit('storage-error',Error('Disk full'))
+    assert.match((await (await fetch(base+'/api/control')).json()).storageError,/Unable to save/)
+    assert.match((await (await fetch(base+'/api/sessions')).json()).storageError,/Unable to save/,'reading the list does not clear it')
+    assert.equal((await post('/api/settings/approval-mode',{mode:'ask'})).status,503)
+    assert.equal((await post(`/api/managed/${busy[1].id}/stop`,{})).status,200)
+    assert.equal((await (await fetch(base+'/api/control')).json()).storageError,null,'the stop saved, so storage works again')
+  } finally { releases.forEach(r=>r()); await app.close(); app.server.closeAllConnections() }
+})
