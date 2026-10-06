@@ -96,12 +96,15 @@ LAUNCHER
 chmod +x "$APP/Contents/MacOS/fleet"
 
 # Turn the generated PNG into a real .icns so the Dock and Finder show the mark.
-if [ -f "$PROJECT/public/icons/fleet-512.png" ] && command -v iconutil >/dev/null 2>&1; then
+# An npm install has it in the build (dist/); a source checkout also has the original.
+ICON="$PROJECT/dist/icons/fleet-512.png"
+[ -f "$ICON" ] || ICON="$PROJECT/frontend/public/icons/fleet-512.png"
+if [ -f "$ICON" ] && command -v iconutil >/dev/null 2>&1; then
   SET="$(mktemp -d)/fleet.iconset"
   mkdir -p "$SET"
   for SIZE in 16 32 64 128 256 512; do
-    sips -z "$SIZE" "$SIZE" "$PROJECT/public/icons/fleet-512.png" --out "$SET/icon_${SIZE}x${SIZE}.png" >/dev/null
-    sips -z "$((SIZE * 2))" "$((SIZE * 2))" "$PROJECT/public/icons/fleet-512.png" --out "$SET/icon_${SIZE}x${SIZE}@2x.png" >/dev/null
+    sips -z "$SIZE" "$SIZE" "$ICON" --out "$SET/icon_${SIZE}x${SIZE}.png" >/dev/null
+    sips -z "$((SIZE * 2))" "$((SIZE * 2))" "$ICON" --out "$SET/icon_${SIZE}x${SIZE}@2x.png" >/dev/null
   done
   iconutil -c icns "$SET" -o "$APP/Contents/Resources/fleet.icns"
   rm -rf "$(dirname "$SET")"
