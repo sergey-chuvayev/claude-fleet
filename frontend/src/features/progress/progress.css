@@ -1,0 +1,8 @@
+/* ── Progress ─────────────────────────────────────────────────────────────── */
+/* A page to read, not a pane beside a console: the whole workspace, no inspector
+   (the workspace grid for it lives in shell.css). */
+.progress-pane { display:flex; flex-direction:column }
+.progress-pane .page-body { max-width:880px }
+.progress-pane .ui-row-meta a { color:var(--accent) }
+.progress-pane .ui-empty { margin:0; padding:12px 0 }
+.progress-pane .ui-empty h3 { font-size:var(--text-md) }
