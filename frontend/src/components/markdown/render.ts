@@ -2,7 +2,8 @@
 // build/vendor-entry.js: marked (GFM, line breaks), DOMPurify with the same forbidden
 // tags and attributes, links opened with noreferrer noopener, and highlight.js core
 // with an explicit language list rather than the full build. Callers inject only the
-// string this returns. The Markdown component that uses it arrives with package 4.
+// string this returns, through the Markdown component (Markdown.tsx) or the caches
+// beside it (cache.ts).
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/core'
 import bash from 'highlight.js/lib/languages/bash'
@@ -53,6 +54,31 @@ export function highlightCode(code: string, language?: string | null): string {
   }
 }
 
+// The legacy list (style, form, input, button, iframe, object, embed) plus every other
+// form control, so a reply cannot draw a select or text box that looks operable.
+const FORBID_TAGS = [
+  'style',
+  'form',
+  'input',
+  'button',
+  'iframe',
+  'object',
+  'embed',
+  'select',
+  'option',
+  'optgroup',
+  'textarea',
+  'datalist',
+  'fieldset',
+  'legend',
+  'label',
+  'meter',
+  'progress',
+  'output',
+  'dialog',
+]
+const FORBID_ATTR = ['style', 'id', 'name', 'role', 'tabindex', 'autofocus', 'contenteditable', 'form', 'formaction']
+
 /** Sanitized HTML for Markdown prose; falls back to escaped plain text if parsing fails. */
 export function renderMarkdown(source: string, { highlight = true }: { highlight?: boolean } = {}): string {
   let html: string
@@ -63,11 +89,19 @@ export function renderMarkdown(source: string, { highlight = true }: { highlight
   }
   const clean = DOMPurify.sanitize(html, {
     ADD_ATTR: ['target', 'rel'],
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'iframe', 'object', 'embed'],
-    FORBID_ATTR: ['style'],
+    FORBID_TAGS: FORBID_TAGS,
+    FORBID_ATTR: FORBID_ATTR,
   })
   const holder = document.createElement('div')
   holder.innerHTML = clean
+  // Agent text must not dress itself as Fleet's own chrome: no class (a `block-button`
+  // or `question-pin-bubble` would borrow the real controls' look) except the
+  // `language-*` marker marked puts on fenced code, which highlighting reads.
+  for (const element of holder.querySelectorAll('[class]')) {
+    const language = element.tagName === 'CODE' ? [...element.classList].find(c => /^language-[\w+#.-]+$/.test(c)) : undefined
+    if (language) element.setAttribute('class', language)
+    else element.removeAttribute('class')
+  }
   for (const link of holder.querySelectorAll('a[href]')) {
     link.setAttribute('target', '_blank')
     link.setAttribute('rel', 'noreferrer noopener')

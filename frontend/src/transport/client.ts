@@ -6,13 +6,25 @@
 //   client.store                 keyed server state (see store.ts)
 //   client.resources.control     /api/control, without the token
 //   client.resources.sessions    /api/sessions snapshot, conditional
+//   client.resources.managed(id) /api/managed/:id detail, conditional, one resource per id
+//   client.resources.history(engine, id)  /api/sessions/history, conditional
 //   client.post(path, body)      POST with X-Fleet-Token; returns unvalidated JSON
 //   client.start() / stop()      event stream, visibility, timers
 import type { FetchLike } from './conditional'
-import { type ControlInfo, type SessionSnapshot, parseControl, parseSessionSnapshot } from './contracts'
+import {
+  type ControlInfo,
+  type Engine,
+  type History,
+  type ManagedDetail,
+  type SessionSnapshot,
+  parseControl,
+  parseHistory,
+  parseManagedDetail,
+  parseSessionSnapshot,
+} from './contracts'
 import { HttpError, ProtocolError, httpErrorFrom, withTimeout } from './errors'
 import { type EventSourceFactory, EventStream, type StreamStatus } from './events'
-import { conditionalResource, isManagedKey, keys, keysForSessionsEvent } from './resources'
+import { conditionalResource, isManagedKey, keys, keysForSessionsEvent, resourceFamily } from './resources'
 import { type Resource, ResourceStore } from './store'
 
 export interface VisibilitySource {
@@ -43,7 +55,14 @@ type Listener = () => void
 
 export class FleetClient {
   readonly store = new ResourceStore()
-  readonly resources: { readonly control: Resource<ControlInfo>; readonly sessions: Resource<SessionSnapshot> }
+  readonly resources: {
+    readonly control: Resource<ControlInfo>
+    readonly sessions: Resource<SessionSnapshot>
+    /** A managed session's detail. The same object per id, so hooks can pass it straight in. */
+    readonly managed: (managedId: string) => Resource<ManagedDetail>
+    /** An external session's transcript, keyed by engine and transcript id. */
+    readonly history: (engine: Engine, transcriptId: string) => Resource<History>
+  }
 
   private readonly fetch: FetchLike
   private readonly stream: EventStream | null
@@ -74,6 +93,23 @@ export class FleetClient {
         paths: ['sessions'],
         parse: parseSessionSnapshot,
       }),
+      managed: resourceFamily(keys.managed, (key, managedId: string) =>
+        conditionalResource(this.fetch, {
+          key,
+          url: `/api/managed/${encodeURIComponent(managedId)}`,
+          paths: ['session.messages', 'session.subagents'],
+          parse: parseManagedDetail,
+        }),
+      ),
+      // The route finds the transcript by id alone; the engine qualifies the cache key.
+      history: resourceFamily(keys.history, (key, _engine: Engine, transcriptId: string) =>
+        conditionalResource(this.fetch, {
+          key,
+          url: `/api/sessions/history?sessionId=${encodeURIComponent(transcriptId)}`,
+          paths: ['messages'],
+          parse: parseHistory,
+        }),
+      ),
     }
     this.stream = options.eventSource
       ? new EventStream('/api/events', options.eventSource, {
