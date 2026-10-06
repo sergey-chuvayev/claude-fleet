@@ -102,6 +102,8 @@ export function renderMarkdown(source: string, { highlight = true }: { highlight
     if (language) element.setAttribute('class', language)
     else element.removeAttribute('class')
   }
+  // An image the agent gave no description is announced as nothing rather than as its URL.
+  for (const image of holder.querySelectorAll('img:not([alt])')) image.setAttribute('alt', '')
   for (const link of holder.querySelectorAll('a[href]')) {
     link.setAttribute('target', '_blank')
     link.setAttribute('rel', 'noreferrer noopener')
