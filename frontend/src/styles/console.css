@@ -1,0 +1,205 @@
+/* The session console: header, team overview, now-line, queued follow-ups, approvals,
+   composer (pickers, reference chips, image tray) and the detail column's layout around
+   them. Ported from public/styles.css in the legacy cascade order, keeping only the
+   selectors that name console parts. Rules for `.detail:has(#composer) .conversation`
+   are already in conversation.css (written against `.conversation`), and the divider
+   (.panel-splitter) is in shell.css. */
+
+.composer textarea, .other-answer input { border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--bg); color:var(--text); width:100%; font:inherit; resize:vertical; }
+.composer textarea { min-height:95px; font-size:var(--text-lg); line-height:1.6; }
+.composer { margin-top:20px }
+.composer textarea:focus { outline:1px solid var(--accent); outline-offset:0 }
+.composer-footer { display:flex; gap:8px; align-items:center; justify-content:end; margin-top:9px; }
+.composer-footer .note { margin-right:auto; font-size:var(--text-xs); max-width:240px; }
+.stop { color:var(--stale) }
+.approval { background:var(--warn-surface); border:1px solid var(--warn-line); border-radius:var(--radius-md); padding:17px; margin-top:20px; }
+.approval .eyebrow { color:var(--stale); font-size:var(--text-2xs) }
+.approval h4 { font-size:var(--text-lg); font-weight:500; margin:12px 0; overflow-wrap:anywhere; }
+.tool-input { white-space:pre-wrap; overflow-wrap:anywhere; max-height:280px; overflow:auto; font:11px/1.7 ui-monospace,monospace; background:var(--term-bg); padding:12px; border-radius:var(--radius-md); }
+.approval-actions { display:flex; justify-content:end; gap:8px; margin-top:15px; }
+.approval fieldset { border:0; padding:0; margin:18px 0; }
+.approval legend { font-size:var(--text-lg); line-height:1.6; margin-bottom:10px; }
+.answer-option { display:flex; align-items:start; gap:8px; font-size:var(--text-md); padding:8px 0; }
+.answer-option input { accent-color:var(--accent); margin-top:3px }
+.answer-option small { display:block; font-size:var(--text-sm); color:var(--muted); line-height:1.6; margin-top:3px; }
+.other-answer { display:block; font-size:var(--text-sm); color:var(--muted); margin-top:8px; }
+.other-answer input { margin-top:6px }
+.detail:has(#composer) #detail-content { margin-top:25px; padding-top:22px; border-top:1px solid var(--line); }
+@media(max-width:720px) {
+  .composer-footer { flex-wrap:wrap }
+  .composer-footer .note { max-width:170px }
+}
+#agent-state { font-family:var(--mono); font-size:var(--text-sm) }
+.composer textarea { font:var(--code)/1.6 var(--mono); background:var(--term-bg); border-color:var(--line); color:var(--text); }
+.composer textarea:focus { border-color:var(--term-accent); outline:none; box-shadow:0 0 0 1px color-mix(in oklab,var(--term-accent) 40%,transparent); }
+#composer-hint { font-family:var(--mono); font-size:var(--text-xs) }
+.tool-input { font-family:var(--mono); background:var(--term-bg); border:1px solid var(--line); }
+.mode-picker { margin:0 }
+.mode-picker :is(select,.fleet-select) { min-height:var(--control-sm); border-color:transparent; background-color:transparent; font-family:inherit; font-size:var(--text-sm); color:var(--muted); max-width:155px }
+.mode-picker :is(select,.fleet-select):hover { background-color:var(--raised) }
+.mode-picker :is(select,.fleet-select)[data-mode="all"] { color:var(--term-yellow); border-color:color-mix(in oklab,var(--term-yellow) 50%,var(--line)); }
+.approval-reason { font-size:var(--text-sm); color:var(--stale); margin:0 0 12px; overflow-wrap:anywhere; }
+.composer { position:relative }
+.slash-picker { position:absolute; bottom:100%; left:0; right:0; margin:0 0 6px; padding:4px; list-style:none; max-height:300px; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md); box-shadow:0 12px 34px #0009; z-index:4; font-family:var(--mono); scrollbar-color:var(--line) transparent; }
+.slash-picker li { display:grid; grid-template-columns:auto auto 1fr; gap:4px 10px; align-items:baseline; padding:6px 9px; border-radius:var(--radius-md); cursor:pointer; }
+.slash-picker li.is-picked { background:var(--raised) }
+.slash-name { color:var(--term-accent); font-size:var(--text-md); white-space:nowrap; }
+.slash-kind { font-size:var(--text-2xs); color:var(--faint); letter-spacing:.6px; white-space:nowrap; }
+.slash-hint { font-size:var(--text-xs); color:var(--term-yellow); white-space:nowrap; }
+.slash-desc { grid-column:1/-1; font-size:var(--text-xs); color:var(--muted); line-height:1.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.slash-picker li.is-picked .slash-desc { color:var(--text); white-space:normal }
+.queued-messages { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.queued-message { display:flex; align-items:baseline; gap:8px; padding:7px 10px; border:1px dashed var(--line); border-radius:var(--radius-md); background:var(--raised); font-size:var(--text-sm); color:var(--muted); }
+.queued-index { flex:none; color:var(--faint); font-variant-numeric:tabular-nums }
+.queued-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
+.queued-label { flex:none; font-size:var(--text-2xs); letter-spacing:.4px; text-transform:uppercase; color:var(--faint); }
+.close-agent { position:relative; padding:3px 8px; font-size:var(--text-xs); font-family:var(--mono); margin-left:14px; color:var(--muted); }
+.close-agent::before { content:""; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:1px; height:16px; background:var(--line); }
+.close-agent:hover { color:var(--text) }
+.close-agent[data-armed="1"] { color:color-mix(in oklab,var(--term-red) 70%,var(--term-fg)); border-color:color-mix(in oklab,var(--term-red) 50%,var(--line)); }
+.detail:has(#composer) { display:flex; flex-direction:column; overflow:hidden; padding:0; }
+.detail:has(#composer) #control-panel { order:0; flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px 0; }
+.detail:has(#composer) .composer, .detail:has(#composer) #approvals, .detail:has(#composer) #agent-error { flex:none; }
+.detail:has(#composer) .composer { margin:10px 0 14px }
+.detail:has(#composer) #approvals { max-height:34vh; overflow:auto }
+.detail:has(#composer) #detail-content { order:2; flex:none; margin:0; padding:0 16px 16px; border:0; }
+.detail:has(#composer) #detail-content[hidden] { display:none!important }
+.context-chip { font-family:var(--mono); font-variant-numeric:tabular-nums }
+.context-chip:empty { display:none }
+@media(max-width:720px) {
+  .detail:has(#composer) { display:block; overflow:visible }
+}
+.attach-tray { display:flex; gap:10px; flex-wrap:wrap; padding:8px 0 10px; }
+.attach-thumb { position:relative; margin:0; width:112px; font-family:var(--mono); font-size:var(--text-2xs); color:var(--faint); }
+.attach-thumb img { display:block; width:112px; height:80px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--line); background:var(--term-bg); }
+.attach-thumb figcaption { margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.attach-remove { position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:50%; border:0; background:color-mix(in oklab,var(--term-bg) 80%,transparent); color:var(--text); font-size:var(--text-lg); line-height:1; padding:0; display:flex; align-items:center; justify-content:center; }
+.attach-remove:hover { background:color-mix(in oklab,var(--term-red) 60%,var(--term-bg)) }
+.composer.is-dropping textarea { border-color:var(--term-accent); box-shadow:0 0 0 1px color-mix(in oklab,var(--term-accent) 45%,transparent); background:color-mix(in oklab,var(--term-bg) 92%,var(--term-accent)); }
+#composer-hint.is-held { color:var(--stale); max-width:none }
+#initiative-board { flex:none; border:1px solid var(--line); border-radius:var(--radius-lg); margin-bottom:10px; font-size:var(--text-sm); overflow:hidden; }
+#initiative-board>summary { display:flex; gap:12px; padding:12px; cursor:pointer; background:var(--panel); }
+#initiative-board>summary strong { margin-right:auto }
+#initiative-board>summary span { color:var(--muted); font-variant-numeric:tabular-nums }
+.initiative-body { max-height:38vh; overflow:auto; padding:12px; }
+.initiative-roster { display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:12px; }
+.initiative-role { padding:5px 0 }
+.initiative-role strong, .initiative-role small { display:block }
+.initiative-role small { margin-top:5px; color:var(--muted); font-size:var(--text-xs); }
+.initiative-role.is-active strong { color:var(--accent) }
+.team-connector { color:var(--faint) }
+.initiative-tasks { list-style:none; padding:0; margin:0; }
+.initiative-tasks>li { padding:12px 0; border-bottom:1px solid var(--line) }
+.initiative-tasks summary { cursor:pointer; line-height:1.7 }
+.initiative-tasks summary small { display:block; color:var(--muted) }
+.task-state { display:inline-block; color:var(--muted); margin-right:8px; }
+.task-state[data-state=verified] { color:var(--busy) }
+.task-state[data-state=blocked], .task-state[data-state=changes_requested] { color:var(--stale) }
+.task-state[data-state=working] { color:var(--accent) }
+.initiative-tasks ul { padding-left:20px; line-height:1.8 }
+.initiative-handoff { margin-top:10px; padding:8px 10px; background:var(--panel); border-radius:var(--radius-md); }
+.initiative-handoff summary span { color:var(--muted); margin-left:8px }
+.initiative-handoff summary small { display:inline; color:var(--muted); margin-left:8px; font-size:var(--text-xs); }
+.handoff-mandate { margin-top:8px }
+.handoff-report { margin-top:8px; border-top:1px solid var(--line); padding-top:8px; }
+.handoff-mandate>summary, .handoff-report>summary { cursor:pointer; color:var(--muted); font-size:var(--text-xs); font-weight:600; }
+.handoff-mandate>summary:focus-visible, .handoff-report>summary:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.initiative-handoff pre { white-space:pre-wrap; overflow-wrap:anywhere; font:11px/1.7 var(--mono); max-height:300px; overflow:auto; margin-top:6px; }
+.initiative-body>.note { margin:12px 0 0; font-size:var(--text-xs) }
+@media(max-width:720px) {
+  #initiative-board>summary { flex-wrap:wrap }
+  .initiative-body { max-height:32vh }
+}
+.reference-tray { display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 0 10px }
+.reference-chip { display:inline-flex;align-items:center;max-width:100%;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));border-radius:var(--radius-lg);background:color-mix(in oklab,var(--accent) 7%,var(--panel));overflow:hidden }
+.reference-chip button { border:0;background:transparent;color:var(--text);padding:7px 9px;font-size:var(--text-sm);min-height:32px }
+.reference-chip button:first-child { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px }
+.reference-chip button:last-child { color:var(--muted);border-left:1px solid var(--line) }
+.reference-chip button:hover { background:var(--raised) }
+.reference-note { font-size:var(--text-xs);color:var(--muted) }
+.reference-empty { padding:14px;color:var(--muted);font-size:var(--text-md) }
+.reference-state { font-size:var(--text-xs);color:var(--muted) }
+.detail:has(#composer) #control-panel { padding:14px 16px 0; overflow:hidden }
+#initiative-board { border:0; border-radius:0; margin:0; background:transparent; min-height:0; flex:0 1 auto; }
+#initiative-board[open] { display:flex; flex-direction:column }
+#initiative-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
+#initiative-board>summary { flex:none; background:transparent; padding:10px 0 }
+#initiative-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
+#initiative-board .initiative-handoff { border-radius:0; background:transparent; border-left:1px solid var(--line) }
+.detail:has(#composer) .composer { display:flex; flex-direction:column; min-height:130px; flex:0 1 auto; margin:0; padding:6px 0 12px; }
+.composer textarea { flex:1 1 0; min-height:50px; border:0; border-radius:0; background:transparent; resize:none; padding:10px 0; }
+.composer textarea:focus { outline:0; box-shadow:inset 2px 0 var(--accent); padding-left:10px }
+.composer-footer { flex:none }
+@media(max-width:720px) {
+  .detail:has(#composer) #control-panel { overflow:visible }
+  #initiative-board .initiative-body { max-height:32vh }
+  .detail:has(#composer) .composer { height:auto; min-height:170px; border-top:1px solid var(--line) }
+}
+.model-routing { font-size:var(--text-md);color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere }
+.conversation-header { display:flex; flex:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); min-height:var(--panel-head); margin:0; padding:var(--space-3) 0; border:0 }
+.header-title { display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0; min-height:var(--control-sm) }
+.conversation-header h3 { margin:0; font-size:15px; line-height:20px; font-weight:600; letter-spacing:-.2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.header-controls { display:flex; flex:0 1 auto; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0 }
+.detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
+.detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
+.detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
+.detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:0 var(--space-5) var(--space-7); border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
+.close-agent { font-size:var(--text-sm); padding:0 var(--space-3); color:var(--muted) }
+#composer-hint, #agent-state { font-family:"Avenir Next","Segoe UI",sans-serif }
+#composer-hint { max-width:none }
+.detail:has(#composer) .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+.composer:focus-within { border-color:#62626c }
+.composer textarea { padding:2px 0 8px; font-family:inherit; font-size:var(--text-xl); line-height:1.6; color:var(--text) }
+.composer textarea:focus { padding-left:0; box-shadow:none }
+.composer textarea::placeholder { color:var(--faint) }
+.composer-footer { gap:8px; padding-top:4px }
+.composer-footer .note { font:10px/1.5 "Avenir Next","Segoe UI",sans-serif; color:var(--faint) }
+.composer-footer .button { font-size:var(--text-sm); padding:0 var(--space-3) }
+#initiative-board { border-bottom:1px solid var(--divider); font-size:var(--text-md) }
+@media(min-width:721px) and (max-width:1199px) {
+  .detail:has(#composer) { position:relative }
+  .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) }
+  .detail:has(#composer) #detail-content { position:absolute; top:0; bottom:0; right:0; width:280px; z-index:8; box-shadow:-20px 0 40px #0004 }
+  .detail:has(#composer) #control-panel { padding-inline:20px }
+}
+@media(max-width:720px) {
+  .detail:has(#composer), .detail:has(#composer):has(#detail-content:not([hidden])) { display:flex; flex-direction:column; padding:0; overflow:visible }
+  .detail:has(#composer) #control-panel { padding:0 16px; min-height:620px; overflow:visible }
+  .detail:has(#composer) .composer { min-height:125px; margin-bottom:20px; }
+  .detail:has(#composer) #detail-content { border-left:0; border-top:1px solid var(--line); padding:0 var(--space-4) var(--space-6); order:-1; max-height:400px }
+}
+.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
+.day-gate-note[hidden] { display:none }
+@media(max-width:720px) {
+  .mode-picker :is(select,.fleet-select) { min-height:var(--touch) }
+}
+#control-panel:empty { display:none }
+.detail:has(#composer) #detail-content .page-head { display:none }
+.detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
+.detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
+.detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
+.detail:has(#composer) .detail-body .facts dd { padding-top:2px }
+.now-line { display:flex; align-items:center; gap:10px; flex:none; margin:8px 0 0; padding:7px 12px; border-radius:var(--radius-lg); background:color-mix(in oklab,var(--busy) 8%,var(--panel)); color:var(--text); font-size:var(--text-md); min-width:0 }
+.now-line[hidden] { display:none }
+.now-line .now-text { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.now-line .now-time { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
+.now-line[data-tone=needs] { background:var(--warn-surface); color:var(--stale) }
+.now-line[data-tone=needs] .pixel-run { color:var(--stale) }
+.detail:has(#composer) .composer { flex:none }
+.composer textarea { flex:1 0 auto; min-height:50px; max-height:40vh; overflow-y:auto }
+.conversation-header h3.is-renameable { cursor:text; border-radius:var(--radius-sm,4px) }
+.conversation-header h3.is-renameable:hover { text-decoration:underline dotted var(--faint); text-underline-offset:4px }
+.rename-input { min-width:0; width:min(420px,100%); height:var(--control-sm); padding:0 8px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg); color:var(--text); font:inherit; font-size:15px; font-weight:600 }
+.detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
+.detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
+.detail:has(#composer) #detail-content { grid-row:1 / -1 }
+
+/* The approval mode's colour. Legacy marked the <select> itself with data-mode; the
+   shared Select takes no data attributes, so the label around it carries the mode. */
+.mode-picker[data-mode="all"] :is(select,.fleet-select) { color:var(--term-yellow); border-color:color-mix(in oklab,var(--term-yellow) 50%,var(--line)) }
+
+/* At phone widths the log has a fixed height (conversation.css); its frame, a flex item
+   of the control panel here, must take that height instead of shrinking under it. */
+@media(max-width:720px) {
+  .detail:has(#composer) .conversation-frame { flex:none }
+}
