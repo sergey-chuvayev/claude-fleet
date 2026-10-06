@@ -5,7 +5,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from '../app/AppShell'
-import type { View } from '../app/state'
+import type { View } from '../app/preferences'
 import { FakeEventSource } from '../test/fakes'
 import { Providers } from '../test/shell'
 import { keys } from '../transport/resources'

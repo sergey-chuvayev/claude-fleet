@@ -70,8 +70,8 @@ export function appFleet() {
   const answerGet = async (url: string, init?: RequestInit): Promise<Response> => {
     const override = overrides.findIndex(o => o.pattern.test(url))
     if (override >= 0) {
-      const [{ answer }] = overrides.splice(override, 1) as [{ answer: () => Response | Promise<Response> }]
-      return answer()
+      const [found] = overrides.splice(override, 1)
+      if (found) return found.answer()
     }
     if (url === '/api/control') return jsonResponse(control)
     if (url === '/api/sessions') return sessions.fetch(url, init)
@@ -160,8 +160,8 @@ export function appFleet() {
       // The answer is what the server held when the request arrived.
       const response = await answerGet(url, init)
       if (gateAt >= 0) {
-        const [{ gate }] = gates.splice(gateAt, 1) as [{ gate: Deferred<void> }]
-        await gate.promise
+        const [found] = gates.splice(gateAt, 1)
+        await found?.gate.promise
         if (offline) throw new TypeError('Failed to fetch')
       }
       return response
