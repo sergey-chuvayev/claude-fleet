@@ -16,6 +16,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run typecheck
+      - run: npm run test:frontend
+      - run: npm run build:frontend
       # The browser bundle is committed, so a stale one would ship silently.
       # Rebuild it and fail if it differs from what is checked in.
       - run: npm run vendor
