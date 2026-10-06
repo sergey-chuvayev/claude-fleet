@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { AppShell } from '../../app/AppShell'
 import { deferred, jsonResponse } from '../../test/fakes'
 import { type Harness, makeHarness, renderWith } from '../../test/shell'
+import { ModelPicker } from '../session-header/SessionHeader'
 import { STANDARD_MODELS, modelOptions } from './models'
 import { isGet, launchFleet } from './testing'
 
@@ -82,6 +83,33 @@ describe('launch model picker', () => {
     // The list no longer has "opus", so it stays as its own option rather than resetting.
     expect(model().value).toBe('opus')
     expect(values()).toEqual(['', 'claude-opus-5-5', 'opus'])
+  })
+
+  it('does not reset the launch model when a session picker changes its own model or the list refreshes', async () => {
+    const fleet = launchFleet()
+    harness = makeHarness(fleet.fetch)
+    harness.client.start()
+    // A session's own picker beside the shell: same model list, its own value.
+    renderWith(
+      harness,
+      <>
+        <AppShell />
+        <ModelPicker managedId="m-1" selected="sonnet" />
+      </>,
+    )
+    await open()
+    await waitFor(() => expect(status().hidden).toBe(true))
+    fireEvent.change(model(), { target: { value: 'opus' } })
+    close()
+
+    const picker = (await screen.findAllByLabelText('Model for this agent')).find(el => el.tagName === 'SELECT') as HTMLSelectElement
+    fireEvent.change(picker, { target: { value: 'haiku' } })
+    await waitFor(() => expect(fleet.posts().some(p => /\/model$/.test(p.url) && p.body?.model === 'haiku')).toBe(true))
+
+    await open()
+    await waitFor(() => expect(status().hidden).toBe(true))
+    expect(fleet.gets('/api/models').length).toBeGreaterThanOrEqual(2)
+    expect(model().value).toBe('opus')
   })
 
   it('names a value the list lacks after itself', () => {

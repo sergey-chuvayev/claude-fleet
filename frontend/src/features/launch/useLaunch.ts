@@ -10,10 +10,9 @@ import type { FleetClient } from '../../transport/client'
 import { type ApprovalMode, type ControlInfo, type TeamCatalog, parseLaunched, parseManagedDetail } from '../../transport/contracts'
 import { HttpError } from '../../transport/errors'
 import { useFleetClient } from '../../transport/hooks'
-import { keys } from '../../transport/resources'
+import { keys, perClient } from '../../transport/resources'
 import { freshCatalog, fetchTeam, saveTeam } from '../teams/catalog'
 import { startEditing, toDefinition } from '../teams/catalogDraft'
-import { perClient } from './get'
 import { type LaunchFields, type LaunchState, LaunchStore } from './launchState'
 
 export const launchStoreFor = perClient(() => new LaunchStore())

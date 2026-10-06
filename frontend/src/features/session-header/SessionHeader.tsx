@@ -8,7 +8,7 @@ import { Select, type SelectOption } from '../../components/Select'
 import { useToast } from '../../components/Toast'
 import type { ManagedId } from '../../domain/ids'
 import type { ControlFields, ManagedDetail } from '../../transport/contracts'
-import { keys, mutationInvalidates, projectMutationInvalidates, projectsResource } from '../../transport/resources'
+import { keys, mutationInvalidates, projectMutationInvalidates } from '../../transport/resources'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { isWorking } from '../conversation/format'
 import { failureText, sessionCommand } from './mutations'
@@ -166,7 +166,7 @@ function usePending<T>(server: T): [T, (value: T | null) => void] {
   return [pending ?? server, setPending]
 }
 
-function ModelPicker({ managedId, selected }: { managedId: string; selected: string }) {
+export function ModelPicker({ managedId, selected }: { managedId: string; selected: string }) {
   const client = useFleetClient()
   const toast = useToast()
   const models = useResource(modelsResource(client))
@@ -221,7 +221,7 @@ function ModePicker({ managedId, mode, codex }: { managedId: string; mode: strin
 function ProjectPicker({ managedId, projectId }: { managedId: string; projectId: string | null }) {
   const client = useFleetClient()
   const toast = useToast()
-  const projects = useResource(projectsResource)
+  const projects = useResource(client.resources.projects)
   const [value, setPending] = usePending(projectId ?? '')
   const choices = projectChoices(projects.data)
   if (!choices.length && !projectId) return null
@@ -245,7 +245,7 @@ function ProjectPicker({ managedId, projectId }: { managedId: string; projectId:
 
 // ── Buttons ─────────────────────────────────────────────────────────────────
 
-function ConnectionsButton({ managedId }: { managedId: string }) {
+export function ConnectionsButton({ managedId }: { managedId: string }) {
   const { openModal } = useActions()
   return (
     <button type="button" id="agent-connections" className="button" onClick={() => openModal({ kind: 'connections', managedId: managedId as ManagedId })}>
@@ -255,7 +255,7 @@ function ConnectionsButton({ managedId }: { managedId: string }) {
 }
 
 /** Close removes the conversation from Fleet; the first click only arms it for four seconds. */
-function CloseButton({ managedId, working, onClosed }: { managedId: string; working: boolean; onClosed: () => void }) {
+export function CloseButton({ managedId, working, onClosed }: { managedId: string; working: boolean; onClosed: () => void }) {
   const client = useFleetClient()
   const toast = useToast()
   const [state, setState] = useState<'idle' | 'armed' | 'closing'>('idle')

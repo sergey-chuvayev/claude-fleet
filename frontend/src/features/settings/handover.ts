@@ -6,7 +6,10 @@
 // previous identity is unknown (an older server that reports neither), fall back to
 // "it went away, then came back". A deadline bounds the wait, and a miss is an
 // answer ("did not come back"), never a silent hang.
+import type { FleetClient } from '../../transport/client'
+import type { FetchLike } from '../../transport/conditional'
 import { parseControl } from '../../transport/contracts'
+import { getJson } from '../../transport/resources'
 
 export interface ServerIdentity {
   readonly instanceId?: string | undefined
@@ -22,23 +25,29 @@ export const page = {
   },
 }
 
-export interface HandoverOptions {
+interface HandoverTiming {
   /** The identity the page was loaded from. */
   readonly previous: ServerIdentity
   readonly deadlineMs?: number
   readonly intervalMs?: number
   /** How long to wait for the old server to go away when identity is unknown. */
   readonly goneMs?: number
-  readonly fetch?: typeof fetch
   readonly sleep?: (ms: number) => Promise<void>
   readonly now?: () => number
 }
+
+/** Control is read through the app's client, or (in tests) a bare fetch. */
+export type HandoverOptions = HandoverTiming &
+  ({ readonly client: Pick<FleetClient, 'getJson'> } | { readonly fetch: FetchLike })
 
 const SLEEP = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
 
 export async function waitForNewServer(options: HandoverOptions): Promise<HandoverOutcome> {
   const { previous } = options
-  const fetcher = options.fetch ?? ((...args: Parameters<typeof fetch>) => globalThis.fetch(...args))
+  const read = (): Promise<ReturnType<typeof parseControl>> =>
+    'client' in options
+      ? options.client.getJson('/api/control', parseControl, { timeoutMs: 3000 })
+      : getJson(options.fetch, '/api/control', parseControl, { timeoutMs: 3000 })
   const sleep = options.sleep ?? SLEEP
   const now = options.now ?? Date.now
   const interval = options.intervalMs ?? 700
@@ -47,9 +56,7 @@ export async function waitForNewServer(options: HandoverOptions): Promise<Handov
 
   const identity = async (): Promise<ServerIdentity | null> => {
     try {
-      const response = await fetcher('/api/control', { cache: 'no-store', signal: AbortSignal.timeout(3000) })
-      if (!response.ok) return null
-      const { instanceId, buildId } = parseControl(await response.json())
+      const { instanceId, buildId } = await read()
       return { instanceId, buildId }
     } catch {
       return null

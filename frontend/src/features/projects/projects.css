@@ -37,18 +37,19 @@
 @media(max-width:720px) {
   .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
 }
-#control-panel .project-console-head { flex:none; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:14px 28px 10px; min-width:0 }
-.project-console-title { color:var(--text); font-size:var(--text-lg); font-weight:600; overflow-wrap:anywhere }
-.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
-#control-panel > .form-error { flex:none; margin:0 28px 8px }
-#control-panel > .conversation-frame { padding:0 28px }
-/* The question box under the manager's conversation. */
-.project-ask { flex:none; display:flex; gap:6px; align-items:flex-end; padding:12px 28px 16px }
-.project-ask textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
-.project-ask textarea:focus { outline:0; border-color:var(--faint) }
-.project-ask .button { flex:none; min-height:var(--control-md) }
+/* The manager's console, laid out as legacy's `.detail:has(#composer)` laid out any
+   managed console (the Today console does the same in today.css). Scoped to
+   .project-console, so nothing here reaches the Sessions or Today console. */
+[data-view=projects] #detail:has(.project-console) { display:flex; flex-direction:column; padding:0; overflow:hidden }
+.project-console { display:flex; flex-direction:column; flex:1 1 auto; min-width:0; min-height:0; padding:0 28px; overflow:hidden }
+.project-console > .conversation-frame { flex:1 1 0; min-height:120px }
+.project-console > :is(.now-line, #queued-messages, #agent-error, #approvals) { flex:none }
+.project-console > #approvals { max-height:34vh; overflow:auto }
+.project-console > .composer { display:flex; flex-direction:column; flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+.project-console > .note { padding:14px 0 }
 @media(max-width:720px) {
-  #control-panel .project-console-head, .project-ask { padding-inline:16px }
-  #control-panel > .form-error { margin-inline:16px }
-  #control-panel > .conversation-frame { padding:0 16px }
+  [data-view=projects] #detail:has(.project-console) { display:block; overflow:visible }
+  .project-console { padding:0 16px; overflow:visible }
+  .project-console > .conversation-frame { flex:none; height:460px }
+  .project-console > .composer { min-height:170px }
 }

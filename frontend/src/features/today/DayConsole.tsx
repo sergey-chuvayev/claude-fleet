@@ -3,19 +3,24 @@
 // switch between them. A thread is an app selection ('day-thread', by item); a
 // subagent tab is local to the console, and a selected earlier run stays selected
 // when a newer run of the same scout arrives. Subagents answer to the Day, not to
-// you, so a subagent view is read-only: no composer.
+// you, so a subagent view is read-only: no composer. The Day and a thread get the
+// header controls and the console tail (approvals, the full composer) that legacy
+// control.js drew for every managed session.
 import { useEffect, useState } from 'react'
 import { useActions, useSelection } from '../../app/AppStore'
 import type { DayItemId, ManagedId } from '../../domain/ids'
 import { useToast } from '../../components/Toast'
-import type { DayItem, DaySubagent } from '../../transport/contracts'
+import { type DayItem, type DaySubagent, readControlFields } from '../../transport/contracts'
+import { useFleetClient, useResource } from '../../transport/hooks'
 import { Conversation, toolLabel } from '../conversation'
+import { CloseButton, ModelPicker } from '../session-header/SessionHeader'
+import { SessionTail } from '../session-header/SessionTail'
 import { clip, isWorking, type RowInfo } from './day'
-import { DayComposer } from './DayComposer'
 import { DayTabs } from './DayTabs'
 import { groupBoardEvents } from './groupBoardEvents'
 import { ScoutView } from './ScoutView'
 import { useDayDetail, useTodayRows } from './useDay'
+import '../../styles/console.css'
 import '../../styles/today.css'
 
 export function DayConsole() {
@@ -84,6 +89,12 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
     if (threadId) clearSelection('today')
   }
 
+  // The shown session's own detail (the same store key the conversation reads): its
+  // model, engine and pending tool approvals.
+  const client = useFleetClient()
+  const shown = useResource(client.resources.managed(shownId)).data?.session
+  const fields = shown ? readControlFields(shown) : null
+
   const title = threadId ? `About: ${threadRow?.name ?? threadItem?.title ?? 'this item'}` : 'Day agent'
   const status = threadId ? threadRow?.status : session?.status
   const contextTokens = threadId ? null : detail?.contextTokens
@@ -104,6 +115,7 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
           <ConsoleState status={status} currentTool={threadId ? null : detail?.currentTool} queued={threadId ? 0 : (detail?.queue?.length ?? 0)} />
         </div>
         <div className="header-controls">
+          {shown && fields && shown.engine !== 'codex' ? <ModelPicker key={`model:${shownId}`} managedId={shownId} selected={fields.selectedModel ?? ''} /> : null}
           <span
             className="subtle day-gate-note"
             title="Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board."
@@ -113,6 +125,15 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
           <button type="button" id="agent-connections" className="button" onClick={() => openModal({ kind: 'connections', managedId: shownId as ManagedId })}>
             Connections
           </button>
+          {/* A closed thread hands the console back to the Day; a closed Day leaves the list, and the console with it. */}
+          <CloseButton
+            key={`close:${shownId}`}
+            managedId={shownId}
+            working={isWorking(status)}
+            onClosed={() => {
+              if (threadId) clearSelection('today')
+            }}
+          />
         </div>
       </div>
       <DayTabs
@@ -132,12 +153,15 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
         <>
           {/* Keyed: switching between the Day and a thread starts a fresh log with its own read position. */}
           <Conversation key={shownId} sessionKey={`managed:${shownId}`} onNotice={toast} present={groupBoardEvents} />
-          <DayComposer
-            key={`composer:${shownId}`}
-            sessionId={shownId}
-            working={isWorking(status)}
-            placeholder={threadId ? 'Ask about this item…' : 'Ask your day agent…'}
-          />
+          {/* The full console tail, as legacy drew it for a Day and a thread. Keyed, so pickers start fresh per session. */}
+          {shown && shown.id === shownId ? (
+            <SessionTail
+              key={`tail:${shownId}`}
+              session={shown}
+              draftKey={`managed:${shownId}`}
+              placeholder={threadId ? 'Ask about this item…' : 'Ask your day agent…'}
+            />
+          ) : null}
         </>
       )}
     </section>

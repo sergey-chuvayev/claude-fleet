@@ -36,7 +36,10 @@ npm run build:frontend         # dist/ with .vite/manifest.json
 - `src/transport/`: conditional GET (`conditional.ts`), the keyed store
   (`store.ts`), boundary validation (`contracts.ts`), the event stream
   (`events.ts`), keys and invalidation (`resources.ts`), `FleetClient`
-  (`client.ts`) and React hooks (`hooks.tsx`).
+  (`client.ts`) and React hooks (`hooks.tsx`). Every read goes through the
+  client's fetch: conditional routes as `client.resources.*`, plain JSON routes
+  as `client.getJson(path, parse)` for one-off reads or
+  `client.resources.plain({ key, url, parse })` for polled, shared ones.
 - `src/app/`: the shell and the `fleet:*` preferences adapter.
 - `src/domain/`: ids and pure helpers. `src/components/`: shared primitives
   (the Markdown boundary lives here). `src/features/<area>/`: feature code.
@@ -60,6 +63,9 @@ replaces its own placeholder file; it does not edit the shell.
   `features/connections/ConnectionsDialog`, `features/settings/SettingsDialog`,
   `features/worktrees/ClearWorktreeDialog`. Status bar and top bar slots:
   `features/status/UsageStatus`, `features/status/UpdateStatus`.
+- **Background** (`app/background.tsx`): controllers that render nothing and run
+  on every view, mounted once by the shell (`SoundController`, Today's
+  `ReportBack`). A failing one is logged and dropped.
 - **State** (`app/state.ts`, `app/AppStore.tsx`): `useView()`, `useSelection(slot)`,
   `useModal()`, `useActions()` (`navigate`, `select(selection, { reveal })`,
   `openModal`, `closeModal`, `setInspector`), `useReconcileSelection(slot, rows)`
@@ -70,7 +76,10 @@ replaces its own placeholder file; it does not edit the shell.
 - **Primitives** (`components/`): `Dialog`/`DialogHead`/`DialogFoot`, `Select`,
   `SplitPane`/`PanelSplitter`, `Disclosure`/`Fold`, `useToast`/`useAnnounce`,
   `CopyButton`/`copyToClipboard`, `Icon`, `Avatar`, `PixelRun`, `EmptyState`,
-  `RelativeTime`/`Elapsed`/`useNow`, `useSeen`. Formatters: `domain/format.ts`.
+  `RelativeTime`/`Elapsed`/`useNow`, `useSeen`, and the legacy `FleetUI` page
+  blocks in `components/ui.tsx` (`PageHead`, `Stat`, `Bar`, `Ring`, `Section`,
+  `Pill`, `Callout`, `Group`, `List`, `Row`, `Log`, `LinkChips`). Formatters:
+  `domain/format.ts`; link labels: `domain/links.ts`.
 - **Styles**: `styles/shell.css` and `styles/components.css` are the legacy rules
   whose selectors name only shell or primitive classes, ported in legacy order.
   A feature ports its own rules from `public/styles.css` into a stylesheet it

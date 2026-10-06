@@ -5,16 +5,12 @@
 // process keeps answering 200 until it exits, so an answer alone proves nothing), then
 // reloads its assets. A deadline turns a server that never returns into a recovery
 // message instead of a spinner.
-//
-// This slot is also where the always-present background controller for sounds is
-// mounted (the shell has no other place for one).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOptionalToast } from '../../components/Toast'
 import { type UpdateStatus as UpdateInfo, parseUpdate } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
 import { page, waitForNewServer } from '../settings/handover'
-import { errorText, getJson } from '../settings/rest'
-import { SoundController } from '../sounds/SoundController'
+import { errorText } from '../../transport/errors'
 import { type UpdatePhase, UpdatePill } from './UpdatePill'
 
 export const UPDATE_POLL_MS = 60 * 60 * 1000
@@ -49,7 +45,7 @@ export function useUpdate() {
     const poll = async () => {
       if (installing()) return
       try {
-        const next = parseUpdate(await getJson('/api/update', { signal: abort.signal }))
+        const next = await client.getJson('/api/update', parseUpdate, { signal: abort.signal, timeoutMs: 8000 })
         if (alive.current && !installing()) setUpdate(next)
       } catch {
         // Nothing to show.
@@ -64,7 +60,7 @@ export function useUpdate() {
       clearTimeout(retry)
       clearInterval(hourly)
     }
-  }, [])
+  }, [client])
 
   const install = useCallback(async () => {
     if (!update?.canInstall || phaseRef.current === 'installing' || phaseRef.current === 'restarting') return
@@ -80,6 +76,7 @@ export function useUpdate() {
       if (next.restarting) {
         move('restarting')
         const outcome = await waitForNewServer({
+          client,
           previous: { instanceId: before?.instanceId, buildId: before?.buildId },
           deadlineMs: RESTART_DEADLINE_MS,
         })
@@ -108,9 +105,6 @@ export function useUpdate() {
 export function UpdateStatus() {
   const { update, phase, error, install } = useUpdate()
   return (
-    <>
-      <SoundController />
-      <UpdatePill update={update} phase={phase} error={error} onInstall={() => void install()} />
-    </>
+    <UpdatePill update={update} phase={phase} error={error} onInstall={() => void install()} />
   )
 }

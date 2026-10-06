@@ -233,6 +233,39 @@ describe('delegation rows against teams-heavy (A02)', () => {
     expect(toggle().textContent).toMatch(/25 sub-agents/)
   })
 
+  it('shows no money on any row even when the server reports a cost (monetary display removed in 0.21.0)', async () => {
+    const sessions = { ...teams, sessions: teams.sessions.map(row => ({ ...row, costUsd: 0.004 })) }
+    const fleet = fakeFleet({ control: teamControl.response.body, sessions, managed: { 't-team': bodyOf(teamDetail) } })
+    mount(fleet, <Bench />)
+    await screen.findByText('Ship the checkout flow', { selector: '.session-title' })
+    expect(list().textContent).not.toMatch(/\$|cost/i)
+  })
+
+  it('says each delegation row status in a word, with role and model beside it', async () => {
+    const rows = [
+      { id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'running', word: 'Working' },
+      { id: 'qa-1', role: 'qa', model: 'claude-haiku', status: 'completed', word: 'Done' },
+      { id: 'rev-1', role: 'reviewer', model: 'claude-opus-5', status: 'failed', word: 'Failed' },
+      { id: 'ops-1', role: 'ops', model: 'claude-haiku', status: 'interrupted', word: 'Interrupted' },
+    ]
+    const sessions = {
+      ...teams,
+      sessions: teams.sessions.map(row =>
+        row.managedId === 't-team' ? { ...row, delegations: rows.map(({ word: _word, ...delegation }) => delegation) } : row,
+      ),
+    }
+    const fleet = fakeFleet({ control: teamControl.response.body, sessions, managed: { 't-team': bodyOf(teamDetail) } })
+    mount(fleet, <Bench />)
+    await screen.findByText('Ship the checkout flow', { selector: '.session-title' })
+    expect(children()).toHaveLength(rows.length)
+    for (const expected of rows) {
+      const row = children().find(r => r.dataset.delegation === expected.id)!
+      expect(row.querySelector('.badge')!.textContent).toBe(expected.word)
+      expect(row.querySelector('.session-name')!.textContent).toContain(expected.role)
+      expect(row.querySelector('.session-title')!.textContent).toBe(expected.model.replace('claude-', ''))
+    }
+  })
+
   it('keeps the oldest delegation selected and reachable while a newer one streams in, with stable focus', async () => {
     const { fleet, harness } = boot()
     await screen.findByText('Ship the checkout flow', { selector: '.session-title' })

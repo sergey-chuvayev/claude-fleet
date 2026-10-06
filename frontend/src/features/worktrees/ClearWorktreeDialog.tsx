@@ -9,7 +9,7 @@ import { Dialog, DialogFoot, DialogHead } from '../../components/Dialog'
 import { useToast } from '../../components/Toast'
 import type { Checkout } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { worktreeMutationInvalidates, worktreesResource } from '../../transport/resources'
+import { worktreeMutationInvalidates } from '../../transport/resources'
 import './worktrees.css'
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
@@ -66,7 +66,7 @@ function Plan({ checkout: c }: { checkout: Checkout }) {
 export function ClearWorktreeDialog({ modal, onClose }: ModalProps<'clear-worktree'>) {
   const client = useFleetClient()
   const toast = useToast()
-  const state = useResource(worktreesResource)
+  const state = useResource(client.resources.worktrees)
   const checkout = state.data?.value.checkouts.find(c => c.path === modal.path)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +87,7 @@ export function ClearWorktreeDialog({ modal, onClose }: ModalProps<'clear-worktr
       toast(answer.cleared?.branchDeleted ? 'Worktree and branch removed' : 'Worktree removed. The branch could not be deleted and is still there.')
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Fleet could not remove the worktree.')
-      void client.store.refresh(worktreesResource)
+      void client.store.refresh(client.resources.worktrees)
     } finally {
       setBusy(false)
     }

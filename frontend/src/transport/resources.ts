@@ -102,13 +102,44 @@ export function resourceFamily<A extends readonly unknown[], T>(
   }
 }
 
-// ── Plain JSON resources: projects, progress, worktrees ─────────────────────
-// These routes answer without an ETag, so they are fetched plainly. The transport
-// client keeps its fetch private, so these use the page's own: main.tsx hands the
-// client `window.fetch` too. Looked up per call, so a test can replace it.
-// TODO(transport owner): expose these on FleetClient.resources and drop browserFetch.
-const browserFetch: FetchLike = (input, init) => globalThis.fetch(input, init)
+// ── Plain JSON reads: projects, progress, worktrees, catalogs ───────────────
+// These routes answer without an ETag, so they are fetched plainly, through the
+// fetch the client was built with (FleetClient.getJson, client.resources.plain).
+
+export interface GetOptions {
+  readonly signal?: AbortSignal | undefined
+  /** Defaults to 15 seconds. */
+  readonly timeoutMs?: number | undefined
+}
+
 const READ_TIMEOUT_MS = 15_000
+
+/**
+ * GET a JSON route without conditional headers and validate the answer. Throws
+ * HttpError (with the server's `code`) for a non-2xx answer, ProtocolError for an
+ * unreadable body, and whatever `parse` throws (ContractError) for a wrong shape.
+ */
+export async function getJson<T>(
+  fetch: FetchLike,
+  path: string,
+  parse: (raw: unknown) => T,
+  options: GetOptions = {},
+): Promise<T> {
+  const timed = withTimeout(options.signal, options.timeoutMs ?? READ_TIMEOUT_MS)
+  try {
+    const response = await fetch(path, { cache: 'no-store', signal: timed.signal })
+    if (!response.ok) throw await httpErrorFrom(response)
+    let raw: unknown
+    try {
+      raw = await response.json()
+    } catch {
+      throw new ProtocolError(`Fleet sent an unreadable answer for ${path}.`)
+    }
+    return parse(raw)
+  } finally {
+    timed.done()
+  }
+}
 
 export interface PlainResourceSpec<T> {
   readonly key: string
@@ -116,27 +147,20 @@ export interface PlainResourceSpec<T> {
   readonly parse: (raw: unknown) => T
   /** Keep the held object when a refetch changed nothing, so idle polling re-renders nothing. */
   readonly equal?: (a: T, b: T) => boolean
+  readonly timeoutMs?: number
 }
 
+/**
+ * A store resource over a plain JSON GET: the store gives it in-flight dedupe, write
+ * epochs and last-good data like any other key. Get one through
+ * `client.resources.plain(spec)`, which hands out the same object per key.
+ */
 export function plainResource<T>(fetch: FetchLike, spec: PlainResourceSpec<T>): Resource<T> {
   return {
     key: spec.key,
     async load({ signal, current }) {
-      const timed = withTimeout(signal, READ_TIMEOUT_MS)
-      try {
-        const response = await fetch(spec.url, { cache: 'no-store', signal: timed.signal })
-        if (!response.ok) throw await httpErrorFrom(response)
-        let raw: unknown
-        try {
-          raw = await response.json()
-        } catch {
-          throw new ProtocolError(`Fleet sent an unreadable answer for ${spec.url}.`)
-        }
-        const data = spec.parse(raw)
-        return { data: current !== undefined && spec.equal?.(current, data) ? current : data }
-      } finally {
-        timed.done()
-      }
+      const data = await getJson(fetch, spec.url, spec.parse, { signal, timeoutMs: spec.timeoutMs })
+      return { data: current !== undefined && spec.equal?.(current, data) ? current : data }
     },
   }
 }
@@ -155,30 +179,33 @@ const stamped =
 export const archivedProjectsKey = 'projects:archived'
 export const worktreesKey = 'worktrees'
 
-/** Active projects. Refetched on the `projects` event and every few seconds while Projects is open. */
-export const projectsResource: Resource<Project[]> = plainResource(browserFetch, {
-  key: keys.projects,
-  url: '/api/projects',
-  parse: parseProjects,
-  equal: sameJson,
-})
-/** Active and archived projects together (the route's `archived=1`); filter on `archived`. */
-export const archivedProjectsResource: Resource<Project[]> = plainResource(browserFetch, {
-  key: archivedProjectsKey,
-  url: '/api/projects?archived=1',
-  parse: parseProjects,
-  equal: sameJson,
-})
-export const progressResource: Resource<Fetched<ProgressReport>> = plainResource(browserFetch, {
-  key: keys.progress,
-  url: '/api/progress',
-  parse: stamped(parseProgress),
-})
-export const worktreesResource: Resource<Fetched<WorktreeReport>> = plainResource(browserFetch, {
-  key: worktreesKey,
-  url: '/api/worktrees',
-  parse: stamped(parseWorktrees),
-})
+/** The plain resources every client carries, as `client.resources.<name>`. */
+export const plainSpecs: {
+  /** Active projects. Refetched on the `projects` event and every few seconds while Projects is open. */
+  readonly projects: PlainResourceSpec<Project[]>
+  /** Active and archived projects together (the route's `archived=1`); filter on `archived`. */
+  readonly archivedProjects: PlainResourceSpec<Project[]>
+  readonly progress: PlainResourceSpec<Fetched<ProgressReport>>
+  readonly worktrees: PlainResourceSpec<Fetched<WorktreeReport>>
+} = {
+  projects: { key: keys.projects, url: '/api/projects', parse: parseProjects, equal: sameJson },
+  archivedProjects: { key: archivedProjectsKey, url: '/api/projects?archived=1', parse: parseProjects, equal: sameJson },
+  progress: { key: keys.progress, url: '/api/progress', parse: stamped(parseProgress) },
+  worktrees: { key: worktreesKey, url: '/api/worktrees', parse: stamped(parseWorktrees) },
+}
+
+/** One value per client: catalogs, drafts and resource families belong to one Fleet server. */
+export function perClient<C extends object, T>(make: (client: C) => T): (client: C) => T {
+  const made = new WeakMap<C, T>()
+  return client => {
+    let value = made.get(client)
+    if (value === undefined) {
+      value = make(client)
+      made.set(client, value)
+    }
+    return value
+  }
+}
 
 /** What a project mutation (create, archive, restore, deliverable, ask, comment) makes out of date. */
 export const projectMutationInvalidates = (): string[] => [keys.projects, archivedProjectsKey, keys.sessions]

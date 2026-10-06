@@ -9,7 +9,6 @@ import type { FleetClient } from '../../transport/client'
 import { type ModelOption, parseModels } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import type { Resource } from '../../transport/store'
-import { getJson, perClient } from './get'
 
 export const STANDARD_MODELS: readonly ModelOption[] = [
   { value: '', displayName: 'Fleet default' },
@@ -21,12 +20,8 @@ export const STANDARD_MODELS: readonly ModelOption[] = [
 
 export const AUTO_JEV = 'auto-jev'
 
-export const modelsResource = perClient(
-  (client: FleetClient): Resource<readonly ModelOption[]> => ({
-    key: 'models',
-    load: async ({ signal }) => ({ data: await getJson(client, '/api/models', parseModels, signal) }),
-  }),
-)
+export const modelsResource = (client: FleetClient): Resource<readonly ModelOption[]> =>
+  client.resources.plain<readonly ModelOption[]>({ key: 'models', url: '/api/models', parse: parseModels })
 
 /** Options for a picker holding `current`: a value the list lacks is kept as its own option. */
 export function modelOptions(list: readonly ModelOption[], current: string): SelectOption[] {
