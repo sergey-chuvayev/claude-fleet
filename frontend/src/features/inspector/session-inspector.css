@@ -1,7 +1,7 @@
 /* The session inspector (#detail-content) and the review strip (#review-panel),
    F04 and F30. Ported from public/styles.css (0.54.0), legacy order. The
-   .detail:has(#composer) column layout belongs to SessionDetail; only the rules
-   that place this feature's own elements in it are here. */
+   Sessions console's column layout (`[data-view=sessions] .detail:has(#composer)`)
+   belongs to SessionDetail; only the rules that place this feature's own elements in it are here. */
 
 .response {
   white-space:pre-wrap;
@@ -26,20 +26,20 @@
 
 .work-link { border-radius:var(--radius-lg); font-size:var(--text-sm); padding:8px 10px }
 
-.detail:has(#composer) #detail-content .page-head { display:none }
-.detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
+[data-view=sessions] .detail:has(#composer) #detail-content .page-head { display:none }
+[data-view=sessions] .detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
 .detail-body .facts { display:grid; grid-template-columns:minmax(96px,auto) minmax(0,1fr); gap:0; margin:0; font-size:var(--text-md) }
 .detail-body .facts :is(dt,dd) { margin:0; padding:9px 0; border-bottom:1px solid var(--divider) }
 .detail-body .facts dt { padding-right:var(--space-4); color:var(--faint) }
 .detail-body .facts dd { color:var(--text); overflow-wrap:anywhere }
-.detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
-.detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
-.detail:has(#composer) .detail-body .facts dd { padding-top:2px }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts dd { padding-top:2px }
 
 #review-panel { flex:none; padding:0 var(--space-7) var(--space-3) }
-.detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
-.detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
-.detail:has(#composer) #detail-content { grid-row:1 / -1 }
+[data-view=sessions] .detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
+[data-view=sessions] .detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
+[data-view=sessions] .detail:has(#composer) #detail-content { grid-row:1 / -1 }
 .review-strip { display:flex; align-items:center; gap:var(--space-2); min-width:0; min-height:24px }
 .review-strip #review-status { flex:1; min-width:0 }
 .review-prs { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px }

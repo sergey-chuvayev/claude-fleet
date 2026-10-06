@@ -52,3 +52,72 @@ describe('DelegationDetail', () => {
     expect(await screen.findByText(/needs your approval to continue/)).toBeTruthy()
   })
 })
+
+describe('DelegationDetail extras (legacy inspector invariants)', () => {
+  const NOW = 1_700_000_000_000
+  const record = (extra: Record<string, unknown> = {}) => ({
+    id: 'dev-1',
+    role: 'developer',
+    model: 'claude-sonnet-5',
+    status: 'completed',
+    startedAt: NOW - 45_000,
+    finishedAt: NOW,
+    attempt: 2,
+    costUsd: 0.05,
+    usage: { input_tokens: 950, output_tokens: 320, cache_read_input_tokens: 12000 },
+    prompt: 'Fix the login',
+    steps: [{ id: 'tool1', tool: 'Bash', status: 'done', ms: 1000, input: { command: '<script>unsafe</script>' }, result: '6 tests passed' }],
+    report: 'PASS with test evidence',
+    ...extra,
+  })
+  const bootRecord = (extra?: Record<string, unknown>) => {
+    const sessions = {
+      ...teams,
+      sessions: teams.sessions.map(row =>
+        row.managedId === 't-team' ? { ...row, delegations: [{ id: 'dev-1', role: 'developer', model: 'claude-sonnet-5', status: 'completed' }] } : row,
+      ),
+    }
+    const managed = { ...detail, session: { ...detail.session, taskBoard: { ...detail.session.taskBoard, delegations: [record(extra)] } } }
+    const fleet = fakeFleet({ control: teamControl.response.body, sessions, managed: { 't-team': managed } })
+    return mount(fleet, <DelegationDetail selection={{ kind: 'delegation', parent: 't-team' as ManagedId, delegationId: 'dev-1' }} />)
+  }
+  const note = () => [...document.querySelectorAll('#detail-content > .page-body > .note')].map(el => el.textContent)
+
+  it('shows duration, attempt and the token line, and no cost even when one was reported', async () => {
+    bootRecord()
+    await waitFor(() => expect(document.querySelectorAll('.child-step')).toHaveLength(1))
+    expect(screen.getByText('Duration').parentElement?.textContent).toContain('45s')
+    expect(screen.getByText('Attempt').parentElement?.textContent).toContain('2')
+    expect(note()[0]).toBe('950 input · 320 output · 12k cache read · 0 cache write.')
+    const text = document.getElementById('detail-content')!.textContent!
+    expect(text).not.toMatch(/Reported cost|Per-agent cost|\$/)
+  })
+
+  it('escapes a step input instead of treating it as markup', async () => {
+    bootRecord()
+    await waitFor(() => expect(document.querySelectorAll('.child-step')).toHaveLength(1))
+    const step = document.querySelector<HTMLDetailsElement>('[data-child-step="tool1"]')!
+    act(() => {
+      step.open = true
+      fireEvent(step, new Event('toggle'))
+    })
+    expect(step.textContent).toContain('6 tests passed')
+    expect(document.querySelector('#detail-content script')).toBeNull()
+    expect(step.querySelector('pre')!.textContent).toContain('<script>unsafe</script>')
+    expect(step.innerHTML).toContain('&lt;script&gt;unsafe&lt;/script&gt;')
+  })
+
+  it('falls back to the runtime token total, then to saying nothing was reported', async () => {
+    const { unmount } = bootRecord({ usage: null, runtimeUsage: { total_tokens: 1300 } })
+    await waitFor(() => expect(note()[0]).toBe('1k tokens reported.'))
+    unmount()
+    bootRecord({ usage: null, runtimeUsage: null })
+    await waitFor(() => expect(note()[0]).toBe('Token usage not reported.'))
+  })
+
+  it('leaves out the attempt when none was recorded', async () => {
+    bootRecord({ attempt: null })
+    await waitFor(() => expect(document.querySelectorAll('.child-step')).toHaveLength(1))
+    expect(screen.queryByText('Attempt')).toBeNull()
+  })
+})

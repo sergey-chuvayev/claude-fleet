@@ -3,14 +3,14 @@
 //
 // The control panel (#control-panel) for a managed session, top to bottom, as legacy
 // control.js drew it: header, Jev routing line, team overview with its divider, the
-// conversation, the now-line, queued follow-ups, the error line, approvals, the
-// composer's divider and the composer. An external session gets its own console
+// conversation, then the shared SessionTail: the now-line, queued follow-ups, the
+// error line, approvals, the composer's divider and the composer. An external session gets its own console
 // (features/external). A delegation is read only: no control panel, only its detail
 // (features/agents/DelegationDetail).
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import { useSelection } from '../../app/AppStore'
 import { useInspector } from '../../app/inspector'
-import { COMPOSER_MIN, OVERVIEW_MIN } from '../../app/preferences'
+import { OVERVIEW_MIN } from '../../app/preferences'
 import { type Selection, selectionKey } from '../../app/state'
 import { EmptyState } from '../../components/EmptyState'
 import { PanelSplitter } from '../../components/SplitPane'
@@ -18,16 +18,11 @@ import { useToast } from '../../components/Toast'
 import { type ManagedDetail, readControlFields } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { DelegationDetail } from '../agents/DelegationDetail'
-import { Approvals } from '../approvals/Approvals'
-import { Composer } from '../composer/Composer'
 import { Conversation } from '../conversation'
 import { isWorking } from '../conversation/format'
 import { ExternalConsole } from '../external/ExternalConsole'
-import { AgentError, QueuedMessages } from '../session-header/ConsoleStatus'
-import { NowLine } from '../session-header/NowLine'
 import { SessionHeader } from '../session-header/SessionHeader'
-import { StopButton } from '../session-header/StopButton'
-import { managedNow } from '../session-header/status'
+import { SessionTail, panelMax } from '../session-header/SessionTail'
 import { TeamOverview, overviewOf } from '../teams/TeamOverview'
 import { SessionInspector } from './SessionInspector'
 import '../../styles/console.css'
@@ -57,25 +52,8 @@ export function SessionDetail() {
   )
 }
 
-/** The composer's divider: 110px minimum, 130 by default, a floor rather than a fixed height. */
-const COMPOSER_INITIAL = 130
 /** The team overview's divider: 90px minimum, 220 by default. */
 const OVERVIEW_INITIAL = 220
-
-/**
- * The largest a panel may be: under half the control panel, and never so tall that
- * the conversation drops below 120px (legacy watchConversation's `maximum`).
- */
-function panelMax(panel: RefObject<HTMLElement | null>, min: number): () => number {
-  return () => {
-    const element = panel.current
-    const container = element?.parentElement
-    if (!element || !container) return min
-    const log = container.querySelector<HTMLElement>('.conversation')
-    const height = element.getBoundingClientRect().height
-    return Math.max(min, Math.min(container.clientHeight * 0.45, height + (log?.clientHeight ?? 0) - 120))
-  }
-}
 
 function ManagedConsole({ managedId, sessionKey }: { managedId: string; sessionKey: string }) {
   const client = useFleetClient()
@@ -83,7 +61,6 @@ function ManagedConsole({ managedId, sessionKey }: { managedId: string; sessionK
   const state = useResource(client.resources.managed(managedId))
   const [closed, setClosed] = useState(false)
   const [overviewOpen, setOverviewOpen] = useState(true)
-  const composer = useRef<HTMLFormElement>(null)
   const overview = useRef<HTMLDetailsElement>(null)
   const session = state.data?.session
 
@@ -111,7 +88,6 @@ function ManagedConsole({ managedId, sessionKey }: { managedId: string; sessionK
       session={session}
       sessionKey={sessionKey}
       refreshError={state.status === 'error' ? (state.error?.message ?? '') : ''}
-      composer={composer}
       overview={overview}
       overviewOpen={overviewOpen}
       setOverviewOpen={setOverviewOpen}
@@ -124,7 +100,6 @@ function LoadedConsole({
   session,
   sessionKey,
   refreshError,
-  composer,
   overview,
   overviewOpen,
   setOverviewOpen,
@@ -133,7 +108,6 @@ function LoadedConsole({
   session: ManagedDetail['session']
   sessionKey: string
   refreshError: string
-  composer: RefObject<HTMLFormElement | null>
   overview: RefObject<HTMLDetailsElement | null>
   overviewOpen: boolean
   setOverviewOpen: (open: boolean) => void
@@ -142,7 +116,6 @@ function LoadedConsole({
   const toast = useToast()
   const fields = readControlFields(session)
   const working = isWorking(session.status)
-  const holder = fields.openElsewhere ?? null
   const team = overviewOf(fields)
   const placeholder =
     fields.kind === 'project'
@@ -173,30 +146,11 @@ function LoadedConsole({
         </>
       ) : null}
       <Conversation sessionKey={sessionKey} onNotice={toast} />
-      <NowLine now={managedNow(session.status, session.messages, !!holder)} />
-      <QueuedMessages queue={fields.queue ?? []} />
-      <AgentError text={session.error || refreshError} />
-      <Approvals managedId={session.id} approvals={fields.approvals ?? []} />
-      <PanelSplitter
-        panelRef={composer}
-        preference="composerHeight"
-        label="Resize message composer"
-        min={COMPOSER_MIN}
-        initial={COMPOSER_INITIAL}
-        max={panelMax(composer, COMPOSER_MIN)}
-        before
-        grow
-      />
-      <Composer
-        managedId={session.id}
+      <SessionTail
+        session={session}
         draftKey={sessionKey}
-        transcriptId={session.sessionId ?? null}
-        engine={session.engine === 'codex' ? 'codex' : 'claude'}
-        working={working}
-        holder={holder}
         placeholder={placeholder}
-        stop={<StopButton managedId={session.id} status={session.status} />}
-        formRef={composer}
+        refreshError={refreshError}
       />
     </>
   )

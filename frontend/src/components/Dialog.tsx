@@ -91,9 +91,25 @@ export function Dialog({
       ;(section ? (focusables(section)[0] ?? section) : backdrop).focus()
     }
     document.addEventListener('focusin', onFocusIn)
+    // Focus can drop to <body> with no focusin to catch it: a focused control that is
+    // disabled while it saves (a Select in Settings). Its keys still belong here.
+    const onStrayKey = (event: globalThis.KeyboardEvent) => {
+      if (event.target !== document.body || event.defaultPrevented) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        close.current()
+      } else if (event.key === 'Tab' && section) {
+        event.preventDefault()
+        const items = focusables(section)
+        const next = (event.shiftKey ? items[items.length - 1] : items[0]) ?? section
+        next.focus()
+      }
+    }
+    document.addEventListener('keydown', onStrayKey)
 
     return () => {
       document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('keydown', onStrayKey)
       openLayers--
       for (const el of madeInert) el.inert = false
       if (openLayers === 0) document.body.removeAttribute('data-modal')

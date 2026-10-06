@@ -1,26 +1,35 @@
-// The project manager's console: its pending approvals through features/approvals,
-// and a composer on the shared draft store asking through /api/projects/:id/ask with
-// the composer's draft and request id rules (A07).
+// The project manager's console, as legacy drew it for any managed session: model
+// picker, Connections and Close in the header; its pending approvals; the full
+// composer posting to the manager's message route with the composer's draft and
+// request id rules (A07).
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import projectsFixture from '../../test/fixtures/projects-collision/get-projects.json'
 import { deferred, jsonResponse } from '../../test/fakes'
 import type { Project } from '../../transport/contracts'
 import { ProjectConsole } from './ProjectConsole'
-import { fakeFleet, mount, unmount } from './testing'
+import { fakeFleet, mount, mounted, unmount } from './testing'
 
 const ALPHA = '00000001-f1e1-4000-8000-000000000000'
 const alpha = (projectsFixture.response.body.projects as unknown as Project[]).find(p => p.id === ALPHA)!
-const ASK = `/api/projects/${ALPHA}/ask`
+const MESSAGES = '/api/managed/pm-1/messages'
 
 afterEach(unmount)
 
-function setup(approvals: unknown[] = []) {
+const manager = (over: Record<string, unknown> = {}) => ({
+  id: 'pm-1',
+  status: 'idle',
+  kind: 'project',
+  name: 'Alpha launch',
+  messages: [],
+  approvals: [],
+  ...over,
+})
+
+function setup(over: Record<string, unknown> = {}) {
   const fleet = fakeFleet()
   fleet.set('/api/projects', { projects: [{ ...alpha, managerId: 'pm-1' }] })
-  fleet.set('/api/managed/pm-1', {
-    session: { id: 'pm-1', status: approvals.length ? 'approval' : 'idle', kind: 'project', name: 'Alpha launch', messages: [], approvals },
-  })
+  fleet.set('/api/managed/pm-1', { session: manager(over) })
   mount(
     <aside id="detail">
       <ProjectConsole />
@@ -30,55 +39,76 @@ function setup(approvals: unknown[] = []) {
   return fleet
 }
 
-const box = () => screen.getByLabelText('Message to the project manager') as HTMLTextAreaElement
-const asks = (fleet: ReturnType<typeof fakeFleet>) => fleet.posted.filter(p => p.path === ASK)
+const box = () => document.getElementById('message-input') as HTMLTextAreaElement
+const sends = (fleet: ReturnType<typeof fakeFleet>) => fleet.posted.filter(p => p.path === MESSAGES)
 
 describe('ProjectConsole', () => {
-  it("shows the manager's pending approvals as approval cards", async () => {
-    setup([{ id: 'ap-1', tool: 'mcp__linear__update_issue', description: 'Update TECH-12', input: { id: 'TECH-12' } }])
+  it('has the model picker, the gate note, Connections and Close in its header', async () => {
+    setup()
+    await waitFor(() => expect(document.getElementById('model-choice')).toBeTruthy())
+    expect(screen.getByText('Changes need your approval')).toBeTruthy()
+    expect(document.getElementById('agent-connections')).toBeTruthy()
+    expect(document.getElementById('close-agent')?.textContent).toBe('Close')
+    expect(document.getElementById('approval-mode')).toBeNull()
+  })
+
+  it('closes the manager on the second click', async () => {
+    const fleet = setup()
+    fleet.answer('/api/managed/pm-1/close', { ok: true })
+    const close = await waitFor(() => {
+      const el = document.getElementById('close-agent')
+      if (!el) throw new Error('no Close yet')
+      return el
+    })
+    fireEvent.click(close)
+    expect(close.textContent).toBe('Close for good?')
+    fireEvent.click(close)
+    expect(await screen.findByText('Closed. Claude still has its own transcript of it.')).toBeTruthy()
+    expect(fleet.posted.filter(p => p.path === '/api/managed/pm-1/close')).toHaveLength(1)
+  })
+
+  it("shows the manager's pending approvals, queued follow-ups and Cancel queued task", async () => {
+    setup({
+      status: 'queued',
+      queue: [{ id: 'q1', message: 'And the deadline?' }],
+      approvals: [{ id: 'ap-1', tool: 'mcp__linear__update_issue', description: 'Update TECH-12', input: { id: 'TECH-12' } }],
+    })
     expect(await screen.findByText('Update TECH-12')).toBeTruthy()
     expect(document.querySelector('#approvals [data-approval="ap-1"]')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Allow once' })).toBeTruthy()
+    expect(screen.getByText('And the deadline?')).toBeTruthy()
+    expect(document.getElementById('stop-agent')?.textContent).toBe('Cancel queued task')
   })
 
-  it('keeps the text and request id after a refused ask, and clears only on success', async () => {
+  it('sends through the full composer; a refused send keeps its text and request id', async () => {
     const fleet = setup()
-    await screen.findByLabelText('Message to the project manager')
-    fleet.answer(ASK, { error: '8 agents are already running.', code: 'CAPACITY', retryable: true }, 409)
+    await waitFor(() => expect(box()).toBeTruthy())
+    expect(box().getAttribute('role')).toBe('combobox')
+    expect(document.getElementById('attach-tray')).toBeTruthy()
+    fleet.answer(MESSAGES, { error: '8 agents are already running.', code: 'CAPACITY', retryable: true }, 409)
     fireEvent.change(box(), { target: { value: 'Where are we?' } })
     fireEvent.keyDown(box(), { key: 'Enter' })
-    await waitFor(() => expect(asks(fleet)).toHaveLength(1))
+    await waitFor(() => expect(sends(fleet)).toHaveLength(1))
     expect(await screen.findByText('8 agents are already running.')).toBeTruthy()
     expect(box().value).toBe('Where are we?')
-    const first = asks(fleet)[0]!.body
+    const first = sends(fleet)[0]!.body
+    expect(first).toMatchObject({ message: 'Where are we?', requestId: expect.any(String) })
 
-    // The retry of the same words is the same request.
     const answer = deferred<Response>()
-    fleet.answer(ASK, () => answer.promise)
+    fleet.answer(MESSAGES, () => answer.promise)
     fireEvent.keyDown(box(), { key: 'Enter' })
-    await waitFor(() => expect(asks(fleet)).toHaveLength(2))
-    expect(asks(fleet)[1]!.body).toEqual(first)
-    expect(first).toMatchObject({ message: 'Where are we?' })
-    expect(typeof first.requestId).toBe('string')
-
-    // Text typed while the ask is out survives its answer.
-    fireEvent.change(box(), { target: { value: 'Where are we? And the deadline?' } })
-    await act(async () => answer.resolve(jsonResponse({ session: { id: 'pm-1' } })))
-    expect(box().value).toBe('Where are we? And the deadline?')
-
-    // A fresh ask goes out with a new request id and, answered, clears the box.
-    fleet.answer(ASK, { session: { id: 'pm-1' } })
-    fireEvent.keyDown(box(), { key: 'Enter' })
-    await waitFor(() => expect(asks(fleet)).toHaveLength(3))
-    expect(asks(fleet)[2]!.body.requestId).not.toBe(first.requestId)
+    await waitFor(() => expect(sends(fleet)).toHaveLength(2))
+    expect(sends(fleet)[1]!.body).toEqual(first)
+    await act(async () => answer.resolve(jsonResponse({ session: manager({ status: 'running' }) })))
     await waitFor(() => expect(box().value).toBe(''))
+    // Nothing went to the project page's ask route.
+    expect(fleet.posted.filter(p => p.path.endsWith('/ask'))).toHaveLength(0)
   })
 
-  it('says so when Send is pressed with nothing typed', async () => {
-    const fleet = setup()
-    await screen.findByLabelText('Message to the project manager')
-    fireEvent.keyDown(box(), { key: 'Enter' })
-    await waitFor(() => expect(document.getElementById('toast')?.textContent).toBe('Type your question first.'))
-    expect(asks(fleet)).toHaveLength(0)
+  it('has the composer height divider, on the preference the Sessions console uses', async () => {
+    setup()
+    const divider = await screen.findByRole('separator', { name: 'Resize message composer' })
+    expect(divider.nextElementSibling?.id).toBe('composer')
+    fireEvent.keyDown(divider, { key: 'Home' })
+    expect(mounted().storage.getItem('fleet:minimal-composer-height')).toBe('110')
   })
 })
