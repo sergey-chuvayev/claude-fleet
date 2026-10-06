@@ -47,7 +47,7 @@ test('the bin entry point ships',()=>{
   }
 })
 
-// A29: the release as a user gets it. Pack the tarball (prepack builds the web app), install
+// A29: the release as a user gets it. Pack the tarball from a copy (prepack builds the web app), install
 // it globally into a throwaway prefix the way `npm install -g` does (no devDependencies),
 // start it with its own Fleet home on a free port, and check what a browser would load.
 // Optional dependencies are left out only because they are the SDK's ~200 MB native Claude
@@ -74,13 +74,34 @@ const get=(port,pathname)=>new Promise((resolve,reject)=>{
 const MIME={'.js':/^text\/javascript/,'.css':/^text\/css/,'.png':/^image\/png$/,'.svg':/^image\/svg\+xml$/,'.woff2':/^font\/woff2$/}
 const LEGACY=['/app.js','/select.js','/review.js','/ui.js','/sync.js','/control.js','/blocks.js','/ask.js','/teams.js','/day.js','/sounds.js','/projects.js','/progress.js','/worktrees.js','/views.js','/connections.js','/settings.js','/styles.css','/vendor/libs.js']
 
+// Packing runs prepack, a full build. It is opt-in, and it packs a copy of the tracked files
+// (with this checkout's node_modules linked in), so it never rewrites the dist/ that a Fleet
+// running from this checkout is serving.
+const PACKAGE_TEST=process.env.FLEET_PACKAGE_TEST==='1'
+function copyCheckout(into){
+  const listed=spawnSync('git',['ls-files','-z'],{cwd:root,encoding:'utf8'})
+  if(listed.status!==0) throw new Error(`Listing the tracked files failed: ${listed.stderr || listed.error}`)
+  for(const file of listed.stdout.split('\0').filter(Boolean)){
+    const from=path.join(root,file)
+    if(!fs.existsSync(from)) continue // deleted in the working tree
+    fs.mkdirSync(path.dirname(path.join(into,file)),{recursive:true})
+    fs.copyFileSync(from,path.join(into,file))
+  }
+  fs.symlinkSync(path.join(root,'node_modules'),path.join(into,'node_modules'),'junction')
+}
+
 test('the packed release installs without devDependencies and serves only its built web app (A29)',{timeout:600000},async t=>{
+  if(!PACKAGE_TEST){t.skip('opt-in: FLEET_PACKAGE_TEST=1 node --require ./test-setup.js --test package.test.js');return}
   if(spawnSync(npmCommand,['--version'],{shell:process.platform==='win32'}).status!==0){t.skip('npm is not available, so the release cannot be packed here');return}
   const work=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-pack-'))
   let server
   try{
+    const stamp=()=>{try{return fs.statSync(path.join(root,'dist','.vite','manifest.json')).mtimeMs}catch{return null}}
+    const checkoutBuild=stamp()
+    const source=path.join(work,'source')
+    copyCheckout(source)
     // prepack's build log shares stdout with npm's JSON report, which comes last.
-    const report=await npm(['pack','--json','--pack-destination',work])
+    const report=await npm(['pack','--json','--pack-destination',work],{cwd:source})
     const [packed]=JSON.parse(report.slice(report.search(/^\[\s*\{/m)))
     const shippedFiles=packed.files.map(f=>f.path)
     assert.ok(shippedFiles.includes('dist/index.html'),'dist/index.html is in the tarball')
@@ -154,6 +175,7 @@ test('the packed release installs without devDependencies and serves only its bu
     const control=JSON.parse((await get(port,'/api/control')).body)
     assert.equal(control.version,pkg.version)
     assert.equal(control.buildId,`${pkg.version}+${createHash('sha256').update(manifestBytes).digest('hex').slice(0,12)}`)
+    assert.equal(stamp(),checkoutBuild,"packing never touches the checkout's own dist/")
   }finally{
     if(server && server.exitCode===null){server.kill('SIGTERM');await new Promise(resolve=>{server.once('exit',resolve);setTimeout(resolve,5000).unref()})}
     fs.rmSync(work,{recursive:true,force:true})
