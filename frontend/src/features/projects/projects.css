@@ -42,13 +42,12 @@
 .day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
 #control-panel > .form-error { flex:none; margin:0 28px 8px }
 #control-panel > .conversation-frame { padding:0 28px }
-/* The question box under the manager's conversation. */
-.project-ask { flex:none; display:flex; gap:6px; align-items:flex-end; padding:12px 28px 16px }
-.project-ask textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
-.project-ask textarea:focus { outline:0; border-color:var(--faint) }
-.project-ask .button { flex:none; min-height:var(--control-md) }
+/* The manager's approvals and the composer under its conversation. */
+.project-console > #approvals { flex:none; padding:0 28px }
+.project-composer { flex:none; margin:0; padding:12px 28px 16px }
+.project-composer textarea { box-sizing:border-box; max-height:30vh; resize:none }
 @media(max-width:720px) {
-  #control-panel .project-console-head, .project-ask { padding-inline:16px }
+  #control-panel .project-console-head, .project-console > #approvals, .project-composer { padding-inline:16px }
   #control-panel > .form-error { margin-inline:16px }
   #control-panel > .conversation-frame { padding:0 16px }
 }

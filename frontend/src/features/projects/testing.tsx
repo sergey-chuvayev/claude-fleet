@@ -1,7 +1,6 @@
 // Test support for Projects, Progress and Worktrees: a fake Fleet that answers from the
 // fixture packs, records every POST, and lets a test change what the next GET says.
-// The plain-JSON resources fetch through the page's `fetch`, so the same fake is also
-// installed as the global one.
+// Every read goes through the client's fetch, which is this fake.
 import { render } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { vi } from 'vitest'
