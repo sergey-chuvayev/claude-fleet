@@ -12,7 +12,7 @@ import { type Deliverable, type Project, DELIVERABLE_STATES } from '../../transp
 import { useFleetClient } from '../../transport/hooks'
 import { useDraft, useProjectsMemory } from './ProjectsContext'
 import { DAY_STATUS, STATE, STATE_TONE } from './model'
-import { LinkChips, Row } from './pageKit'
+import { LinkChips, Row } from '../../components/ui'
 import { errorMessage, newRequestId, useProjectPost } from './useProjectPost'
 
 const STATE_OPTIONS = DELIVERABLE_STATES.map(value => ({ value, label: STATE[value] ?? value }))

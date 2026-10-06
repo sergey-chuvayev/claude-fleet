@@ -73,7 +73,10 @@ replaces its own placeholder file; it does not edit the shell.
 - **Primitives** (`components/`): `Dialog`/`DialogHead`/`DialogFoot`, `Select`,
   `SplitPane`/`PanelSplitter`, `Disclosure`/`Fold`, `useToast`/`useAnnounce`,
   `CopyButton`/`copyToClipboard`, `Icon`, `Avatar`, `PixelRun`, `EmptyState`,
-  `RelativeTime`/`Elapsed`/`useNow`, `useSeen`. Formatters: `domain/format.ts`.
+  `RelativeTime`/`Elapsed`/`useNow`, `useSeen`, and the legacy `FleetUI` page
+  blocks in `components/ui.tsx` (`PageHead`, `Stat`, `Bar`, `Ring`, `Section`,
+  `Pill`, `Callout`, `Group`, `List`, `Row`, `Log`, `LinkChips`). Formatters:
+  `domain/format.ts`; link labels: `domain/links.ts`.
 - **Styles**: `styles/shell.css` and `styles/components.css` are the legacy rules
   whose selectors name only shell or primitive classes, ported in legacy order.
   A feature ports its own rules from `public/styles.css` into a stylesheet it

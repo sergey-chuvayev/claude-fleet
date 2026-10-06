@@ -19,7 +19,8 @@ import { ArchivedProjects } from './ArchivedProjects'
 import { useDraft } from './ProjectsContext'
 import { TaskRow } from './TaskRow'
 import { MANAGER_BUSY, SESSION_STATE, SESSION_TONE, daysLeft, linkText, managerOf, membersOf, sectionKeys } from './model'
-import { Callout, List, Log, PageHead, Pill, Ring, Row, Section, Stat, isWebLink } from './pageKit'
+import { Callout, List, Log, PageHead, Pill, Ring, Row, Section, Stat } from '../../components/ui'
+import { isWebLink } from '../../domain/links'
 import { dropProject, errorMessage, newRequestId, useProjectPost } from './useProjectPost'
 
 /** Archiving takes two clicks, the second within a few seconds, like closing an agent. */
@@ -106,7 +107,7 @@ export function ProjectPage({ project: p, projects, sessions, onPick, onNew }: P
       <div className="page-body">
         <SettingUp project={p} sessions={sessions} />
         {p.managerId ? null : <AskManager project={p} />}
-        <Section title="Deliverables" count={`${p.progress.done}/${p.progress.total}`}>
+        <Section label="Deliverables" count={`${p.progress.done}/${p.progress.total}`}>
           {p.deliverables.length ? (
             <List>
               {p.deliverables.map(d => (
@@ -117,16 +118,16 @@ export function ProjectPage({ project: p, projects, sessions, onPick, onNew }: P
             <p className="note">No deliverables yet. The project manager adds them as it learns what has to ship, or tell it.</p>
           )}
         </Section>
-        <Section title="Sessions" count={members.length}>
+        <Section label="Sessions" count={members.length}>
           <Members members={members} />
         </Section>
         {log.length ? (
-          <Section title="Log">
+          <Section label="Log">
             <Log entries={log.map(l => [new Date(l.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }), l.text] as const)} />
           </Section>
         ) : null}
         {p.brief ? (
-          <Section title="Brief">
+          <Section label="Brief">
             <div className="project-md">
               <Markdown source={p.brief} />
             </div>
@@ -144,7 +145,7 @@ export function ProjectPage({ project: p, projects, sessions, onPick, onNew }: P
           </div>
         ) : null}
         {webLinks.length ? (
-          <Section title="Links">
+          <Section label="Links">
             <span className="day-links">
               {webLinks.map(url => (
                 <a key={url} href={url} target="_blank" rel="noopener noreferrer">
@@ -242,7 +243,7 @@ function AskManager({ project }: { project: Project }) {
     }
   }
   return (
-    <Section title="Project manager">
+    <Section label="Project manager">
       <p className="note">
         One agent that follows this project: its sessions, PRs and tickets, and the deliverables below. Ask it where things stand; it can put next
         steps on your Day.

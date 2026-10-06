@@ -18,7 +18,7 @@ import { contextPercent, heat, partitionSessions, shortModel } from '../../domai
 import type { SessionRow } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { useArchive } from '../archive/useArchive'
-import { Callout, MiniBar, PageHead, Section, Stat } from '../sessions/page'
+import { Callout, Bar, PageHead, Section, Stat } from '../../components/ui'
 import { ReviewStrip } from '../sessions/review/ReviewStrip'
 import { StatusBadgeView } from '../sessions/SessionRow'
 import '../archive/archive.css'
@@ -109,7 +109,7 @@ function InspectorBody({ row }: { row: SessionRow }) {
                 'Not available'
               ) : (
                 <>
-                  <MiniBar percent={percent} />
+                  <Bar percent={percent} />
                   {Math.round(percent)}%{' '}
                   <small>
                     {tokens(row.contextTokens ?? 0)} / {tokens(row.contextLimit ?? 0)}

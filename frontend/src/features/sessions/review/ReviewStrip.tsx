@@ -13,7 +13,7 @@ import { type PrStatus, type SessionLink, type SessionRow, parsePrStatus } from 
 import { useFleetClient, useResource } from '../../../transport/hooks'
 import { mutationInvalidates, perClient, resourceFamily } from '../../../transport/resources'
 import type { Resource } from '../../../transport/store'
-import { Pill } from '../page'
+import { Pill } from '../../../components/ui'
 import { CI_LABEL, STATE, ciFeedback, names, prLinks, problem } from './review'
 
 const POLL_MS = 30_000

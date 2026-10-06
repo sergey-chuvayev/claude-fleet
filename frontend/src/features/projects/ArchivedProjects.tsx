@@ -10,7 +10,7 @@ import { Fold } from '../../components/Disclosure'
 import { useToast } from '../../components/Toast'
 import { parseProject } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { List, Row } from './pageKit'
+import { List, Row } from '../../components/ui'
 import { adoptProject, errorMessage, useProjectPost } from './useProjectPost'
 
 export function ArchivedProjects() {

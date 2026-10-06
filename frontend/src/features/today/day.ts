@@ -45,28 +45,6 @@ export const duration = (n: number): string => (n >= 60 ? `${Math.floor(n / 60)}
 /** Short enough for a chip: the first `max - 1` characters and an ellipsis. */
 export const clip = (text: string, max: number): string => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
-/** A link as the thing it points at: TECH-5163, api-allo#4638, Slack, Notion. */
-export function linkLabel(url: string): string {
-  const linear = /linear\.app\/[^/]+\/issue\/([A-Za-z]+-\d+)/.exec(url)
-  if (linear?.[1]) return linear[1].toUpperCase()
-  const pr = /github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)/.exec(url)
-  if (pr?.[1] && pr[2]) return `${pr[1]}#${pr[2]}`
-  const named: ReadonlyArray<readonly [RegExp, string]> = [
-    [/slack\.com/, 'Slack'],
-    [/notion\.(so|site)/, 'Notion'],
-    [/granola\.ai/, 'Granola'],
-    [/figma\.com/, 'Figma'],
-    [/docs\.google\.com/, 'Google Doc'],
-    [/usepylon\.com|pylon/, 'Pylon'],
-  ]
-  for (const [pattern, name] of named) if (pattern.test(url)) return name
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return 'Link'
-  }
-}
-
 /** The distinct links in a note, as the add form sends them (at most 20). */
 export const linksIn = (text: string): string[] => [...new Set(text.match(/https?:\/\/[^\s<>)"']+/g) ?? [])].slice(0, 20)
 

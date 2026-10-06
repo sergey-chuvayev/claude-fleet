@@ -7,7 +7,8 @@ import { EmptyState } from '../../components/EmptyState'
 import { useAnnounce } from '../../components/Toast'
 import type { ProgressReport } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { Callout, List, PageHead, Pill, Row, Section, Stat, isWebLink } from '../projects/pageKit'
+import { Callout, List, PageHead, Pill, Row, Section, Stat } from '../../components/ui'
+import { isWebLink } from '../../domain/links'
 import { useRefreshWhileVisible } from '../projects/useRefreshWhileVisible'
 import './progress.css'
 
@@ -95,13 +96,13 @@ export function ProgressPage() {
         }
       />
       <div className="page-body">
-        <Section title="Shipped" count={report.shipped.count} aside={<span className="note">Done on your Day; Fleet does not check GitHub for merges</span>}>
+        <Section label="Shipped" count={report.shipped.count} aside={<span className="note">Done on your Day; Fleet does not check GitHub for merges</span>}>
           <Shipped shipped={report.shipped} />
         </Section>
-        <Section title="Stalled" count={report.stalled.count} aside={<span className="note">Open with no update in {report.staleDays} days</span>}>
+        <Section label="Stalled" count={report.stalled.count} aside={<span className="note">Open with no update in {report.staleDays} days</span>}>
           <Stalled stalled={report.stalled} days={report.staleDays} now={now} />
         </Section>
-        <Section title="Ran" count={report.ran.count} aside={outcomes ? <span className="note">{outcomes}</span> : undefined}>
+        <Section label="Ran" count={report.ran.count} aside={outcomes ? <span className="note">{outcomes}</span> : undefined}>
           <Ran ran={report.ran} />
         </Section>
       </div>

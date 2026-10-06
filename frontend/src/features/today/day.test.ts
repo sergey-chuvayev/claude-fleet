@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DayItem, DaySubagent } from '../../transport/contracts'
-import { type RowInfo, byRole, checkedLine, contextFolds, duration, linkLabel, linksIn, liveStatus, localDate, workingLine } from './day'
+import { linkLabel } from '../../domain/links'
+import { type RowInfo, byRole, checkedLine, contextFolds, duration, linksIn, liveStatus, localDate, workingLine } from './day'
 
 const item = (over: Partial<DayItem> = {}): DayItem => ({
   id: 'i1',

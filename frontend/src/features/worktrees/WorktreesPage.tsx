@@ -14,7 +14,7 @@ import { Select } from '../../components/Select'
 import { useAnnounce } from '../../components/Toast'
 import type { Checkout } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { Callout, List, PageHead, Pill, Row, Section, Stat } from '../projects/pageKit'
+import { Callout, List, PageHead, Pill, Row, Section, Stat } from '../../components/ui'
 import { useRefreshWhileVisible } from '../projects/useRefreshWhileVisible'
 import './worktrees.css'
 
@@ -191,7 +191,7 @@ export function WorktreesPage() {
       />
       <div className="page-body">
         <Section
-          title="Checkouts"
+          label="Checkouts"
           count={shown.length}
           aside={
             <span className="note">
