@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-claude-idle"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-claude-idle",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000001",
+        "name": "Fix flaky checkout test",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-m-claude-idle",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791279660000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m1-u",
+            "role": "user",
+            "text": "Fix the flaky checkout test",
+            "at": 1791279600000,
+            "h": "mA54vVvtYGI5ZA2K"
+          },
+          {
+            "id": "m1-a",
+            "role": "assistant",
+            "text": "Fixed. The test waited on a timer; now it awaits the event.",
+            "at": 1791279660000,
+            "h": "Bfx6XPI4R2nSQsp4"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

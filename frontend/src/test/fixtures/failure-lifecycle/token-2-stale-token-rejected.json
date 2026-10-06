@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "note": "token from the previous process"
+  },
+  "response": {
+    "status": 403,
+    "contentType": "application/json",
+    "body": {
+      "error": "Reload Fleet before sending commands."
+    }
+  }
+}

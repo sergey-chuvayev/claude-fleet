@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects",
+    "body": {
+      "name": "One too many"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Fleet keeps up to 30 active projects. Archive one first."
+    }
+  }
+}

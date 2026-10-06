@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/progress?days=30"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "since": 1788739200000,
+      "days": 30,
+      "staleDays": 3,
+      "shipped": {
+        "items": [],
+        "count": 0,
+        "prs": 0
+      },
+      "stalled": {
+        "items": [],
+        "count": 0
+      },
+      "ran": {
+        "count": 2,
+        "outcomes": {
+          "running": 1,
+          "finished": 1
+        },
+        "sessions": [
+          {
+            "id": "t-team",
+            "name": "Ship the checkout flow",
+            "outcome": "running",
+            "projectId": null,
+            "at": 1791280797000,
+            "teamName": "Bug fix"
+          },
+          {
+            "id": "t-owner",
+            "name": "Owner + review: refund path",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791279600000,
+            "teamName": "Owner + review"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000002-f1e1-4000-8000-000000000000/today",
+    "body": {
+      "deliverableId": "0000000bf1e1"
+    },
+    "note": "same title, other project: a separate item"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "item": {
+        "id": "00000038-f1e1-4000-8000-000000000000",
+        "title": "Ship it",
+        "source": "me",
+        "links": [],
+        "context": "A task from the project \"Beta launch\" (deadline 2026-11-02). Its file is /fixture/home/projects/beta-launch.md: read it for the full story before writing the launch brief.\n\n## The task: Ship it\nNo brief written for this task yet. Read the project file, and ask the operator only what it does not answer.\n\n## Project brief\nShip the Beta launch.\n\n## Recent project log\n- 2026-10-06 10:00 Project created.",
+        "priority": "should",
+        "status": "today",
+        "mode": "agent",
+        "estimateMin": null,
+        "projectId": "00000002-f1e1-4000-8000-000000000000",
+        "deliverableId": "0000000bf1e1",
+        "needs": [],
+        "log": [],
+        "createdAt": 1791280800000,
+        "by": "operator"
+      },
+      "existing": false
+    }
+  }
+}

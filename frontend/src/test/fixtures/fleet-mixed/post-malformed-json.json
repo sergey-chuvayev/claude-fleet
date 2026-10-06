@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": "{oops",
+    "note": "malformed JSON"
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Invalid JSON."
+    }
+  }
+}

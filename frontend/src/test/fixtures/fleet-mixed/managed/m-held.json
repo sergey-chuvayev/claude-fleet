@@ -1,0 +1,70 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-held"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-held",
+        "projectId": null,
+        "sessionId": "000000c1-0000-4000-8000-000000000008",
+        "name": "Waiting on the terminal",
+        "cwd": "/fixture/repos/api-service",
+        "createRequestId": "req-m-held",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280560000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m10-u",
+            "role": "user",
+            "text": "Continue",
+            "at": 1791279600000,
+            "h": "IWATPp5e4X0ZZPWD"
+          },
+          {
+            "id": "m10-a",
+            "role": "assistant",
+            "text": "Waiting for the terminal to release the session.",
+            "at": 1791279660000,
+            "h": "zGOxA-XBfsjB-4JA"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [
+          {
+            "id": "q-1",
+            "message": "Continue when free",
+            "attachments": [],
+            "references": []
+          }
+        ],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "waitingForRelease": true,
+        "openElsewhere": {
+          "pid": 1,
+          "name": "held-in-terminal",
+          "entrypoint": "cli",
+          "background": false,
+          "state": "busy",
+          "startedAt": 1791280140000
+        }
+      }
+    }
+  }
+}

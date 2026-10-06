@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/..%2f..%2fetc%2fpasswd"
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "error": "Not found."
+    }
+  }
+}

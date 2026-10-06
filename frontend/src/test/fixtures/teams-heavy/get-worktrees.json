@@ -1,0 +1,100 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/worktrees"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "checkouts": [
+        {
+          "path": "/fixture/repos/delivery-repo",
+          "pathShort": "/fixture/repos/delivery-repo",
+          "isMain": true,
+          "branch": "feat/delivery",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": true,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "delivery-repo",
+            "root": "/fixture/repos/delivery-repo"
+          },
+          "sessions": [
+            {
+              "id": "t-team",
+              "name": "Ship the checkout flow",
+              "cwd": "/fixture/repos/delivery-repo",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280797000
+            }
+          ],
+          "lastActivity": 1791280797000
+        },
+        {
+          "path": "/fixture/repos/owner-repo",
+          "pathShort": "/fixture/repos/owner-repo",
+          "isMain": true,
+          "branch": "feat/owner",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "owner-repo",
+            "root": "/fixture/repos/owner-repo"
+          },
+          "sessions": [
+            {
+              "id": "t-owner",
+              "name": "Owner + review: refund path",
+              "cwd": "/fixture/repos/owner-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791279600000
+            }
+          ],
+          "lastActivity": 1791279600000
+        }
+      ],
+      "outside": 0
+    }
+  }
+}

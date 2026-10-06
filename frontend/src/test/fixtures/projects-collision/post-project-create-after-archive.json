@@ -1,0 +1,39 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects",
+    "body": {
+      "name": "Fresh start",
+      "note": "Plan the Q4 launch.",
+      "requestId": "proj-create-1"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "project": {
+        "id": "0000002c-f1e1-4000-8000-000000000000",
+        "name": "Fresh start",
+        "deadline": null,
+        "archived": false,
+        "repos": [],
+        "links": [],
+        "brief": "",
+        "deliverables": [],
+        "log": [
+          {
+            "at": 1791280800000,
+            "text": "Project created."
+          }
+        ],
+        "sections": [],
+        "file": "/fixture/home/projects/fresh-start.md",
+        "updatedAt": 1791280800000,
+        "setup": {
+          "started": true
+        }
+      }
+    }
+  }
+}

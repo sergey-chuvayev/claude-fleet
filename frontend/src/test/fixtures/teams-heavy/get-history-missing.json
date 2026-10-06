@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=00000000-0000-4000-8000-000000000000"
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "No transcript for that session."
+    }
+  }
+}

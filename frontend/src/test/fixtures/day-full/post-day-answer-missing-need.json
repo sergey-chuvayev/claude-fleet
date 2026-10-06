@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "answer",
+      "itemId": "00000004-f1e1-4000-8000-000000000000",
+      "needId": "nope",
+      "answer": "approve"
+    }
+  },
+  "response": {
+    "status": 500,
+    "contentType": "application/json",
+    "body": {
+      "error": "Fleet could not complete the request. Check the server log."
+    }
+  }
+}

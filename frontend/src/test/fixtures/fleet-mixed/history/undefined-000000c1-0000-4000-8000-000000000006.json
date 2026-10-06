@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=000000c1-0000-4000-8000-000000000006"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "u0",
+          "role": "user",
+          "text": "Observe",
+          "at": 1791280560000,
+          "h": "eWwoSCOUFV4LwUh0"
+        },
+        {
+          "id": "a1",
+          "role": "assistant",
+          "text": "Observed.",
+          "at": 1791280680000,
+          "h": "HfqRhfOCrwwF_HTI"
+        }
+      ],
+      "truncated": false,
+      "alive": true
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "requestId": "fixture-launch-1",
+      "cwd": "/fixture/repos",
+      "prompt": "Start a new fixture agent",
+      "model": ""
+    }
+  },
+  "response": {
+    "status": 201,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "00000002-f1e1-4000-8000-000000000000",
+        "projectId": null,
+        "sessionId": null,
+        "name": "Start a new fixture agent",
+        "cwd": "/fixture/repos",
+        "createRequestId": "fixture-launch-1",
+        "createdAt": 1791280800000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "auto",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "00000003-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "Start a new fixture agent",
+            "at": 1791280800000
+          }
+        ],
+        "approvals": [],
+        "model": null,
+        "contextTokens": null,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "fixture-launch-1"
+        ],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "Start a new fixture agent"
+      }
+    }
+  }
+}

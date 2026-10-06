@@ -1,0 +1,51 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/search/00000001-f1e1-4000-8000-000000000000"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "job": {
+        "id": "00000001-f1e1-4000-8000-000000000000",
+        "question": "what did we decide about the checkout?",
+        "model": "haiku",
+        "startedAt": 1791280800000,
+        "status": "done",
+        "terms": [
+          "decide",
+          "checkout"
+        ],
+        "hits": [
+          {
+            "sessionId": "000000c1-0000-4000-8000-000000000001",
+            "title": null,
+            "cwd": "/fixture/repos/web-app",
+            "project": "web-app",
+            "firstAt": 1791280620000,
+            "lastAt": 1791280740000,
+            "score": 1.811,
+            "matches": 1,
+            "snippets": [
+              {
+                "role": "user",
+                "at": 1791280620000,
+                "text": "Refactor checkout, see https://linear.app/team/issue/TECH-101/checkout"
+              }
+            ]
+          }
+        ],
+        "sessions": 10,
+        "passages": 20,
+        "searchMs": 0,
+        "ai": {
+          "answer": "The fixture sessions discuss the dashboard and its pull request.",
+          "matches": []
+        },
+        "error": null,
+        "aiMs": 0
+      }
+    }
+  }
+}

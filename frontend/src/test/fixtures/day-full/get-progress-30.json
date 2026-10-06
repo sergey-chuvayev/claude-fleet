@@ -1,0 +1,258 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/progress?days=30"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "since": 1788739200000,
+      "days": 30,
+      "staleDays": 3,
+      "shipped": {
+        "items": [
+          {
+            "id": "000000c8-f1e1-4000-8000-000000000000",
+            "title": "Item 194: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "000000c1-f1e1-4000-8000-000000000000",
+            "title": "Item 187: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "000000ba-f1e1-4000-8000-000000000000",
+            "title": "Item 180: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "000000b3-f1e1-4000-8000-000000000000",
+            "title": "Item 173: Prepare a customer thread",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/272"
+            ]
+          },
+          {
+            "id": "000000ac-f1e1-4000-8000-000000000000",
+            "title": "Item 166: Reply to the pricing change",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "000000a5-f1e1-4000-8000-000000000000",
+            "title": "Item 159: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000009e-f1e1-4000-8000-000000000000",
+            "title": "Item 152: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000097-f1e1-4000-8000-000000000000",
+            "title": "Item 145: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/244"
+            ]
+          },
+          {
+            "id": "00000090-f1e1-4000-8000-000000000000",
+            "title": "Item 138: Prepare a customer thread",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000089-f1e1-4000-8000-000000000000",
+            "title": "Item 131: Reply to the pricing change",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000082-f1e1-4000-8000-000000000000",
+            "title": "Item 124: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000007b-f1e1-4000-8000-000000000000",
+            "title": "Item 117: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/216"
+            ]
+          },
+          {
+            "id": "00000074-f1e1-4000-8000-000000000000",
+            "title": "Item 110: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000006d-f1e1-4000-8000-000000000000",
+            "title": "Item 103: Prepare a customer thread",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000066-f1e1-4000-8000-000000000000",
+            "title": "Item 096: Reply to the pricing change",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000005f-f1e1-4000-8000-000000000000",
+            "title": "Item 089: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/188"
+            ]
+          },
+          {
+            "id": "00000058-f1e1-4000-8000-000000000000",
+            "title": "Item 082: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000051-f1e1-4000-8000-000000000000",
+            "title": "Item 075: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000004a-f1e1-4000-8000-000000000000",
+            "title": "Item 068: Prepare a customer thread",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000043-f1e1-4000-8000-000000000000",
+            "title": "Item 061: Reply to the pricing change",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/160"
+            ]
+          },
+          {
+            "id": "0000003c-f1e1-4000-8000-000000000000",
+            "title": "Item 054: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000035-f1e1-4000-8000-000000000000",
+            "title": "Item 047: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000002e-f1e1-4000-8000-000000000000",
+            "title": "Item 040: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000027-f1e1-4000-8000-000000000000",
+            "title": "Item 033: Prepare a customer thread",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/132"
+            ]
+          },
+          {
+            "id": "00000020-f1e1-4000-8000-000000000000",
+            "title": "Item 026: Reply to the pricing change",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000019-f1e1-4000-8000-000000000000",
+            "title": "Item 019: Triage the roadmap draft",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "00000012-f1e1-4000-8000-000000000000",
+            "title": "Item 012: Review a flaky build",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": []
+          },
+          {
+            "id": "0000000b-f1e1-4000-8000-000000000000",
+            "title": "Item 005: Follow up on the release notes",
+            "projectId": null,
+            "date": "2026-10-06",
+            "prs": [
+              "https://github.com/example-org/web-app/pull/104"
+            ]
+          },
+          {
+            "id": "00000006-f1e1-4000-8000-000000000000",
+            "title": "Send the weekly update",
+            "projectId": null,
+            "date": "2026-10-05",
+            "prs": []
+          }
+        ],
+        "count": 29,
+        "prs": 7
+      },
+      "stalled": {
+        "items": [],
+        "count": 0
+      },
+      "ran": {
+        "count": 1,
+        "outcomes": {
+          "finished": 1
+        },
+        "sessions": [
+          {
+            "id": "m-launched",
+            "name": "Totals cache",
+            "outcome": "finished",
+            "projectId": null,
+            "at": 1791277800000,
+            "teamName": null
+          }
+        ]
+      }
+    }
+  }
+}

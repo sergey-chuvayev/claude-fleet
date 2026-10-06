@@ -1,0 +1,333 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "counts": {
+        "busy": 1,
+        "idle": 1,
+        "stale": 0,
+        "dead": 0
+      },
+      "total": 2,
+      "sessions": [
+        {
+          "managedId": "t-team",
+          "sessionId": "0000005e-0000-4000-8000-000000000030",
+          "shortId": "0000005e",
+          "engine": "claude",
+          "name": "Ship the checkout flow",
+          "title": "Ship the checkout flow",
+          "branch": "feat/delivery",
+          "cwd": "/fixture/repos/delivery-repo",
+          "cwdShort": "/fixture/repos/delivery-repo",
+          "state": "busy",
+          "managedStatus": "running",
+          "managed": true,
+          "alive": true,
+          "pid": null,
+          "lastActivity": 1791280797000,
+          "startedAt": 1791277200000,
+          "latestResponse": "I split this into six tasks and started the first delegations.",
+          "model": "claude-sonnet-fixture",
+          "contextTokens": 42000,
+          "contextLimit": 200000,
+          "permissionMode": "default",
+          "approvalMode": "ask",
+          "selectedModel": "",
+          "messages": 2,
+          "links": [],
+          "approvals": 0,
+          "turn": {
+            "steps": [],
+            "turnStartedAt": 1791262800000,
+            "current": null,
+            "last": null,
+            "answers": 1
+          },
+          "error": null,
+          "currentTool": null,
+          "resumeCmd": "claude --resume 0000005e-0000-4000-8000-000000000030",
+          "forkPending": false,
+          "waitingForRelease": false,
+          "continuedFrom": null,
+          "kind": "initiative",
+          "teamId": "bugfix",
+          "teamName": "Bug fix",
+          "taskProgress": {
+            "total": 6,
+            "verified": 2,
+            "blocked": 2
+          },
+          "dayProgress": null,
+          "dayDate": null,
+          "projectId": null,
+          "parentDayId": null,
+          "itemId": null,
+          "threadOpen": null,
+          "tokenUsage": null,
+          "worktreeBranch": "feat/delivery",
+          "costUsd": 0,
+          "queuePosition": 0,
+          "delegations": [
+            {
+              "id": "000000d1-0000-4000-8000-000000000001",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000002",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000003",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000004",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000005",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000006",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000007",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000008",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000009",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000010",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000011",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000012",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000013",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000014",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000015",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000016",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000017",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000018",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000019",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000020",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000021",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000022",
+              "role": "qa",
+              "model": "haiku",
+              "status": "completed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000023",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "failed"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000024",
+              "role": "qa",
+              "model": "haiku",
+              "status": "interrupted"
+            },
+            {
+              "id": "000000d1-0000-4000-8000-000000000025",
+              "role": "developer",
+              "model": "sonnet",
+              "status": "running"
+            }
+          ],
+          "archived": false,
+          "h": "-L8MH17we0QWpLN_"
+        },
+        {
+          "managedId": "t-owner",
+          "sessionId": "0000005e-0000-4000-8000-000000000031",
+          "shortId": "0000005e",
+          "engine": "claude",
+          "name": "Owner + review: refund path",
+          "title": "Owner + review: refund path",
+          "branch": "feat/owner",
+          "cwd": "/fixture/repos/owner-repo",
+          "cwdShort": "/fixture/repos/owner-repo",
+          "state": "idle",
+          "managedStatus": "idle",
+          "managed": true,
+          "alive": false,
+          "pid": null,
+          "lastActivity": 1791279600000,
+          "startedAt": 1791277200000,
+          "latestResponse": "Fixed and verified by the reviewer.",
+          "model": "claude-sonnet-fixture",
+          "contextTokens": 42000,
+          "contextLimit": 200000,
+          "permissionMode": "default",
+          "approvalMode": "ask",
+          "selectedModel": "",
+          "messages": 2,
+          "links": [],
+          "approvals": 0,
+          "turn": {
+            "steps": [],
+            "turnStartedAt": 1791262800000,
+            "current": null,
+            "last": null,
+            "answers": 1
+          },
+          "error": null,
+          "currentTool": null,
+          "resumeCmd": "claude --resume 0000005e-0000-4000-8000-000000000031",
+          "forkPending": false,
+          "waitingForRelease": false,
+          "continuedFrom": null,
+          "kind": "initiative",
+          "teamId": "owner-review",
+          "teamName": "Owner + review",
+          "taskProgress": {
+            "total": 1,
+            "verified": 1,
+            "blocked": 0
+          },
+          "dayProgress": null,
+          "dayDate": null,
+          "projectId": null,
+          "parentDayId": null,
+          "itemId": null,
+          "threadOpen": null,
+          "tokenUsage": null,
+          "worktreeBranch": null,
+          "costUsd": 0,
+          "queuePosition": 0,
+          "delegations": [
+            {
+              "id": "000000d2-0000-4000-8000-000000000001",
+              "role": "reviewer",
+              "model": "sonnet",
+              "status": "completed"
+            },
+            {
+              "id": "000000d2-0000-4000-8000-000000000002",
+              "role": "reviewer",
+              "model": "sonnet",
+              "status": "completed"
+            }
+          ],
+          "archived": false,
+          "h": "mhNHaqrgg5bCA24a"
+        }
+      ],
+      "archived": 0,
+      "archiveRule": {
+        "enabled": false,
+        "days": 14
+      },
+      "queue": {
+        "enabled": false,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": null,
+      "usage": {
+        "available": true,
+        "known": false,
+        "windows": [],
+        "binding": null,
+        "subscription": null,
+        "observedAt": null,
+        "stale": true,
+        "blocked": null
+      }
+    }
+  }
+}

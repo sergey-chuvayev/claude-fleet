@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects",
+    "body": {
+      "name": "Created while busy"
+    },
+    "note": "no free agent: the project is kept, setup.started is false, no storage error"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "project": {
+        "id": "00000031-f1e1-4000-8000-000000000000",
+        "name": "Created while busy",
+        "deadline": null,
+        "archived": false,
+        "repos": [],
+        "links": [],
+        "brief": "",
+        "deliverables": [],
+        "log": [
+          {
+            "at": 1791280800000,
+            "text": "Project created."
+          },
+          {
+            "at": 1791280800000,
+            "text": "Setup did not start: 8 agents are already running. Stop one or wait for it to finish. Ask the manager to set it up."
+          }
+        ],
+        "sections": [],
+        "file": "/fixture/home/projects/created-while-busy.md",
+        "updatedAt": 1791280800000,
+        "setup": {
+          "started": false,
+          "error": "8 agents are already running. Stop one or wait for it to finish."
+        }
+      }
+    }
+  }
+}

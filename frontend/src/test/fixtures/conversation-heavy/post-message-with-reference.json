@@ -1,0 +1,109 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-error/messages",
+    "body": {
+      "requestId": "conv-msg-5",
+      "message": "Compare with that session",
+      "references": [
+        "000000c1-0000-4000-8000-000000000001"
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "c-error",
+        "projectId": null,
+        "sessionId": "00005e55-0000-4000-8000-000000000004",
+        "name": "Run that failed",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-error",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "e-u",
+            "role": "user",
+            "text": "Run the full suite",
+            "at": 1791279600000
+          },
+          {
+            "id": "e-t",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791279660000,
+            "status": "error",
+            "input": {
+              "command": "npm run build"
+            },
+            "target": null,
+            "text": "",
+            "result": "Error: build failed",
+            "ms": 3000,
+            "approval": "auto"
+          },
+          {
+            "id": "00000007-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "Retry with this screenshot",
+            "at": 1791280800000,
+            "attachments": [
+              {
+                "id": "00000006-f1e1-4000-8000-000000000000.png",
+                "mediaType": "image/png",
+                "bytes": 70
+              }
+            ]
+          },
+          {
+            "id": "00000008-f1e1-4000-8000-000000000000",
+            "role": "assistant",
+            "text": "Fixture reply to: (images)",
+            "at": 1791280800000
+          },
+          {
+            "id": "00000009-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "Compare with that session",
+            "at": 1791280800000,
+            "references": [
+              {
+                "id": "000000c1-0000-4000-8000-000000000001",
+                "sessionId": "000000c1-0000-4000-8000-000000000001",
+                "title": "checkout-refactor",
+                "project": "/fixture/repos/web-app",
+                "state": "busy",
+                "capturedAt": 1791280800000,
+                "context": "Recent activity: Write: refund.test.ts\n\nuser: Refactor checkout\n\nassistant: Working.\n\nuser: Add a test for the refund path\n\nassistant: Adding `refund.test.ts`."
+              }
+            ]
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "conv-msg-2",
+          "conv-msg-5"
+        ],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "Compare with that session",
+        "costUsd": 0
+      }
+    }
+  }
+}

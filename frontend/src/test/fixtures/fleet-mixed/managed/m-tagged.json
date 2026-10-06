@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-tagged"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-tagged",
+        "projectId": null,
+        "sessionId": null,
+        "name": "Tagged to a project",
+        "cwd": "/fixture/repos/docs-site",
+        "createRequestId": "req-m-tagged",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791279900000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m11-u",
+            "role": "user",
+            "text": "Draft the plan",
+            "at": 1791279600000,
+            "h": "AgYBEIwgu-FHbYvG"
+          },
+          {
+            "id": "m11-a",
+            "role": "assistant",
+            "text": "Plan drafted.",
+            "at": 1791279660000,
+            "h": "Pv9HLO9xNw1rAeV3"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

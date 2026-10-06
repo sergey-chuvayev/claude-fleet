@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/control"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "token": "FIXTURE_TOKEN",
+      "version": "0.54.0",
+      "codex": {
+        "available": true,
+        "model": "codex"
+      },
+      "supportsSessionReferences": true,
+      "defaultCwd": "/fixture/user",
+      "maxConcurrent": 8,
+      "defaultApprovalMode": "all",
+      "queue": {
+        "enabled": true,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": "Unable to save Fleet conversations. Check disk space and permissions.",
+      "searchDays": 60,
+      "theme": {
+        "name": "Fleet Default",
+        "source": null
+      }
+    }
+  }
+}

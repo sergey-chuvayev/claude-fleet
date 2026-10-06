@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-heavy/approvals/ap-gone",
+    "body": {
+      "decision": "allow"
+    }
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "This approval is no longer pending."
+    }
+  }
+}

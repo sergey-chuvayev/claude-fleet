@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/events"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/event-stream",
+    "stream": [
+      ": connected",
+      "event: sessions\ndata: [\"f-two\",\"f-one\",\"queue\",\"projects\"]"
+    ]
+  }
+}

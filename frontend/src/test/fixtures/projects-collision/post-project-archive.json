@@ -1,0 +1,34 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000010-f1e1-4000-8000-000000000000/archive",
+    "body": {
+      "archived": true
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "project": {
+        "id": "00000010-f1e1-4000-8000-000000000000",
+        "name": "Filler 01",
+        "deadline": null,
+        "archived": true,
+        "repos": [],
+        "links": [],
+        "brief": "",
+        "deliverables": [],
+        "log": [
+          {
+            "at": 1791280800000,
+            "text": "Project created."
+          }
+        ],
+        "sections": [],
+        "file": "/fixture/home/projects/filler-01.md",
+        "updatedAt": 1791280800000
+      }
+    }
+  }
+}

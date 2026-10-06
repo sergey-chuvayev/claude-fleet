@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/attachments/00000000-0000-4000-8000-000000000000.png"
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Attachment not found."
+    }
+  }
+}

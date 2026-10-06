@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/nope",
+    "body": {},
+    "note": "unknown POST path"
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Unknown action."
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/pr-status?url=https%3A%2F%2Fgithub.com%2Fexample-org%2Fweb-app%2Fpull%2F41"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "status": {
+        "ok": true,
+        "url": "https://github.com/example-org/web-app/pull/41",
+        "state": "open",
+        "draft": false,
+        "number": 41,
+        "ci": {
+          "result": "fail",
+          "failing": [
+            "build",
+            "lint"
+          ],
+          "total": 5,
+          "pending": 0
+        }
+      }
+    }
+  }
+}

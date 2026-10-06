@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "triage",
+      "itemId": "nope",
+      "status": "today"
+    }
+  },
+  "response": {
+    "status": 500,
+    "contentType": "application/json",
+    "body": {
+      "error": "Fleet could not complete the request. Check the server log."
+    }
+  }
+}

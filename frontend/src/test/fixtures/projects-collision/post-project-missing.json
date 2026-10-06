@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/nope/archive",
+    "body": {}
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Project not found."
+    }
+  }
+}

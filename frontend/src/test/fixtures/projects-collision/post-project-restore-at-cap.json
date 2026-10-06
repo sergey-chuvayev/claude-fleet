@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/0000000e-f1e1-4000-8000-000000000000/archive",
+    "body": {
+      "archived": false
+    },
+    "note": "restoring needs a free slot; the project stays archived"
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "Fleet keeps up to 30 active projects. Archive one before restoring this one."
+    }
+  }
+}

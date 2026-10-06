@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions",
+    "headers": {
+      "X-Fleet-Known": "<every h in get-sessions>"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "generatedAt": 1791280800000,
+      "counts": {
+        "busy": 1,
+        "idle": 1,
+        "stale": 0,
+        "dead": 0
+      },
+      "total": 2,
+      "sessions": [
+        {
+          "h": "-L8MH17we0QWpLN_"
+        },
+        {
+          "h": "mhNHaqrgg5bCA24a"
+        }
+      ],
+      "archived": 0,
+      "archiveRule": {
+        "enabled": false,
+        "days": 14
+      },
+      "queue": {
+        "enabled": false,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": null,
+      "usage": {
+        "available": true,
+        "known": false,
+        "windows": [],
+        "binding": null,
+        "subscription": null,
+        "observedAt": null,
+        "stale": true,
+        "blocked": null
+      }
+    }
+  }
+}

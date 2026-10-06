@@ -1,0 +1,63 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/c-error"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "c-error",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000021",
+        "name": "Run that failed",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-c-error",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791279720000,
+        "status": "error",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "e-u",
+            "role": "user",
+            "text": "Run the full suite",
+            "at": 1791279600000,
+            "h": "yIlHSzJG48itVFN7"
+          },
+          {
+            "id": "e-t",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791279660000,
+            "status": "error",
+            "input": {
+              "command": "npm run build"
+            },
+            "target": null,
+            "text": "",
+            "result": "Error: build failed",
+            "ms": 3000,
+            "approval": "auto",
+            "h": "AZGKoXg7Nl8vfTTv"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": "The model request failed: 529 overloaded. Send a message to retry.",
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

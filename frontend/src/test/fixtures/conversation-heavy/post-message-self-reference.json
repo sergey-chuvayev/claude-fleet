@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-error/messages",
+    "body": {
+      "requestId": "conv-msg-6",
+      "message": "self",
+      "references": [
+        "c-error"
+      ]
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Choose another session to reference."
+    }
+  }
+}

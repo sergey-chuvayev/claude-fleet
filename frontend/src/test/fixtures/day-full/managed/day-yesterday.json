@@ -1,0 +1,116 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/day-yesterday"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "day-yesterday",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000040",
+        "name": "Day 2026-10-05",
+        "cwd": "/fixture/repos/day-repo",
+        "createRequestId": "req-day-yesterday",
+        "createdAt": 1791194400000,
+        "updatedAt": 1791230400000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "dy-u",
+            "role": "user",
+            "text": "Start my day",
+            "at": 1791194400000,
+            "h": "701kICWnT6NmesDX"
+          },
+          {
+            "id": "dy-a",
+            "role": "assistant",
+            "text": "Day started. Three items today.",
+            "at": 1791194460000,
+            "h": "tRk7_6aQ1XMRoFPH"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "day",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "dayBoard": {
+          "date": "2026-10-05",
+          "items": [
+            {
+              "id": "00000004-f1e1-4000-8000-000000000000",
+              "title": "Reply to Thomas about the migration",
+              "source": "slack",
+              "links": [
+                "https://example.slack.com/archives/C1/p1"
+              ],
+              "context": "Thomas asked if the migration can ship Friday.",
+              "priority": "must",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator",
+              "thread": {
+                "sessionId": "thr-old",
+                "at": 1791208800000,
+                "summary": "Agreed to ship Friday if QA signs off."
+              }
+            },
+            {
+              "id": "00000005-f1e1-4000-8000-000000000000",
+              "title": "Review the pricing PR",
+              "source": "github",
+              "links": [
+                "https://github.com/example-org/web-app/pull/77"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator"
+            },
+            {
+              "id": "00000006-f1e1-4000-8000-000000000000",
+              "title": "Send the weekly update",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator"
+            }
+          ],
+          "cursors": {
+            "slack": "c-100"
+          }
+        }
+      }
+    }
+  }
+}

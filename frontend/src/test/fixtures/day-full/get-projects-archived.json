@@ -1,0 +1,65 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/projects?archived=1"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "projects": [
+        {
+          "id": "00000001-f1e1-4000-8000-000000000000",
+          "name": "Checkout revamp",
+          "deadline": "2026-10-20",
+          "archived": false,
+          "repos": [],
+          "links": [],
+          "brief": "Make checkout fast and boring.",
+          "deliverables": [
+            {
+              "id": "00000002f1e1",
+              "title": "Faster totals",
+              "state": "todo",
+              "note": "",
+              "brief": "Cache the totals.",
+              "links": [
+                "https://linear.app/team/issue/TECH-110/totals"
+              ]
+            },
+            {
+              "id": "00000003f1e1",
+              "title": "Refund flow",
+              "state": "todo",
+              "note": "",
+              "brief": "",
+              "links": []
+            }
+          ],
+          "log": [
+            {
+              "at": 1791280800000,
+              "text": "Project created."
+            }
+          ],
+          "sections": [],
+          "file": "/fixture/home/projects/checkout-revamp.md",
+          "updatedAt": 1791280800000,
+          "progress": {
+            "total": 2,
+            "done": 0,
+            "doing": 0
+          },
+          "sessions": 0,
+          "onToday": {
+            "00000002f1e1": {
+              "itemId": "00000004-f1e1-4000-8000-000000000000",
+              "status": "waiting_on_you"
+            }
+          },
+          "managerId": null
+        }
+      ]
+    }
+  }
+}

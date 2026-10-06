@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "requestId": "day-create-1",
+      "kind": "day",
+      "cwd": "/fixture/repos",
+      "prompt": ""
+    },
+    "note": "one Day per local date"
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "Today already has a Day. Open it from the list."
+    }
+  }
+}

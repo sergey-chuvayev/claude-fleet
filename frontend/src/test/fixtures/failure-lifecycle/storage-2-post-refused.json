@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": {
+      "enabled": true
+    },
+    "note": "any write is refused with 503 while latched"
+  },
+  "response": {
+    "status": 503,
+    "contentType": "application/json",
+    "body": {
+      "error": "Unable to save Fleet conversations. Check disk space and permissions."
+    }
+  }
+}

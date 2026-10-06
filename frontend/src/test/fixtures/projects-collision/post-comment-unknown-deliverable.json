@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/comment",
+    "body": {
+      "deliverableId": "nope",
+      "message": "hello"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "That deliverable is not in this project."
+    }
+  }
+}

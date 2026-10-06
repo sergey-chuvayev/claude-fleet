@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/c-heavy/approvals/ap-ask",
+    "body": {
+      "decision": "allow"
+    },
+    "note": "AskUserQuestion allowed without answers"
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Answer must contain 1–4000 characters."
+    }
+  }
+}

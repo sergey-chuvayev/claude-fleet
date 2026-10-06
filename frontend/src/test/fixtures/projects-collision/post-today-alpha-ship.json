@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/today",
+    "body": {
+      "deliverableId": "00000003f1e1"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "item": {
+        "id": "00000037-f1e1-4000-8000-000000000000",
+        "title": "Ship it",
+        "source": "me",
+        "links": [
+          "https://linear.app/team/issue/TECH-301/ship"
+        ],
+        "context": "A task from the project \"Alpha launch\" (deadline 2026-10-18). Its file is /fixture/home/projects/alpha-launch.md: read it for the full story before writing the launch brief.\n\n## The task: Ship it\nCut the release.\nDone when: tagged and deployed.\nStatus note: PR #41 rebasing\nLinks:\n- https://linear.app/team/issue/TECH-301/ship\n\n## Project brief\nShip the Alpha launch.\n\n## Decisions\n- 2026-10-02 Ship on Friday.\n\n## Recent project log\n- 2026-10-06 10:00 Project created.\n- 2026-10-06 10:00 Agreed scope with Franco.\n\nRepositories: /fixture/repos/projects-repo\n\nAlso in the project file: Sources, Risks, Hand notes.",
+        "priority": "should",
+        "status": "today",
+        "mode": "agent",
+        "estimateMin": null,
+        "projectId": "00000001-f1e1-4000-8000-000000000000",
+        "deliverableId": "00000003f1e1",
+        "needs": [],
+        "log": [],
+        "createdAt": 1791280800000,
+        "by": "operator"
+      },
+      "existing": false
+    }
+  }
+}

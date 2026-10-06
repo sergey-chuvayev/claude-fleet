@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/control",
+    "note": "new process, new token (no instanceId yet: added by work package 2)"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "token": "FIXTURE_TOKEN_2",
+      "version": "0.54.0",
+      "codex": {
+        "available": true,
+        "model": "codex"
+      },
+      "supportsSessionReferences": true,
+      "defaultCwd": "/fixture/user",
+      "maxConcurrent": 8,
+      "defaultApprovalMode": "all",
+      "queue": {
+        "enabled": false,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": null,
+      "searchDays": 60,
+      "theme": {
+        "name": "Fleet Default",
+        "source": null
+      }
+    }
+  }
+}

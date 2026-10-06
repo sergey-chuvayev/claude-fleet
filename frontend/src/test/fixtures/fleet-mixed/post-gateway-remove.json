@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/settings/gateway",
+    "body": {
+      "action": "remove"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "gateway": {
+        "configured": false,
+        "source": null
+      }
+    }
+  }
+}

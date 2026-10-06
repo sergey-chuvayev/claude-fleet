@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=000000c1-0000-4000-8000-000000000001"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "u0",
+          "role": "user",
+          "text": "Refactor checkout",
+          "at": 1791280620000,
+          "h": "Vxq_yeixo7lwI56E"
+        },
+        {
+          "id": "a1",
+          "role": "assistant",
+          "text": "Working.",
+          "at": 1791280740000,
+          "h": "xp8-W-rrpmkewLBO"
+        },
+        {
+          "id": "u2",
+          "role": "user",
+          "text": "Add a test for the refund path",
+          "at": 1791280710000,
+          "h": "qcaCf7tsObrOfVfb"
+        },
+        {
+          "id": "a3",
+          "role": "assistant",
+          "text": "Adding `refund.test.ts`.",
+          "at": 1791280740000,
+          "h": "FlElGNVJNwpNT-qk"
+        },
+        {
+          "id": "tu-1",
+          "role": "tool",
+          "tool": "Write",
+          "at": 1791280740000,
+          "status": "done",
+          "input": {
+            "file_path": "refund.test.ts",
+            "content": "test(\"refund\", () => {})"
+          },
+          "target": "refund.test.ts",
+          "text": "",
+          "result": null,
+          "ms": 1000,
+          "approval": "auto",
+          "truncated": false,
+          "h": "00Z4JsR9UyzFGz5y"
+        }
+      ],
+      "truncated": false,
+      "alive": true
+    }
+  }
+}

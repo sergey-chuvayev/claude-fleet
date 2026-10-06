@@ -1,0 +1,65 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-fork-pending"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-fork-pending",
+        "projectId": null,
+        "sessionId": "000000c1-0000-4000-8000-000000000002",
+        "name": "Copy of api-review",
+        "cwd": "/fixture/repos/api-service",
+        "createRequestId": "req-m-fork-pending",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280795000,
+        "status": "running",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m9-u",
+            "role": "user",
+            "text": "Continue the review",
+            "at": 1791279600000,
+            "h": "yqqcI_7z_T9yJkxe"
+          },
+          {
+            "id": "m9-a",
+            "role": "assistant",
+            "text": "Reading the diff.",
+            "at": 1791279660000,
+            "h": "PWLHInXUScD4I3lf"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "forkPending": true,
+        "forkedFrom": "000000c1-0000-4000-8000-000000000002",
+        "continuedFrom": "000000c1-0000-4000-8000-000000000002",
+        "openElsewhere": {
+          "pid": 1,
+          "name": "api-review",
+          "entrypoint": "cli",
+          "background": false,
+          "state": "idle",
+          "startedAt": 1791279480000
+        }
+      }
+    }
+  }
+}

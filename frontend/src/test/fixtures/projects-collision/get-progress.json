@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/progress?days=7"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "since": 1790726400000,
+      "days": 7,
+      "staleDays": 3,
+      "shipped": {
+        "items": [],
+        "count": 0,
+        "prs": 0
+      },
+      "stalled": {
+        "items": [],
+        "count": 0
+      },
+      "ran": {
+        "count": 0,
+        "outcomes": {},
+        "sessions": []
+      }
+    }
+  }
+}

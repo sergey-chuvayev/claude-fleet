@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "cwd": "/fixture/repos",
+      "prompt": "x"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "A valid request ID is required."
+    }
+  }
+}

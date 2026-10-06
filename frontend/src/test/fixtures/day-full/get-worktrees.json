@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/worktrees"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "checkouts": [
+        {
+          "path": "/fixture/repos/day-repo",
+          "pathShort": "/fixture/repos/day-repo",
+          "isMain": true,
+          "branch": "main",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "day-repo",
+            "root": "/fixture/repos/day-repo"
+          },
+          "sessions": [
+            {
+              "id": "day-today",
+              "name": "Day 2026-10-06",
+              "cwd": "/fixture/repos/day-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791280560000
+            },
+            {
+              "id": "thr-today",
+              "name": "Reply to Thomas",
+              "cwd": "/fixture/repos/day-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791280260000
+            },
+            {
+              "id": "m-launched",
+              "name": "Totals cache",
+              "cwd": "/fixture/repos/day-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791277800000
+            },
+            {
+              "id": "day-yesterday",
+              "name": "Day 2026-10-05",
+              "cwd": "/fixture/repos/day-repo",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791230400000
+            }
+          ],
+          "lastActivity": 1791280560000
+        }
+      ],
+      "outside": 0
+    }
+  }
+}
