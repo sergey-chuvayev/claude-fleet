@@ -713,6 +713,10 @@ class ManagedSessions extends EventEmitter {
     // may proceed.
     const holder = this.holderOf(s)
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
+    // Admitted (or given a place to wait) before anything is kept: a refused message
+    // leaves no request id and no image files, so retrying it tries again rather than
+    // reading as already sent.
+    if (!this.runs.has(id) && !holder) this.checkCapacity()
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
     const queued = {message,attachments,references,...(['day','thread','project'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
@@ -721,7 +725,6 @@ class ManagedSessions extends EventEmitter {
     // agent is free, instead of making the operator retry once it's idle.
     if (this.runs.has(id)) { s.queue = [...s.queue, queued]; this.changed(s,true); return s }
     if (holder) { s.queue = [...s.queue, queued]; s.waitingForRelease = true; this.changed(s,true); return s }
-    this.checkCapacity()
     // Every agent slot is busy: take a place in line and park the payload on the session,
     // the same place a mid-turn message already waits. dispatchNext() starts it when a
     // run ends. Without the queue, checkCapacity above has already thrown.
@@ -731,7 +734,8 @@ class ManagedSessions extends EventEmitter {
       this.changed(s,true)
       return s
     }
-    this.startTurn(s, queued)
+    try { this.startTurn(s, queued) }
+    catch (error) { s.requestIds = s.requestIds.filter(x => x !== rid); this.deleteAttachments(queued); throw error }
     return s
   }
   holderOf(s) {
@@ -768,17 +772,20 @@ class ManagedSessions extends EventEmitter {
   saveImages(images) {
     if (!Array.isArray(images) || images.length > MAX_IMAGES) fail(`Attach up to ${MAX_IMAGES} images per message.`)
     const saved = []
-    for (const image of images) {
-      if (!image || typeof image.data !== 'string' || !image.data) fail('An attached image was empty.')
-      let buffer
-      try { buffer = Buffer.from(image.data, 'base64') } catch { fail('An attached image could not be decoded.') }
-      if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
-      const mediaType = sniffImage(buffer)
-      if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
-      const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
-      fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
-      saved.push({ id, mediaType, bytes: buffer.length })
-    }
+    // A bad image further down the list must not leave the earlier ones on disk.
+    try {
+      for (const image of images) {
+        if (!image || typeof image.data !== 'string' || !image.data) fail('An attached image was empty.')
+        let buffer
+        try { buffer = Buffer.from(image.data, 'base64') } catch { fail('An attached image could not be decoded.') }
+        if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
+        const mediaType = sniffImage(buffer)
+        if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
+        const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
+        fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
+        saved.push({ id, mediaType, bytes: buffer.length })
+      }
+    } catch (error) { this.deleteAttachments({ attachments: saved }); throw error }
     return saved
   }
   // Keep the conversation window, and delete the files of any message that fell out.
