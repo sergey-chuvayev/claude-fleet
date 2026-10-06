@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { cachedHighlight, cachedMarkdown } from './cache'
 import { highlightCode, renderMarkdown } from './render'
 
 describe('renderMarkdown', () => {
@@ -22,5 +23,24 @@ describe('renderMarkdown', () => {
 
   it('escapes code it cannot place', () => {
     expect(highlightCode('<b>', 'not-a-language')).not.toContain('<b>')
+  })
+
+  it('draws no form control and borrows no class from the app', () => {
+    const html = renderMarkdown('<select><option>Allow</option></select><textarea>x</textarea><label>y</label><span class="block-button" role="button" tabindex="0" id="send-message">Deny</span>')
+    expect(html).not.toMatch(/<select|<option|<textarea|<label|class=|role=|tabindex=|id=/)
+    expect(html).toContain('Deny')
+  })
+
+  it('keeps only the language marker on fenced code', () => {
+    expect(renderMarkdown('```ts\nconst a = 1\n```', { highlight: false })).toContain('<code class="language-ts">')
+  })
+})
+
+describe('render caches', () => {
+  it('hand back the same string for the same input and mode', () => {
+    const a = cachedMarkdown('**bold** cached', true)
+    expect(cachedMarkdown('**bold** cached', true)).toBe(a)
+    expect(a).toContain('<strong>bold</strong>')
+    expect(cachedHighlight('const x = 1', 'typescript')).toBe(cachedHighlight('const x = 1', 'typescript'))
   })
 })
