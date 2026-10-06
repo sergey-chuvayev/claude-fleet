@@ -3464,3 +3464,5 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .task-comment textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
 .task-comment textarea:focus { outline:0; border-color:var(--faint) }
 .task-comment .button { flex:none; min-height:var(--control-md) }
+.settings-sounds { display:inline-flex; flex-wrap:wrap; gap:6px }
+.settings-sounds .button { min-height:0; height:28px; padding:0 10px; font-size:var(--text-sm) }

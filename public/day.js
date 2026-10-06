@@ -280,6 +280,7 @@ window.FleetDay=(()=>{
     if(!report || report.at<=reportSeen)return
     reportSeen=report.at
     window.Fleet.toast(`${report.title}: ${report.question}`.slice(0,220))
+    window.FleetSounds?.play('report')
     if(!window.FleetSettings?.notifyOn?.())return
     try{
       const note=new Notification(report.title,{body:report.question.slice(0,300),tag:`fleet-report-${report.itemId}`})
