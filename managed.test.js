@@ -1329,6 +1329,41 @@ test('a queue settings write failure restores settings and cannot release waitin
   } finally {manager.save=save;await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
 })
 
+// A message refused for capacity must leave nothing behind. It used to keep its request
+// id and its images, so a retry of the same request read as sent and no message ever went.
+test('a message refused at capacity keeps no request id or images, and its retry is sent once',async()=>{
+  const {factory,releases}=gated()
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-refused-'))
+  const manager=new ManagedSessions({directory,queryFactory:factory,queue:false})
+  const files=()=>fs.readdirSync(manager.attachmentsDir).length
+  const asked=s=>s.messages.filter(m=>m.role==='user' && m.text==='Look at this').length
+  try{
+    const target=create(manager,directory)
+    await until(()=>releases.length===1);releases[0]()
+    await until(()=>!manager.runs.has(target.id))
+    const busy=Array.from({length:manager.dispatch.limit},()=>create(manager,directory))
+    await until(()=>manager.runs.size===busy.length)
+    const rid=randomUUID(),image={mediaType:'image/png',data:PNG_1x1.toString('base64')}
+    assert.throws(()=>manager.send(target.id,{message:'Look at this',images:[image],requestId:rid}),error=>error.status===409 && /already running/.test(error.message))
+    assert.ok(!target.requestIds.includes(rid),'the refused request id is not kept')
+    assert.equal(files(),0,'nor are its images')
+    assert.equal(asked(target),0)
+    // A bad image after a good one is refused without leaving the good one on disk.
+    releases[1]()
+    await until(()=>manager.runs.size<busy.length)
+    assert.throws(()=>manager.send(target.id,{message:'Look at this',images:[image,{data:'bm90IGFuIGltYWdl'}],requestId:rid}),/PNG, JPEG/)
+    assert.equal(files(),0)
+    assert.ok(!target.requestIds.includes(rid))
+    // A slot is free: the same request goes now, once, and a repeat adds nothing.
+    manager.send(target.id,{message:'Look at this',images:[image],requestId:rid})
+    assert.equal(asked(target),1)
+    assert.equal(files(),1)
+    manager.send(target.id,{message:'Look at this',images:[image],requestId:rid})
+    assert.equal(asked(target),1,'the accepted request is not sent twice')
+    assert.equal(files(),1)
+  } finally {releases.forEach(release=>release());await manager.close();fs.rmSync(directory,{recursive:true,force:true})}
+})
+
 test('pausing dispatch also holds a follow-up queued during the current turn',async()=>{
   let release,calls=0
   const finishedFirst=new Promise(resolve=>{release=resolve})
