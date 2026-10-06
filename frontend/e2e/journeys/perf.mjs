@@ -31,7 +31,8 @@ import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { loadPlaywright } from './harness.mjs'
-import { DIST, REPO, SECURITY_HEADERS, startFixture, startStatic } from './serve.mjs'
+import { LEGACY_HOW, legacyRoot } from '../legacy.mjs'
+import { DIST, REPO, SECURITY_HEADERS, startFixture, startFront } from './serve.mjs'
 
 const sync = createRequire(import.meta.url)(path.join(REPO, 'sync.js'))
 const PACK = 'conversation-heavy'
@@ -321,7 +322,7 @@ async function warmRun(page, front, stream, log) {
   return out
 }
 
-function bundle() {
+function bundle(legacy) {
   const manifest = JSON.parse(fs.readFileSync(path.join(DIST, '.vite', 'manifest.json'), 'utf8'))
   const entry = Object.values(manifest).find(c => c.isEntry)
   const seen = new Set()
@@ -345,13 +346,15 @@ function bundle() {
   }
   const all = fs.readdirSync(path.join(DIST, 'assets')).filter(f => f.endsWith('.js'))
   const lazy = size(all.map(f => `assets/${f}`).filter(f => !files.includes(f)))
-  const legacyHtml = fs.readFileSync(path.join(REPO, 'public', 'index.html'), 'utf8')
-  const legacyScripts = [...legacyHtml.matchAll(/<script src="\/([^"]+)"/g)].map(m => path.join('..', 'public', m[1]))
+  // public/ is gone since the cutover; the legacy bundle is measured in a pre-cutover checkout.
   const legacyJs = (() => {
+    if (!legacy) return null
+    const legacyHtml = fs.readFileSync(path.join(legacy, 'public', 'index.html'), 'utf8')
+    const legacyScripts = [...legacyHtml.matchAll(/<script src="\/([^"]+)"/g)].map(m => path.join(legacy, 'public', m[1]))
     let raw = 0
     let gzip = 0
     for (const file of legacyScripts) {
-      const data = fs.readFileSync(path.join(DIST, file))
+      const data = fs.readFileSync(file)
       raw += data.length
       gzip += zlib.gzipSync(data, { level: 9 }).length
     }
@@ -390,12 +393,13 @@ function machine(browserVersion) {
   }
 }
 
-async function measure(chromium, impl, runs) {
+async function measure(chromium, impl, runs, legacy) {
   const log = []
-  const fixture = await startFixture(PACK)
+  // Each side's own server serves its own page: the legacy one from a pre-cutover checkout.
+  const fixture = await startFixture(PACK, impl === 'legacy' ? { root: legacy } : {})
   const stream = syntheticStream(fixture.base, entry => log.push(entry))
   await stream.init()
-  const front = await startStatic({ fleetBase: fixture.base, legacy: impl === 'legacy', intercept: (req, res) => stream.intercept(req, res), log: entry => log.push(entry) })
+  const front = await startFront({ fleetBase: fixture.base, intercept: (req, res) => stream.intercept(req, res), log: entry => log.push(entry) })
   try {
     // Cold: a new browser, nothing cached.
     const coldBrowser = await chromium.launch()
@@ -480,11 +484,14 @@ async function main() {
   const out = args.includes('--out') ? args[args.indexOf('--out') + 1] : null
   const only = args.filter(a => a === 'legacy' || a === 'react')
   if (!fs.existsSync(path.join(DIST, 'index.html'))) throw new Error('Run `npm run build:frontend` first.')
+  const legacy = legacyRoot()
+  if (only.includes('legacy') && !legacy) throw new Error(`LEGACY_ROOT is not set. ${LEGACY_HOW}`)
+  if (!only.length && !legacy) process.stderr.write(`Measuring React only. ${LEGACY_HOW}\n`)
   const { chromium } = loadPlaywright()
-  const report = { machine: null, bundle: bundle(), legacy: null, react: null }
-  for (const impl of only.length ? only : ['legacy', 'react']) {
+  const report = { machine: null, bundle: bundle(legacy), legacy: null, react: null }
+  for (const impl of only.length ? only : legacy ? ['legacy', 'react'] : ['react']) {
     process.stderr.write(`${impl}:\n`)
-    const data = await measure(chromium, impl, runs)
+    const data = await measure(chromium, impl, runs, legacy)
     report.machine ??= machine(data.version)
     report[impl] = { summary: summarize(data), ...data }
   }

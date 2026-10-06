@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-// Visual baseline of the legacy UI (work package 1). Serves the current public/ app
+// Visual baseline of the legacy UI (work package 1). Serves the legacy public/ app
 // against the fixture server and screenshots each view, the launch modal and a
 // conversation at four viewports into ./screens/<viewport>/<name>.png.
 //
-//   node frontend/e2e/baseline/capture.mjs [name ...]      all, or only these shots
+//   LEGACY_ROOT=/tmp/fleet-legacy node frontend/e2e/baseline/capture.mjs [name ...]
+//
+// public/ is gone since the cutover, so the fixture server runs from LEGACY_ROOT, a
+// checkout from before it (see ../legacy.mjs); without one this exits with how to make one.
 //
 // Needs Playwright with a Chromium. If `playwright` is not installed in the repo yet,
 // point PLAYWRIGHT_DIR at a directory that has it (`npm i playwright` there):
@@ -18,9 +21,10 @@ import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { legacyCapture, requireLegacyRoot } from '../legacy.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const fixtures = path.resolve(here, '../../src/test/fixtures/capture.js')
+const fixtures = legacyCapture(requireLegacyRoot())
 const out = path.join(here, 'screens')
 const T0 = Date.UTC(2026, 9, 6, 10, 0, 0)
 

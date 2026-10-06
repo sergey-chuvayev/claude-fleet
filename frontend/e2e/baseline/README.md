@@ -1,11 +1,12 @@
 # Visual baseline of the legacy UI
 
-Screenshots of the current `public/` app (0.54.0) served against the fixture packs in `frontend/src/test/fixtures/`, for human comparison with the React build (plan section 9). They are a reference, not an assertion: a pass needs a person looking at old and new side by side.
+Screenshots of the legacy `public/` app (0.54.0, removed at cutover; capture needs a pre-cutover checkout as `LEGACY_ROOT`, see `../legacy.mjs`) served against the fixture packs in `frontend/src/test/fixtures/`, for human comparison with the React build (plan section 9). They are a reference, not an assertion: a pass needs a person looking at old and new side by side.
 
 ```bash
 npm i playwright && npx playwright install chromium-headless-shell   # once; or set PLAYWRIGHT_DIR
-node frontend/e2e/baseline/capture.mjs            # all shots
-node frontend/e2e/baseline/capture.mjs today      # one shot
+git worktree add /tmp/fleet-legacy a8c8498      # once: a checkout from before the cutover
+LEGACY_ROOT=/tmp/fleet-legacy node frontend/e2e/baseline/capture.mjs            # all shots
+LEGACY_ROOT=/tmp/fleet-legacy node frontend/e2e/baseline/capture.mjs today      # one shot
 ```
 
 Output: `screens/<viewport>/<shot>.png` for 1440x900, 1280x800, 900x900 and 390x844, plus `screens/manifest.json`.
