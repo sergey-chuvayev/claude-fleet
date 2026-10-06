@@ -368,9 +368,10 @@ class ManagedSessions extends EventEmitter {
         result = day.answer(s,text(body.itemId,'Item',100),text(body.needId,'Question',100),body.answer,body.decision)
         if (result.need.kind === 'launch' && ['approve','edit'].includes(result.need.decision)) this.launchFromDay(s,result,body)
         // An agent's report is settled here, not by the Day agent: Done closes the item,
-        // anything else leaves it open. No run is needed for that.
+        // with any other question still open on it, and anything else leaves it open. No
+        // run is needed for that.
         if (result.need.report) {
-          if (result.need.decision === 'choose' && result.need.answer === 'Done') { day.triage(s,result.item.id,{status:'done'}); this.reportToProject(result.item,'done') }
+          if (result.need.decision === 'choose' && result.need.answer === 'Done') { day.close(s,result.item.id); this.reportToProject(result.item,'done') }
           this.changed(s,true)
           this.syncThreads(s)
           return result

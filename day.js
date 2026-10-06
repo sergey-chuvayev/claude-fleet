@@ -240,6 +240,18 @@ function approvedFor(s,input) {
   }
   return null
 }
+// The operator saying an item is finished, from an agent's report. Any question still
+// open on it is moot: it is withdrawn, and a withdrawn approval never licenses a send
+// (see approvedFor). Then the item is done.
+function close(s,itemId) {
+  const item=itemFor(s,itemId)
+  for (const need of open(item)) {
+    need.answer='withdrawn';need.decision='withdrawn';need.answeredAt=Date.now();need.seen=true
+    log(item,`Closed with the item: ${need.question.slice(0,200)}`)
+  }
+  item.status='done'
+  return item
+}
 // A thread is a conversation about one item. Its tool reaches that item and nothing
 // else: it can read it, log what it found, ask the operator, or take back a question of
 // its own that the conversation made moot. Status and triage stay with the operator and
@@ -288,4 +300,4 @@ async function sdkServer(s,changed,ctx={}) {
     catch(error){s.dayBoard=before;return {isError:true,content:[{type:'text',text:error.message}]}}
   })]})
 }
-module.exports={threadAct,threadServer,itemFor,SOURCES,PRIORITIES,STATUSES,MODES,dateOf,ledger,act,answer,triage,waiting,progress,carryOver,outward,approvedFor,sdkServer}
+module.exports={threadAct,threadServer,itemFor,SOURCES,PRIORITIES,STATUSES,MODES,dateOf,ledger,act,answer,triage,close,waiting,progress,carryOver,outward,approvedFor,sdkServer}

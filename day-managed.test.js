@@ -251,8 +251,12 @@ test('a launched agent reports back on its item when it finishes, and Done close
     manager.reportToDay(launched)
     assert.equal(item.needs.filter(n=>n.report).length,1,'the same reply reports once')
     const turns=calls.length
+    // The Day agent asked something else on the item meanwhile; Done still closes it.
+    const other=day.act(s,{action:'ask',itemId:item.id,kind:'approve',question:'Post the PR link to Slack?',draft:'PR is up: https://github.com/acme/app/pull/42'})
     manager.dayAction(s.id,{op:'answer',itemId:item.id,needId:report.id,answer:'Done',decision:'choose'})
     assert.equal(item.status,'done')
+    assert.equal(other.decision,'withdrawn','the other question is closed with the item')
+    assert.equal(day.approvedFor(s,{text:'PR is up: https://github.com/acme/app/pull/42'}),null,'and a withdrawn approval never licenses the send')
     assert.equal(day.progress(s).report,null)
     await delay(50)
     assert.equal(calls.length,turns,'answering a report does not wake the Day agent')
