@@ -1,0 +1,13 @@
+{
+  "token": "0f3c9a1e5b7d2c4a6e8f0a1b3c5d7e9f0f3c9a1e5b7d2c4a6e8f0a1b3c5d7e9f",
+  "version": "0.54.0",
+  "codex": { "available": true, "model": "gpt-5.5-codex" },
+  "supportsSessionReferences": true,
+  "defaultCwd": "/Users/fixture/projects",
+  "maxConcurrent": 4,
+  "defaultApprovalMode": "auto",
+  "queue": { "enabled": true, "limit": 4, "paused": false, "running": 1, "waiting": 0 },
+  "storageError": null,
+  "searchDays": 30,
+  "theme": { "name": "Fleet Default", "source": null }
+}
