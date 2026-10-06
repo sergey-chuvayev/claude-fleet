@@ -78,6 +78,8 @@ export function conditionalResource<T>(fetch: FetchLike, spec: ConditionalResour
   }
 }
 
+const FAMILY_LIMIT = 256
+
 /**
  * A keyed family of resources (one per session, say) that hands out the same object
  * per key, so hooks see a stable resource and the store sees one entry.
@@ -93,6 +95,8 @@ export function resourceFamily<A extends readonly unknown[], T>(
     if (!resource) {
       resource = make(key, ...args)
       made.set(key, resource)
+      // Bounded: a dropped definition is made again, identical, when its key returns.
+      if (made.size > FAMILY_LIMIT) made.delete(made.keys().next().value as string)
     }
     return resource
   }

@@ -55,6 +55,9 @@ interface Entry {
   listeners: Set<() => void>
 }
 
+/** Unwatched keys kept with their data; older ones are dropped and load again when next watched. */
+export const KEEP_UNWATCHED = 48
+
 const IDLE: ResourceState<never> = Object.freeze({ data: undefined, error: null, status: 'idle' })
 
 export class ResourceStore {
@@ -69,10 +72,14 @@ export class ResourceStore {
   /** Subscribe to a key. The first subscriber triggers a load when the key has no data or is stale. */
   subscribe<T>(resource: Resource<T>, listener: () => void): () => void {
     const entry = this.entry(resource)
+    // Shown again after its last load failed (a session chosen again): try again rather
+    // than keep showing that failure until some event happens to name it.
+    const retry = entry.listeners.size === 0 && entry.state.status === 'error'
     entry.listeners.add(listener)
-    if (entry.state.status === 'idle' || entry.stale) void this.refresh(resource)
+    if (entry.state.status === 'idle' || entry.stale || retry) void this.refresh(resource)
     return () => {
       entry.listeners.delete(listener)
+      if (!entry.listeners.size) this.retire(entry)
     }
   }
 
@@ -156,6 +163,23 @@ export class ResourceStore {
   /** True while a request for the key runs. Not reactive; for tests and diagnostics. */
   isFetching(key: string): boolean {
     return !!this.entries.get(key)?.inflight
+  }
+
+  // Nobody watches this key any more. Keep it (most recently left last) for a quick
+  // return, but only the newest KEEP_UNWATCHED such keys: sessions come and go all day.
+  private retire(entry: Entry): void {
+    const key = entry.resource.key
+    if (this.entries.get(key) !== entry) return
+    this.entries.delete(key)
+    this.entries.set(key, entry)
+    let unwatched = 0
+    for (const e of this.entries.values()) if (!e.listeners.size) unwatched++
+    for (const [k, e] of this.entries) {
+      if (unwatched <= KEEP_UNWATCHED) break
+      if (e.listeners.size || e.inflight) continue
+      this.entries.delete(k)
+      unwatched--
+    }
   }
 
   private entry(resource: Resource<unknown>): Entry {

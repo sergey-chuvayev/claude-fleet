@@ -8,7 +8,7 @@
 // never retried; an approval that is no longer pending (STALE_APPROVAL, 409) is
 // explained and the session read again. Nothing here ever answers by itself: an
 // approval is only ever sent from a click.
-import { type FormEvent, memo, useState } from 'react'
+import { type FormEvent, memo, useRef, useState } from 'react'
 import { useToast } from '../../components/Toast'
 import { type Approval, type AskQuestion, askQuestionSchema } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
@@ -30,6 +30,21 @@ export function Approvals({ managedId, approvals }: ApprovalsProps) {
   )
 }
 
+/**
+ * After a decision the card goes away with the button that had focus, and focus would
+ * fall to the page. Hand it to the next card waiting, else the composer.
+ */
+function keepFocus() {
+  requestAnimationFrame(() => {
+    const now = document.activeElement
+    if (now && now !== document.body && now.isConnected) return
+    const next =
+      document.querySelector<HTMLElement>('#approvals form.approval button:not([disabled])') ??
+      document.querySelector<HTMLElement>('#message-input')
+    next?.focus()
+  })
+}
+
 const STALE_TEXT = 'This request is no longer waiting: it was answered elsewhere or the agent moved on. The conversation was read again.'
 
 export function questionsOf(approval: Approval): AskQuestion[] {
@@ -48,6 +63,7 @@ const ApprovalCard = memo(function ApprovalCard({ managedId, approval }: { manag
   const [draft, answers] = useAnswerDraft(key)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const form = useRef<HTMLFormElement>(null)
   const question = approval.tool === 'AskUserQuestion'
   const questions = question ? questionsOf(approval) : []
   // Inside an initiative, which role wants this is the whole question.
@@ -55,11 +71,16 @@ const ApprovalCard = memo(function ApprovalCard({ managedId, approval }: { manag
 
   const decide = (decision: 'allow' | 'deny', given?: Record<string, string>) => {
     if (busy) return
+    // Read before the buttons disable themselves and drop focus.
+    const hadFocus = !!form.current?.contains(document.activeElement)
     setBusy(true)
     setError(null)
     const body = given ? { decision, answers: given } : { decision }
     sessionCommand(client, managedId, `approvals/${encodeURIComponent(approval.id)}`, body)
-      .then(() => answers.clear(key))
+      .then(() => {
+        answers.clear(key)
+        if (hadFocus) keepFocus()
+      })
       .catch(failure => {
         const stale = codeOf(failure) === 'STALE_APPROVAL'
         setError(stale ? STALE_TEXT : failureText(failure))
@@ -84,7 +105,7 @@ const ApprovalCard = memo(function ApprovalCard({ managedId, approval }: { manag
   }
 
   return (
-    <form className="approval" data-approval={approval.id} onSubmit={submit} aria-busy={busy || undefined}>
+    <form ref={form} className="approval" data-approval={approval.id} onSubmit={submit} aria-busy={busy || undefined}>
       <div className="eyebrow">
         {question ? 'CLAUDE HAS A QUESTION' : 'APPROVAL REQUIRED'}
         {who}
