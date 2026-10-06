@@ -21,13 +21,17 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
       - run: npm ci
+      # The same gates as CI, so a tag cannot publish what CI would have refused.
+      - run: npm run typecheck
+      - run: npm run build:frontend
+      - run: npm run test:frontend
       - run: npm test
       - name: The tag matches the version being published
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG="$(node -p "require('./package.json').version")"
           [ "$TAG" = "$PKG" ] || { echo "Tag $GITHUB_REF_NAME does not match package version $PKG"; exit 1; }
-      # prepack rebuilds public/vendor/libs.js, so the tarball cannot ship a stale bundle.
+      # prepack rebuilds dist/ (npm run build:frontend), so the tarball cannot ship a stale build.
       # --provenance lives here rather than in publishConfig: npm can only generate a
       # provenance statement from a recognised CI run, so setting it in package.json
       # makes `npm publish` from a workstation fail outright.

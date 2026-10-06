@@ -15,12 +15,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      # The web app is built here and by prepack, never committed: dist/ is ignored.
+      # Build first so the server tests, and the package test (A29), run against it.
       - run: npm run typecheck
-      - run: npm run test:frontend
       - run: npm run build:frontend
-      # The browser bundle is committed, so a stale one would ship silently.
-      # Rebuild it and fail if it differs from what is checked in.
-      - run: npm run vendor
-      - name: public/vendor/libs.js is up to date
-        run: git diff --exit-code -- public/vendor/libs.js
+      - run: npm run test:frontend
+      - run: npm test
