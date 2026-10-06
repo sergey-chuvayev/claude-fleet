@@ -384,3 +384,154 @@ export function parseWorktrees(raw: unknown): WorktreeReport {
   if (!result.success) throw new ContractError('/api/worktrees', issues(result.error))
   return result.data
 }
+
+// ── /api/search ─────────────────────────────────────────────────────────────
+
+const searchHitSchema = z.looseObject({
+  sessionId: z.string().min(1),
+  title: nullableString.optional(),
+  cwd: nullableString.optional(),
+  project: nullableString.optional(),
+  firstAt: z.number().nullable().optional(),
+  lastAt: z.number().nullable().optional(),
+  matches: z.number().optional(),
+  snippets: z
+    .array(z.looseObject({ role: z.string(), text: z.string(), at: z.number().nullable().optional() }))
+    .optional(),
+})
+export type SearchHit = z.infer<typeof searchHitSchema>
+
+const searchMatchSchema = z.looseObject({
+  sessionId: z.string().min(1),
+  relevance: z.string().optional(),
+  context: nullableString.optional(),
+  quote: nullableString.optional(),
+})
+export type SearchMatch = z.infer<typeof searchMatchSchema>
+
+export const searchJobSchema = z.looseObject({
+  id: z.string().min(1),
+  question: z.string(),
+  model: z.string().optional(),
+  status: z.enum(['thinking', 'done', 'error', 'stopped']),
+  hits: z.array(searchHitSchema),
+  sessions: z.number().optional(),
+  passages: z.number().optional(),
+  searchMs: z.number().optional(),
+  ai: z.looseObject({ answer: z.string(), matches: z.array(searchMatchSchema) }).nullable().optional(),
+  error: nullableString.optional(),
+  aiMs: z.number().nullable().optional(),
+})
+export type SearchJob = z.infer<typeof searchJobSchema>
+
+/** `{key: value}` answers: validate the value under `key` and hand it back. */
+const envelope = <T extends z.ZodType>(route: string, key: string, schema: T) => {
+  const wrapper = z.looseObject({ [key]: schema })
+  return (raw: unknown): z.infer<T> => {
+    const result = wrapper.safeParse(raw)
+    if (!result.success) throw new ContractError(route, issues(result.error))
+    return (result.data as Record<string, z.infer<T>>)[key] as z.infer<T>
+  }
+}
+
+/** `{job}` from POST /api/search and GET /api/search/:id. */
+export const parseSearchJob = envelope('/api/search', 'job', searchJobSchema)
+
+// ── /api/connections ────────────────────────────────────────────────────────
+
+export const connectionStatusSchema = z.enum(['connected', 'failed', 'needs-auth', 'pending', 'disabled'])
+export type ConnectionStatus = z.infer<typeof connectionStatusSchema>
+
+// A plain object, not a loose one: unknown keys are dropped here, so a server row
+// that carried a command line, environment or headers can never reach the page.
+const connectionServerSchema = z.object({
+  name: z.string().min(1),
+  status: z.string(),
+  scope: z.string().optional(),
+  internal: z.boolean().optional(),
+  tools: z.array(z.string()).default([]),
+  canToggle: z.boolean().optional(),
+  canAuthenticate: z.boolean().optional(),
+  error: nullableString.optional(),
+})
+export type ConnectionServer = z.infer<typeof connectionServerSchema>
+
+const connectionResultSchema = z.object({
+  cwd: z.string(),
+  source: z.enum(['session', 'project']),
+  connectionId: z.string().optional(),
+  checkedAt: z.number(),
+  servers: z.array(connectionServerSchema),
+  auth: z
+    .object({
+      name: z.string().optional(),
+      url: nullableString.optional(),
+      opened: z.boolean().optional(),
+      needsAction: z.boolean().optional(),
+    })
+    .nullable()
+    .optional(),
+})
+export type ConnectionResult = z.infer<typeof connectionResultSchema>
+
+export const parseConnections = envelope('/api/connections', 'connections', connectionResultSchema)
+
+// ── /api/queue, /api/service, /api/settings/*, /api/update ──────────────────
+
+export const parseQueueResponse = envelope('/api/queue', 'queue', queueStateSchema)
+
+const gatewaySchema = z.object({
+  configured: z.boolean(),
+  source: z.enum(['saved', 'environment']).nullable().optional(),
+})
+export type GatewayStatus = z.infer<typeof gatewaySchema>
+
+const gatewayResponseSchema = z.looseObject({
+  gateway: gatewaySchema,
+  test: z.looseObject({ message: nullableString.optional(), ok: z.boolean().optional() }).nullable().optional(),
+})
+export interface GatewayResponse {
+  readonly gateway: GatewayStatus
+  readonly testMessage: string | null
+}
+export function parseGatewayResponse(raw: unknown): GatewayResponse {
+  const result = gatewayResponseSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/settings/gateway', issues(result.error))
+  return { gateway: result.data.gateway, testMessage: result.data.test?.message ?? null }
+}
+
+const serviceSchema = z.object({
+  supported: z.boolean(),
+  enabled: z.boolean(),
+  loaded: z.boolean().optional(),
+  managed: z.boolean().optional(),
+})
+export type ServiceStatus = z.infer<typeof serviceSchema>
+export const parseService = envelope('/api/service', 'service', serviceSchema)
+export function parseServiceChange(raw: unknown): { service: ServiceStatus; restarting: boolean } {
+  const result = z.looseObject({ service: serviceSchema, restarting: z.boolean().optional() }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/service', issues(result.error))
+  return { service: result.data.service, restarting: result.data.restarting === true }
+}
+
+export function parseApprovalModeResponse(raw: unknown): ApprovalMode {
+  const result = z.looseObject({ defaultApprovalMode: approvalModeSchema }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/settings/approval-mode', issues(result.error))
+  return result.data.defaultApprovalMode
+}
+
+const updateSchema = z.looseObject({
+  name: z.string().optional(),
+  current: z.string().optional(),
+  latest: nullableString.optional(),
+  available: z.boolean(),
+  canInstall: z.boolean(),
+  channel: nullableString.optional(),
+  checkedAt: z.number().nullable().optional(),
+  state: z.string().optional(),
+  error: nullableString.optional(),
+  installed: nullableString.optional(),
+  restarting: z.boolean().optional(),
+})
+export type UpdateStatus = z.infer<typeof updateSchema>
+export const parseUpdate = envelope('/api/update', 'update', updateSchema)

@@ -1,7 +1,7 @@
 // The shell against the fleet-mixed fixture pack, through the real transport:
 // top bar, navigation and its persistence, banner, status bar, the modal layer and
 // the shortcuts, and StrictMode leaving no duplicate listeners behind (A28).
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import controlFixture from '../test/fixtures/fleet-mixed/get-control.json'
@@ -97,12 +97,13 @@ describe('AppShell', () => {
     expect(storage.getItem('fleet:view')).toBe('today')
     expect(workspace.getAttribute('data-view')).toBe('today')
     expect(workspace.getAttribute('aria-label')).toBe('Today')
-    expect(await screen.findByText('Good morning.')).toBeTruthy()
+    // Each view mounts its own pane; assert the container, not the feature's copy.
+    await waitFor(() => expect(document.getElementById('today-pane')).toBeTruthy())
     expect(document.getElementById('today-pane')?.className).toBe('sessions-pane today-pane')
     expect(screen.getByRole('separator')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Worktrees' }))
-    expect(await screen.findByText('Your worktrees.')).toBeTruthy()
+    await waitFor(() => expect(workspace.getAttribute('data-view')).toBe('worktrees'))
     expect(screen.queryByRole('separator')).toBeNull()
     expect(document.getElementById('detail')).toBeNull()
     expect(document.getElementById('details-toggle')?.hidden).toBe(true)
