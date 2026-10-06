@@ -8,8 +8,11 @@
   const LISTED = 5
 
   // Pure helpers, shared with the Node tests.
-  // The pull requests worth tracking for a session: the latest few it mentioned.
-  const prLinks = session => (session?.links || []).filter(l => l.kind === 'pr' && /^https:\/\/github\.com\//.test(l.url)).slice(-3)
+  // The pull requests worth tracking for a session: the latest few it mentioned. Only an
+  // agent's own work: a Day, a project manager or an item thread mentions PRs other
+  // sessions opened, and feedback sent to them would reach the wrong agent.
+  const COORDINATORS = ['day', 'project', 'thread']
+  const prLinks = session => COORDINATORS.includes(session?.kind) ? [] : (session?.links || []).filter(l => l.kind === 'pr' && /^https:\/\/github\.com\//.test(l.url)).slice(-3)
   const names = list => list.length > LISTED ? `${list.slice(0, LISTED).join(', ')} and ${list.length - LISTED} more` : list.join(', ')
   // "CI failed on build, lint (PR #12). Fix it and push." for every PR whose CI is red.
   function ciFeedback(statuses) {
@@ -43,8 +46,9 @@
     if (!status.ok) return `<li class="review-pr">${head}<span class="note">${esc(problem(status.reason))}</span></li>`
     const [stateText, stateTone] = STATE[status.state] || STATE.unknown
     const [ciText, ciTone] = CI_LABEL[status.ci.result]
-    const failing = status.ci.failing.length ? `<p class="review-failing note">Failing: ${esc(names(status.ci.failing))}</p>` : ''
-    return `<li class="review-pr">${head}${UI.pill(status.draft && status.state === 'open' ? 'Draft' : stateText, stateTone)}${status.state === 'open' ? UI.pill(ciText, ciTone) : ''}${failing}</li>`
+    // Which checks fail is on the pill's tooltip, so every PR stays one line.
+    const ci = status.state === 'open' ? UI.pill(ciText, ciTone).replace('<span class="ui-pill"', `<span class="ui-pill"${status.ci.failing.length ? ` title="Failing: ${esc(names(status.ci.failing))}"` : ''}`) : ''
+    return `<li class="review-pr">${head}${UI.pill(status.draft && status.state === 'open' ? 'Draft' : stateText, stateTone)}${ci}</li>`
   }
 
   function options(statuses, chosen) {

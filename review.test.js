@@ -28,6 +28,8 @@ test('only GitHub PR links count, and only the latest three',()=>{
   const session={links:[{kind:'linear',label:'ABC-1',url:'https://linear.app/x/issue/ABC-1'},link(1),link(2),link(3),link(4)]}
   assert.deepEqual(prLinks(session).map(l=>l.label),['PR #2','PR #3','PR #4'])
   assert.deepEqual(prLinks({}),[])
+  for (const kind of ['day','project','thread']) assert.deepEqual(prLinks({...session,kind}),[],`a ${kind} mentions other sessions' PRs; it gets no review strip`)
+  assert.equal(prLinks({...session,kind:'agent'}).length,3)
   assert.deepEqual(prLinks(null),[])
 })
 
