@@ -166,7 +166,7 @@ function usePending<T>(server: T): [T, (value: T | null) => void] {
   return [pending ?? server, setPending]
 }
 
-function ModelPicker({ managedId, selected }: { managedId: string; selected: string }) {
+export function ModelPicker({ managedId, selected }: { managedId: string; selected: string }) {
   const client = useFleetClient()
   const toast = useToast()
   const models = useResource(modelsResource(client))
@@ -245,7 +245,7 @@ function ProjectPicker({ managedId, projectId }: { managedId: string; projectId:
 
 // ── Buttons ─────────────────────────────────────────────────────────────────
 
-function ConnectionsButton({ managedId }: { managedId: string }) {
+export function ConnectionsButton({ managedId }: { managedId: string }) {
   const { openModal } = useActions()
   return (
     <button type="button" id="agent-connections" className="button" onClick={() => openModal({ kind: 'connections', managedId: managedId as ManagedId })}>
@@ -255,7 +255,7 @@ function ConnectionsButton({ managedId }: { managedId: string }) {
 }
 
 /** Close removes the conversation from Fleet; the first click only arms it for four seconds. */
-function CloseButton({ managedId, working, onClosed }: { managedId: string; working: boolean; onClosed: () => void }) {
+export function CloseButton({ managedId, working, onClosed }: { managedId: string; working: boolean; onClosed: () => void }) {
   const client = useFleetClient()
   const toast = useToast()
   const [state, setState] = useState<'idle' | 'armed' | 'closing'>('idle')
