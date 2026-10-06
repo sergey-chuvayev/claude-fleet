@@ -62,7 +62,7 @@ test('an edit made by hand to the file is what Fleet reads next',async()=>{
   fs.writeFileSync(p.file,md)
   const read=store.get(p.id)
   assert.equal(read.deadline,'2026-11-06')
-  assert.deepEqual(read.deliverables[1],{id:'waiting-music-and-announcements',title:'Waiting music and announcements',state:'done',note:'shipped in #2090'})
+  assert.deepEqual(read.deliverables[1],{id:'waiting-music-and-announcements',title:'Waiting music and announcements',state:'done',note:'shipped in #2090',brief:'',links:[]})
   assert.deepEqual(read.sections,[{heading:'Decisions',body:'Queue lives in the ring node, not a separate node.'}])
   store.note(p.id,'Checked.')
   assert.match(fs.readFileSync(p.file,'utf8'),/## Decisions\n\nQueue lives in the ring node/,'a hand-written section survives Fleet writing the file')
@@ -127,26 +127,135 @@ test('the project manager starts on the first question, reads its sessions as su
   } finally { await manager.close() }
 })
 
-test('a project manager never sends anything outside Fleet on its own',async()=>{
+test('a project manager changes documents only with approval, logs each change, and never messages people',async()=>{
   const decisions=[]
-  let reason
+  let approval
   const directory=tmp()
   const manager=new ManagedSessions({directory,queryFactory:async({options})=>({close(){},async *[Symbol.asyncIterator](){
     yield {type:'system',subtype:'init',session_id:'pm',model:'claude-sonnet'}
     const signal=options.abortController.signal
     decisions.push(await options.canUseTool('mcp__linear-server__get_issue',{id:'TECH-1'},{signal}))
-    decisions.push(await Promise.race([options.canUseTool('mcp__claude_ai_Slack__slack_send_message',{message:'Status: on track'},{signal}),delay(50).then(()=>'pending')]))
-    reason=[...manager.sessions.values()].find(x=>x.kind==='project')?.approvals[0]?.reason
+    decisions.push(await options.canUseTool('mcp__notion__notion-fetch',{id:'page-1'},{signal}))
+    decisions.push(await options.canUseTool('mcp__claude_ai_Slack__slack_send_message',{message:'Status: on track'},{signal}))
+    decisions.push(await options.canUseTool('mcp__linear-server__save_comment',{issueId:'TECH-1',body:'Done'},{signal}))
+    const write=options.canUseTool('mcp__notion__notion-update-page',{page_id:'page-1',content:'# Spec'},{signal})
+    await until(()=>pmOf()?.approvals.length===1)
+    approval=pmOf().approvals[0]
+    decisions.push(await write)
     yield {type:'result',result:'Done',is_error:false}
+  }})})
+  const pmOf=()=>[...manager.sessions.values()].find(x=>x.kind==='project')
+  try{
+    const p=make(manager.projects)
+    manager.askProject(p.id,{message:'Put the spec on the Notion page'})
+    await until(()=>approval)
+    assert.equal(decisions[0].behavior,'allow','reading Linear is free')
+    assert.equal(decisions[1].behavior,'allow','reading Notion is free')
+    assert.equal(decisions[2].behavior,'deny','a Slack message is refused outright')
+    assert.match(decisions[2].message,/does not message people/)
+    assert.equal(decisions[3].behavior,'deny','so is a comment that notifies someone')
+    assert.match(approval.reason,/outside Fleet/,'a document change stops for the operator, whatever the approval mode')
+    manager.decide(pmOf().id,approval.id,{decision:'allow'})
+    await until(()=>decisions.length===5)
+    assert.equal(decisions[4].behavior,'allow')
+    await until(()=>manager.projects.get(p.id).log.some(l=>/Approved change outside Fleet/.test(l.text)))
+    assert.match(manager.projects.get(p.id).log.at(-1).text,/notion notion-update-page \(page-1\)/,'the log names what changed, not the content')
+  } finally { await manager.close() }
+})
+
+test('a project manager changes nothing outside Fleet in a run the operator did not ask for',async()=>{
+  const {manager}=setup()
+  try{
+    const p=make(manager.projects)
+    const pm=manager.askProject(p.id,{message:'Where are we?'})
+    const result=await manager.ask(pm,{background:true},'mcp__notion__notion-update-page',{page_id:'x'},{signal:new AbortController().signal})
+    assert.equal(result.behavior,'deny')
+    assert.match(result.message,/only when the operator asks/)
+  } finally { await manager.close() }
+})
+
+test('each deliverable keeps its brief and source links in the file, by define or one at a time',async()=>{
+  const directory=tmp(),store=new ProjectStore(directory),p=make(store)
+  store.define(p.id,{deliverables:[{title:'Queue as a ring option',brief:'Move the queue into the ring node.\n\nDone when: a queued call rings the next free agent.',links:['https://github.com/acme/api-allo/pull/3796','https://linear.app/acme/issue/TECH-12/queue','not a link']},'Waiting music and announcements']})
+  let read=store.get(p.id)
+  assert.equal(read.deliverables.length,2)
+  assert.equal(read.deliverables[0].brief,'Move the queue into the ring node.\nDone when: a queued call rings the next free agent.','blank lines go, so the brief stays under its task')
+  assert.deepEqual(read.deliverables[0].links,['https://github.com/acme/api-allo/pull/3796','https://linear.app/acme/issue/TECH-12/queue'])
+  const md=fs.readFileSync(read.file,'utf8')
+  assert.match(md,/- \[ \] Queue as a ring option\n {2}Move the queue into the ring node\.\n {2}Done when: .*\n {2}- https:\/\/github\.com\/acme\/api-allo\/pull\/3796\n/)
+  // Titles alone keep what a task already has.
+  store.define(p.id,{deliverables:['Queue as a ring option','Waiting music and announcements']})
+  assert.equal(store.get(p.id).deliverables[0].links.length,2)
+  const id=read.deliverables[1].id
+  store.deliverable(p.id,id,{brief:'Upload music per queue.',links:['https://acme.slack.com/archives/C1/p1']})
+  store.deliverable(p.id,id,{addLinks:['https://github.com/acme/api-allo/pull/4000','https://acme.slack.com/archives/C1/p1']})
+  read=store.get(p.id)
+  assert.deepEqual(read.deliverables[1].links,['https://acme.slack.com/archives/C1/p1','https://github.com/acme/api-allo/pull/4000'])
+  assert.throws(()=>store.deliverable(p.id,id,{brief:'x'.repeat(5000)}),/at most 4000/)
+  // A brief written by hand, indented under its task, is read back the same way.
+  await delay(20)
+  fs.writeFileSync(read.file,fs.readFileSync(read.file,'utf8').replace('- [ ] Waiting music and announcements','- [ ] Waiting music and announcements\n  Ask Franco which formats.'))
+  assert.match(store.get(p.id).deliverables[1].brief,/^Ask Franco which formats\.\nUpload music per queue\.$/)
+})
+
+test('a task goes to Today with its brief, links and the project story, and its agent starts from the project file',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const p=make(manager.projects,{brief:'Ship the queue.',repos:[directory]})
+    manager.projects.section(p.id,'Decisions','Desktop first, mobile later.')
+    manager.projects.note(p.id,'Scope agreed with Franco.')
+    const task=p.deliverables[0]
+    manager.projects.deliverable(p.id,task.id,{brief:'Move the queue into the ring node.\nDone when: a queued call rings.',links:['https://linear.app/acme/issue/TECH-12/queue']})
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    // Something else on the board already points at the same ticket.
+    const other=day.act(d,{action:'add',title:'TECH-12 comment',source:'linear',links:['https://linear.app/acme/issue/TECH-12/queue']}).item
+    const {item}=manager.planDeliverable(p.id,task.id)
+    assert.notEqual(item.id,other.id,'a project task is never folded into another item')
+    assert.deepEqual(item.links,['https://linear.app/acme/issue/TECH-12/queue'])
+    for (const part of ['Move the queue into the ring node.','Done when: a queued call rings.','Ship the queue.','Desktop first, mobile later.','Scope agreed with Franco.',p.file]) assert.ok(item.context.includes(part),`the hand-off carries: ${part}`)
+    assert.ok(item.context.length<=8000)
+    const listed=day.act(d,{action:'list'}).items.find(i=>i.id===item.id)
+    assert.match(listed.context,/inspect for the rest/,'the list shows there is more to read')
+    assert.equal(listed.deliverableId,task.id)
+    const need=day.act(d,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Implement the queue in the ring node.',cwd:directory})
+    manager.dayAction(d.id,{op:'answer',itemId:item.id,needId:need.id,answer:'approve'})
+    const launched=manager.sessions.get(need.launched)
+    assert.equal(launched.projectId,p.id)
+    const first=launched.messages[0].text
+    assert.match(first,/^Implement the queue in the ring node\./)
+    assert.ok(first.includes(p.file),'the agent is told where the project file is')
+    assert.ok(first.includes('https://linear.app/acme/issue/TECH-12/queue'),'and gets the task links the brief left out')
+    await until(()=>launched.status==='idle')
+  } finally { await manager.close() }
+})
+
+test('an agent working a project task reports to the project: its log, and its PR on the deliverable',async()=>{
+  const directory=tmp()
+  let agentTurn=false
+  const manager=new ManagedSessions({directory,queryFactory:async({options})=>({close(){},async *[Symbol.asyncIterator](){
+    yield {type:'system',subtype:'init',session_id:randomUUID(),model:'claude-sonnet'}
+    const text=agentTurn && !options.agents?.['slack-scout'] ? 'Opened https://github.com/acme/api-allo/pull/4100 with the fix.' : 'Ready.'
+    yield {type:'assistant',message:{id:randomUUID(),content:[{type:'text',text}]}}
+    yield {type:'result',result:text,is_error:false}
   }})})
   try{
     const p=make(manager.projects)
-    const pm=manager.askProject(p.id,{message:'Post a status to Slack'})
-    await until(()=>decisions.length===2)
-    assert.equal(decisions[0].behavior,'allow','reading is free')
-    assert.equal(decisions[1],'pending','sending stops for the operator, whatever the approval mode')
-    assert.match(reason || '',/does not send anything outside Fleet/)
-    assert.ok(pm)
+    const task=p.deliverables[0]
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const {item}=manager.planDeliverable(p.id,task.id)
+    const need=day.act(d,{action:'ask',itemId:item.id,kind:'launch',question:'Launch?',draft:'Do it.',cwd:directory})
+    agentTurn=true
+    manager.dayAction(d.id,{op:'answer',itemId:item.id,needId:need.id,answer:'approve'})
+    await until(()=>item.needs.some(n=>n.report))
+    let read=manager.projects.get(p.id)
+    assert.match(read.log.at(-1).text,new RegExp(`^Agent finished on "${task.title}" \\(https://github.com/acme/api-allo/pull/4100\\): Opened`))
+    assert.deepEqual(read.deliverables[0].links,['https://github.com/acme/api-allo/pull/4100'])
+    const report=item.needs.find(n=>n.report)
+    manager.dayAction(d.id,{op:'answer',itemId:item.id,needId:report.id,answer:'Done',decision:'choose'})
+    read=manager.projects.get(p.id)
+    assert.equal(read.log.at(-1).text,`Marked done on Today: ${task.title}`)
   } finally { await manager.close() }
 })
 
@@ -186,7 +295,7 @@ test('a deliverable goes on today as work to start, once, and the project knows 
     assert.equal(existing,false)
     assert.deepEqual([item.title,item.status,item.mode,item.projectId,item.deliverableId],[first.title,'today','agent',p.id,first.id],'decided work for the Day agent, tagged with its project')
     assert.match(item.context,/Ship the queue\./)
-    assert.deepEqual(item.links,[],'no links, so it cannot be merged into another item')
+    assert.deepEqual(item.links,[],'a task without links brings none of the project\'s')
     const after=manager.projects.get(p.id).deliverables.find(x=>x.id===first.id)
     assert.equal(after.state,'doing')
     assert.equal(after.note,'Waiting on #3799','the manager\'s note is kept')

@@ -22,11 +22,15 @@ window.FleetDay=(()=>{
   const duration=n=>n>=60 ? `${Math.floor(n/60)}h${n%60 ? ` ${n%60}m`:''}` : `${n}m`
   const options=(map,value)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===value ? 'selected':''}>${v}</option>`).join('')
   const linksHtml=item=>item.links.length ? `<span class="day-links">${item.links.slice(0,4).map(url=>`<a href="${escape(url)}" target="_blank" rel="noopener noreferrer" title="${escape(url)}">${escape(label(url))} <i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}</span>`:''
-  function label(url) {
-    const linear=url.match(/linear\.app\/[^/]+\/issue\/([A-Za-z]+-\d+)/);if(linear)return linear[1].toUpperCase()
-    const pr=url.match(/github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)/);if(pr)return `${pr[1]}#${pr[2]}`
-    if(/slack\.com/.test(url))return 'Slack'
-    try{return new URL(url).hostname.replace(/^www\./,'')}catch{return 'Link'}
+  const label=url=>UI.linkLabel(url)
+  // An item's context. A short note reads in place; a long one (a project task's
+  // hand-off) is formatted and folded, so the board stays a list of work.
+  const contextHtml=item=>{
+    const text=item.context || ''
+    if(!text)return ''
+    const prose=window.FleetBlocks?.proseHtml ? window.FleetBlocks.proseHtml(text) : `<p>${escape(text)}</p>`
+    if(text.length<=400 && !/\n#{1,3} /.test(text))return `<div class="day-context">${prose}</div>`
+    return UI.fold({title:item.deliverableId ? 'Hand-off from the project' : 'Context',body:`<div class="day-context">${prose}</div>`,key:`context:${item.id}`,cls:'day-context-fold'})
   }
   // The project an item belongs to, by name.
   const projectName=id=>(window.FleetProjects?.list() || []).find(p=>p.id===id)?.name
@@ -66,7 +70,7 @@ window.FleetDay=(()=>{
     if(!proposed.length) return ''
     const order={must:0,should:1,could:2}
     proposed.sort((a,b)=>order[a.priority]-order[b.priority])
-    return UI.section('To triage',proposed.map(item=>`<article class="ui-card" data-card="${escape(item.id)}" data-proposed><div class="day-card-head">${head(item)}</div>${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}<div class="ui-actions"><select data-field="priority" aria-label="Priority">${options(PRIORITY,item.priority)}</select><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button resume" data-triage="today">Today</button><button type="button" class="button" data-triage="later">Later</button><button type="button" class="button" data-triage="dropped">Drop</button></div></article>`).join(''),{count:proposed.length,aside:'<button type="button" class="button ghost" data-triage-all="must">Take all Must</button>'})
+    return UI.section('To triage',proposed.map(item=>`<article class="ui-card" data-card="${escape(item.id)}" data-proposed><div class="day-card-head">${head(item)}</div>${contextHtml(item)}${linksHtml(item)}<div class="ui-actions"><select data-field="priority" aria-label="Priority">${options(PRIORITY,item.priority)}</select><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select><button type="button" class="button resume" data-triage="today">Today</button><button type="button" class="button" data-triage="later">Later</button><button type="button" class="button" data-triage="dropped">Drop</button></div></article>`).join(''),{count:proposed.length,aside:'<button type="button" class="button ghost" data-triage-all="must">Take all Must</button>'})
   }
   // Sessions an item launched, with their live state from the session list.
   const LAUNCH_STATE={starting:'starting',running:'working',approval:'needs you',stopping:'stopping',stopped:'stopped',error:'failed',idle:'ready',queued:'queued'}
@@ -130,7 +134,7 @@ window.FleetDay=(()=>{
       const meta=`<span class="day-source" data-source="${escape(item.source)}">${escape(SOURCE[item.source] || item.source)}</span>${carriedHtml(item)}${projectHtml(item)}${live ? UI.pill(escape(live[1]),live[0]):''}${latest ? `<span class="ui-row-latest" title="${escape(latest)}">${escape(latest)}</span>`:''}`
       const side=`${item.estimateMin ? `<small class="ui-row-figure">${duration(item.estimateMin)}</small>`:''}${UI.pill(escape(MODE_SHORT[item.mode] || MODE[item.mode]),item.mode==='agent' ? 'agent' : item.mode==='me' ? 'me' : 'outline')}`
       const projects=window.FleetProjects?.list() || []
-      const detail=`${launchedHtml(item)}${threadHtml(item)}${item.context ? `<p class="day-context">${escape(item.context)}</p>`:''}${linksHtml(item)}${UI.log(item.log.slice(-6).map(l=>[new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),escape(l.text)]))}<div class="ui-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Ask about this <i class="ico ico-arrow" aria-hidden="true"></i>'}</button></div><div class="ui-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${projects.length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${projects.map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div>`
+      const detail=`${launchedHtml(item)}${threadHtml(item)}${contextHtml(item)}${linksHtml(item)}${UI.log(item.log.slice(-6).map(l=>[new Date(l.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),escape(l.text)]))}<div class="ui-ask">${keep(`ask:${item.id}`)}<button type="button" class="button" data-ask-item="${escape(item.id)}">${item.thread && !item.thread.closed ? 'Ask <i class="ico ico-arrow" aria-hidden="true"></i>' : 'Ask about this <i class="ico ico-arrow" aria-hidden="true"></i>'}</button></div><div class="ui-actions"><select data-field="mode" aria-label="How">${options(MODE,item.mode)}</select>${projects.length ? `<select data-field="projectId" aria-label="Project"><option value="">No project</option>${projects.map(p=>`<option value="${escape(p.id)}" ${p.id===item.projectId ? 'selected':''}>${escape(p.name)}</option>`).join('')}</select>`:''}<button type="button" class="button" data-triage="done" ${open(item).length ? 'disabled title="Answer its questions first"':''}>Done</button><button type="button" class="button" data-triage="later">Later</button></div>`
       return UI.row({tone,orbTitle:icon?.[1] || live?.[1] || 'Not started',title:escape(item.title),meta,side,detail,open:opened.has(item.id),key:item.id,attrs:`data-card="${escape(item.id)}"`})
     }
     const groups=Object.keys(PRIORITY).map(p=>[p,today.filter(i=>i.priority===p)]).filter(([,list])=>list.length)
