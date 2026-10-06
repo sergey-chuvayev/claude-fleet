@@ -185,7 +185,7 @@ function ModelPicker({ managedId, selected }: { managedId: string; selected: str
   return (
     <label className="mode-picker">
       <span className="sr-only">Model for this agent</span>
-      <Select id="model-choice" label="Model for this agent" title="Applies from your next message" value={value} options={options} onChange={change} />
+      <Select block={false} id="model-choice" label="Model for this agent" title="Applies from your next message" value={value} options={options} onChange={change} />
     </label>
   )
 }
@@ -206,6 +206,7 @@ function ModePicker({ managedId, mode, codex }: { managedId: string; mode: strin
     <label className="mode-picker" data-mode={value}>
       <span className="sr-only">Approvals for this agent</span>
       <Select
+        block={false}
         id="approval-mode"
         label="Approvals for this agent"
         title={codex ? (CODEX_SANDBOX[value] ?? CODEX_SANDBOX.auto) : undefined}
@@ -238,7 +239,7 @@ function ProjectPicker({ managedId, projectId }: { managedId: string; projectId:
   return (
     <label className="mode-picker">
       <span className="sr-only">Project</span>
-      <Select id="project-choice" label="Project" title="Which of your projects this work belongs to" value={value} options={options} onChange={change} />
+      <Select block={false} id="project-choice" label="Project" title="Which of your projects this work belongs to" value={value} options={options} onChange={change} />
     </label>
   )
 }

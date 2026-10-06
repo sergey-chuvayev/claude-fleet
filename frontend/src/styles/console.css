@@ -197,3 +197,9 @@
 /* The approval mode's colour. Legacy marked the <select> itself with data-mode; the
    shared Select takes no data attributes, so the label around it carries the mode. */
 .mode-picker[data-mode="all"] :is(select,.fleet-select) { color:var(--term-yellow); border-color:color-mix(in oklab,var(--term-yellow) 50%,var(--line)) }
+
+/* At phone widths the log has a fixed height (conversation.css); its frame, a flex item
+   of the control panel here, must take that height instead of shrinking under it. */
+@media(max-width:720px) {
+  .detail:has(#composer) .conversation-frame { flex:none }
+}
