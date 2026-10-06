@@ -8,11 +8,11 @@ import { Select, type SelectOption } from '../../components/Select'
 import { useToast } from '../../components/Toast'
 import type { ManagedId } from '../../domain/ids'
 import type { ControlFields, ManagedDetail } from '../../transport/contracts'
-import { keys, mutationInvalidates } from '../../transport/resources'
+import { keys, mutationInvalidates, projectMutationInvalidates, projectsResource } from '../../transport/resources'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { isWorking } from '../conversation/format'
 import { failureText, sessionCommand } from './mutations'
-import { STANDARD_MODELS, modelsResource, projectChoices, projectsResource } from './reads'
+import { STANDARD_MODELS, modelsResource, projectChoices } from './reads'
 import { APPROVAL_MODES, CODEX_SANDBOX, MODE_TOASTS, contextShare, gated, renameable, stateText, titleOf } from './status'
 
 export interface SessionHeaderProps {
@@ -221,7 +221,7 @@ function ModePicker({ managedId, mode, codex }: { managedId: string; mode: strin
 function ProjectPicker({ managedId, projectId }: { managedId: string; projectId: string | null }) {
   const client = useFleetClient()
   const toast = useToast()
-  const projects = useResource(projectsResource(client))
+  const projects = useResource(projectsResource)
   const [value, setPending] = usePending(projectId ?? '')
   const choices = projectChoices(projects.data)
   if (!choices.length && !projectId) return null
@@ -230,7 +230,7 @@ function ProjectPicker({ managedId, projectId }: { managedId: string; projectId:
   const change = (next: string) => {
     if (next === value) return
     setPending(next)
-    sessionCommand(client, managedId, 'project', { projectId: next || null }, { also: mutationInvalidates.project() })
+    sessionCommand(client, managedId, 'project', { projectId: next || null }, { also: projectMutationInvalidates() })
       .then(() => toast(next ? 'Added to the project' : 'Removed from the project'))
       .catch(error => toast(failureText(error)))
       .finally(() => setPending(null))

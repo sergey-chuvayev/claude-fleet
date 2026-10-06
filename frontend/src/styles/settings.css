@@ -1,0 +1,29 @@
+/* Settings dialog (F23), ported from public/styles.css. */
+/* AI Gateway credentials remain separate from conversation settings. */
+.modal-settings { max-width: 620px; }
+.modal-settings .modal-body { padding: 0 32px 28px; }
+#gateway-status { padding: 12px 14px; border: 1px solid var(--line); border-radius:var(--radius-lg); color: var(--accent); }
+#gateway-form label { display: block; margin: 24px 0 8px; font-weight: 600; }
+#gateway-key { box-sizing: border-box; width: 100%; min-height: 42px; padding: 10px 12px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-md); font: inherit; }
+#gateway-help { margin-top: var(--space-2); }
+.gateway-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+#gateway-result { min-height: 1.5em; color: var(--text); }
+@media (max-width: 640px) { .modal-settings .modal-body { padding: 0 20px 20px; } }
+/* Settings: one section per concern. */
+.settings-section + .settings-section { margin-top:var(--space-6); padding-top:var(--space-5); border-top:1px solid var(--divider) }
+.settings-section h3 { margin:0 0 var(--space-1); font-size:var(--text-xs); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
+.settings-section>.note:first-of-type { margin:0 0 var(--space-3) }
+.settings-row { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3) var(--space-5) }
+.settings-toggle { display:inline-flex; align-items:center; gap:var(--space-2); cursor:pointer }
+.settings-toggle input { accent-color:var(--accent); width:16px; height:16px; margin:0 }
+.settings-field { display:inline-flex; align-items:center; gap:var(--space-2); color:var(--muted) }
+.settings-field :is(select,.fleet-select) { min-width:64px }
+#queue-status { margin:var(--space-3) 0 0 }
+.settings-section h3 { margin:0 0 var(--space-2); font-size:var(--text-sm); letter-spacing:.1em }
+.settings-toggle { color:var(--text); font-size:var(--text-lg) }
+.settings-field { font-size:var(--text-lg) }
+.settings-field :is(select,.fleet-select) { min-height:42px; padding:0 12px; border-radius:var(--radius-lg); background-color:var(--bg); font-size:var(--text-md) }
+#gateway-status { padding:12px 14px; border-radius:var(--radius-xl); background:var(--panel); color:var(--muted); font-size:var(--text-md) }
+#gateway-form label { margin:var(--space-5) 0 var(--space-2); color:var(--text); font-size:var(--text-lg); font-weight:500 }
+.settings-sounds { display:inline-flex; flex-wrap:wrap; gap:6px }
+.settings-sounds .button { min-height:0; height:28px; padding:0 10px; font-size:var(--text-sm) }
