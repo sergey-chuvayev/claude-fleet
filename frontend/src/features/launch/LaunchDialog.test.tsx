@@ -44,7 +44,8 @@ async function openLaunch(how: 'button' | 'shortcut' = 'button') {
 }
 
 async function sessionsLoaded() {
-  await screen.findByRole('list', { name: 'Sessions' })
+  // Wait for real session rows, not the shell's placeholder list.
+  await waitFor(() => expect(document.querySelector('#session-list .session')).toBeTruthy())
   await waitFor(() => expect(selection()).not.toBeNull())
 }
 

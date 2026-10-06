@@ -1,0 +1,57 @@
+/* The session inspector (#detail-content) and the review strip (#review-panel),
+   F04 and F30. Ported from public/styles.css (0.54.0), legacy order. The
+   .detail:has(#composer) column layout belongs to SessionDetail; only the rules
+   that place this feature's own elements in it are here. */
+
+.response {
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.8;
+  font-size:var(--text-md);
+  max-height:300px;
+  overflow:auto;
+  color:color-mix(in oklab,var(--text) 88%,var(--term-bg));
+}
+.response.missing { color:var(--faint); font-style:italic }
+.links { display:flex; gap:8px; flex-wrap:wrap }
+.work-link {
+  padding:7px 10px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  font-size:var(--text-sm);
+  color:var(--accent);
+}
+.work-link:hover { border-color:var(--accent) }
+@media(prefers-reduced-motion:no-preference) { .work-link { transition:background .15s,border-color .15s } }
+
+.work-link { border-radius:var(--radius-lg); font-size:var(--text-sm); padding:8px 10px }
+
+.detail:has(#composer) #detail-content .page-head { display:none }
+.detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
+.detail-body .facts { display:grid; grid-template-columns:minmax(96px,auto) minmax(0,1fr); gap:0; margin:0; font-size:var(--text-md) }
+.detail-body .facts :is(dt,dd) { margin:0; padding:9px 0; border-bottom:1px solid var(--divider) }
+.detail-body .facts dt { padding-right:var(--space-4); color:var(--faint) }
+.detail-body .facts dd { color:var(--text); overflow-wrap:anywhere }
+.detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
+.detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
+.detail:has(#composer) .detail-body .facts dd { padding-top:2px }
+
+#review-panel { flex:none; padding:0 var(--space-7) var(--space-3) }
+.detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
+.detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
+.detail:has(#composer) #detail-content { grid-row:1 / -1 }
+.review-strip { display:flex; align-items:center; gap:var(--space-2); min-width:0; min-height:24px }
+.review-strip #review-status { flex:1; min-width:0 }
+.review-prs { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px }
+.review-pr { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0 }
+.review-pr .work-link, .review-pr .ui-pill, #review-panel .review-toggle { display:inline-flex; align-items:center; gap:5px; box-sizing:border-box; height:22px; min-height:0; line-height:1; font-size:var(--text-xs) }
+.review-pr .work-link { padding:0 8px; border-radius:999px }
+.review-pr .ui-pill { padding:0 8px }
+.review-pr .work-link .ico { width:12px; height:12px }
+.review-pr .note { font-size:var(--text-xs) }
+#review-panel .review-toggle { flex:none; padding:0 10px }
+.review-toggle[aria-expanded="true"] { border-color:var(--accent) }
+.review-form { display:grid; gap:10px; margin-top:10px }
+.review-field { display:grid; gap:6px; font-size:var(--text-sm); color:var(--muted) }
+.review-form textarea { width:100%; resize:vertical; min-height:72px }
+.review-form .note { margin:0 }
