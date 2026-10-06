@@ -274,21 +274,15 @@ reply. Expand the reference in your sent message to inspect what was shared.
 References are resolved by the server at send time, and missing or self-references
 are rejected without sending. Failed sends keep your draft and attachments.
 
-### Review loop: PR state, CI, and feedback in one click
+### Linked pull requests show whether they merged
 
-When a session's conversation mentions a GitHub PR, the inspector shows that PR's
-state (open, merged, closed or draft) and CI result (passing, running or failing, with
-the names of the failing checks). It reads them with the `gh` CLI, so it needs `gh`
-installed and signed in (`gh auth login`); without it the panel says so and nothing else
-changes. Results are cached per PR (one minute for an open PR, ten once it is merged or
-closed), at most two `gh` calls run at once, and a missing, signed-out or rate-limited
-`gh` is left alone for five minutes. Set `CLAUDE_FLEET_GH` for a custom location.
-
-On a Fleet-managed session the panel also sends feedback: **Send CI fix request** posts
-"CI failed on build, lint (PR #12). Fix it and push." when CI is red, and the box below
-takes any free text. Both use the same message route as the composer, so they wait
-behind a running turn. A session Fleet only watches shows the PR status but cannot be
-messaged until you continue it in Fleet.
+In the inspector's **Linked work**, each GitHub PR a session mentioned carries its state:
+Open, Merged, Closed or Draft. Fleet reads it with the `gh` CLI, so it needs `gh`
+installed and signed in (`gh auth login`); without it the pill is simply absent and a
+line under the links says why. The state is looked up only for the selected session's five
+most recent PRs, cached on the server (a minute for an open PR, ten once it is merged or
+closed), with at most two `gh` calls at once and a five-minute rest when `gh` is missing,
+signed out or rate limited. Set `CLAUDE_FLEET_GH` for a custom location.
 
 ### Ask your sessions
 
@@ -723,8 +717,8 @@ managed runs and pending approvals; stopping Fleet does not stop external agents
 
 GitHub PR and Linear issue links shown on a row are extracted from visible
 conversation text. Linear links are recorded references, not live ticket status. For a
-PR, the inspector asks the `gh` CLI for its state and CI result (see the review loop
-above); Fleet holds no GitHub credentials of its own and uses your existing `gh` login.
+PR, the inspector asks the `gh` CLI for its state (see above); Fleet holds no GitHub
+credentials of its own and uses your existing `gh` login.
 
 ## How it is built
 
@@ -748,7 +742,7 @@ for the app itself.
 | [`project-agent.js`](project-agent.js) | A project's manager: its instructions and the project tool it reads and updates the project with |
 | [`worktree.js`](worktree.js) | The git worktree an initiative works in, and its branch |
 | [`usage.js`](usage.js) | The account's plan-usage windows behind the status bar |
-| [`pr-status.js`](pr-status.js) | PR state and CI from `gh`: parsing, caching, back-off |
+| [`pr-status.js`](pr-status.js) | PR state from `gh`: parsing, caching, back-off |
 | [`search.js`](search.js) | Transcript index, BM25 ranking, and the answering turn |
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
 | [`theme.js`](theme.js) | Reads the local Warp palette and renders it as CSS variables |
@@ -756,7 +750,7 @@ for the app itself.
 | `public/app.js` | Dashboard layout, session list, filters, monitoring, resizable panels |
 | `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
 | `public/control.js` | New-agent draft, composer, approvals, streamed updates |
-| `public/review.js` | The inspector's PR panel and the feedback it sends |
+| `public/pr-state.js` | The state pill on a linked PR in the inspector |
 | `public/ask.js` | The Ask panel, its polling, and the result cards |
 | [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
 | [`update.js`](update.js) | The npm version check, its cache, and the self-install |

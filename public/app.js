@@ -441,7 +441,6 @@ function render() {
   }
   if (childId) {
     renderChildDetail(current, childId)
-    window.FleetReview?.show(null)
     // A sub-agent is not addressable: clearing the control panel drops its composer
     // and conversation from the DOM entirely, not merely hiding them.
     window.FleetControl?.selectControl(null)
@@ -503,10 +502,12 @@ document.addEventListener('change', async event => {
 })
 function renderDetail(s) {
   const UI = window.FleetUI
-  window.FleetReview?.show(s)
   if (!s) { update('detail-content', UI.empty({ title: 'The full picture.', text: 'Select a session to inspect it.' })); return }
   const p = percent(s)
   const links = (s.links || []).filter(l => /^https:\/\/(github\.com|linear\.app)\//.test(l.url))
+  // State is looked up for the five most recent PRs only, so a long session cannot start a flood of gh calls.
+  const prUrls = links.filter(l => l.kind === 'pr').slice(-5).map(l => l.url)
+  const prNote = prUrls.length ? window.FleetPrState?.note(prUrls) || 'Pull request state comes from gh.' : 'Recorded references, not live status.'
   const facts = [['Project',s.cwdShort],['Branch',s.branch],['Model',s.model?.replace('claude-','')],['Permissions',s.permissionMode || 'Default'],['Control',s.managed ? 'Fleet-managed' : s.alive ? 'Terminal · monitor only' : 'Saved · ready to continue'],['Session',s.sessionId]]
   const strip = [
     UI.stat('Context', p === null ? 'Not available' : `${UI.bar(p)}${Math.round(p)}% <small>${tokens(s.contextTokens)} / ${tokens(s.contextLimit)}</small>`, { tone: p === null ? 'quiet' : heat(p) || undefined }),
@@ -519,7 +520,7 @@ function renderDetail(s) {
     p >= 75 ? UI.callout(p >= 90 ? 'Context nearly full' : 'Context is getting full', p >= 90 ? 'Compaction may happen soon.' : '', { tone: 'needs' }) : '',
     s.managed ? '' : UI.section('Latest response', `<div class="response ${s.latestResponse ? '' : 'missing'}">${esc(s.latestResponse || 'No assistant response recorded yet.')}</div>`, { aside: s.latestResponseAt ? `${age(s.latestResponseAt)} ago` : '' }),
     s.lastPrompt && !s.managed ? UI.section('Latest request', `<div class="response">${esc(s.lastPrompt)}</div>`) : '',
-    UI.section('Linked work', links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '<i class="ico ico-pr" aria-hidden="true"></i>' : '<i class="ico ico-ticket" aria-hidden="true"></i>'} ${esc(l.label)} <i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}</div><p class="note">Recorded references, not live status.</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>', { aside: 'From transcript' }),
+    UI.section('Linked work', links.length ? `<div class="links">${links.map(l => `<a class="work-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${l.kind === 'pr' ? '<i class="ico ico-pr" aria-hidden="true"></i>' : '<i class="ico ico-ticket" aria-hidden="true"></i>'} ${esc(l.label)}${prUrls.includes(l.url) ? window.FleetPrState?.pill(l.url) || '' : ''} <i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}</div><p class="note">${prNote}</p>` : '<p class="note">GitHub PR and Linear issue URLs appear here when mentioned in the conversation.</p>', { aside: 'From transcript' }),
     UI.section('Environment', `<dl class="facts">${facts.map(([label,value]) => `<dt>${label}</dt><dd>${esc(value ?? '—')}</dd>`).join('')}</dl>`),
     s.transcriptTruncated ? '<p class="note">Showing the most recent 6 MB of this transcript. Earlier responses and links may be absent.</p>' : '',
     s.archived ? '<p class="note archived-note">Archived. Hidden from your fleet, still on disk, still resumable and still searchable.</p>' : '',
