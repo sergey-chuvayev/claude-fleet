@@ -3458,3 +3458,9 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .day-card-foot { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:10px }
 .day-card-foot .day-launched, .day-card-foot .day-links { margin:0 }
 .day-card-foot .day-card-details { margin-left:auto; color:var(--muted); height:26px; min-height:0; padding:0 10px; font-size:var(--text-sm) }
+/* A comment on a task, under its brief. */
+.task-comment { margin-top:2px }
+.task-comment { align-items:flex-start }
+.task-comment textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
+.task-comment textarea:focus { outline:0; border-color:var(--faint) }
+.task-comment .button { flex:none; min-height:var(--control-md) }
