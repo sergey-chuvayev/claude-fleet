@@ -72,6 +72,10 @@ item's links, and the item moves to **Waiting on you** with **Done** or **Needs 
 work**. Fleet shows a note wherever you are. To get a macOS notification as well, turn
 it on in **Settings → Notifications**.
 
+Fleet also plays a soft chime when an agent finishes its turn, when something needs your
+approval or answer, and when an agent reports back. Turn sounds off, or hear each one, in
+**Settings → Notifications**.
+
 You can also start one yourself:
 
 1. Press **New agent** in the top bar (`Cmd+N`).

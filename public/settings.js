@@ -19,7 +19,8 @@ window.FleetSettings=(()=>{
       <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="service-enabled"> Start Fleet at login and keep it running</label></div>
       <p class="note" id="service-status" role="status"></p><p class="form-error" id="service-error" role="alert" hidden></p></section>
       <section class="settings-section" aria-labelledby="notify-title"><h3 id="notify-title">Notifications</h3><p class="note">When an agent you launched from Today finishes or stops, it reports on its item and the item waits on you. Fleet always shows a note on the page; this adds one from macOS too.</p>
-      <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="notify-enabled"> Desktop notification when an agent reports back</label></div><p class="note" id="notify-status" role="status"></p></section>
+      <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="notify-enabled"> Desktop notification when an agent reports back</label></div><p class="note" id="notify-status" role="status"></p>
+      <div class="settings-row"><label class="settings-toggle"><input type="checkbox" id="sounds-enabled"> Play sounds</label><span class="settings-sounds"><button type="button" class="button" data-sound-sample="done">Agent finished</button><button type="button" class="button" data-sound-sample="ask">Needs you</button><button type="button" class="button" data-sound-sample="report">Reported back</button></span></div><p class="note">A soft chime when an agent finishes its turn, when something needs your approval or answer, and when an agent reports back on Today. Press one to hear it.</p></section>
       <section class="settings-section" aria-labelledby="gateway-title"><h3 id="gateway-title">AI Gateway</h3><p id="gateway-status" role="status">Loading…</p><form id="gateway-form"><label for="gateway-key">Vercel AI Gateway API key</label><input id="gateway-key" type="password" autocomplete="off" spellcheck="false" maxlength="4096" placeholder="Paste your key" aria-describedby="gateway-help" required><p class="note" id="gateway-help">Stored in a private file on this Mac, outside your projects. Fleet never sends the saved key back to this page.</p><div class="gateway-actions"><button class="button resume" type="submit">Save key</button><button class="button" id="gateway-test" type="button">Test connection</button><button class="button" id="gateway-remove" type="button">Remove saved key</button></div></form><p id="gateway-result" role="status" aria-live="polite"></p><p class="note">Select <strong>Auto · Jev</strong> when creating a session. New sessions use your saved key immediately; existing model decisions stay pinned.</p><p class="note">Testing sends a short sample to Jev and may incur a small AI Gateway charge. Routing is billed separately from your Claude subscription.</p></section></div><footer class="modal-foot"><span>No restart needed.</span><span><kbd>Esc</kbd> close</span></footer></section>`
     document.body.append(backdrop)
     $('gateway-form').addEventListener('submit',event=>{event.preventDefault();act('save')})
@@ -157,5 +158,9 @@ window.FleetSettings=(()=>{
     renderNotify()
   })
   $('open-settings')?.addEventListener('click',renderNotify)
+  const renderSounds=()=>{const box=$('sounds-enabled');if(box)box.checked=window.FleetSounds?.enabled() ?? false}
+  $('open-settings')?.addEventListener('click',renderSounds)
+  document.addEventListener('change',event=>{if(event.target.id==='sounds-enabled')window.FleetSounds?.setEnabled(event.target.checked)})
+  document.addEventListener('click',event=>{const sample=event.target.closest('[data-sound-sample]');if(sample)window.FleetSounds?.play(sample.dataset.soundSample,{force:true})})
   return {open,notifyOn}
 })()
