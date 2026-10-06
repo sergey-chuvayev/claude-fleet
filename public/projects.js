@@ -187,7 +187,7 @@ window.FleetProjects=(()=>{
       const {project}=await api('/api/projects',{name,...(note ? {note}:{}),requestId:crypto.randomUUID()})
       selected=project.id;editing=null;store.set('fleet:project',selected)
       for(const el of form.querySelectorAll('[data-keep]'))el.value=''
-      toast('Project created. Its manager is setting it up.')
+      toast(project.setup?.started===false ? `Project created. Its manager did not start: ${project.setup.error}` : 'Project created. Its manager is setting it up.')
       await window.Fleet.tick();await load(true);window.Fleet.render()
     }catch(error){toast(error.message);button.disabled=false}
   }

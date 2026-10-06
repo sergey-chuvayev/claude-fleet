@@ -188,6 +188,18 @@ class ManagedSessions extends EventEmitter {
     const tmp = `${this.file}.${process.pid}.tmp`
     fs.writeFileSync(tmp, JSON.stringify({version:1,queueSettings:{enabled:this.queueing,limit:this.dispatch.limit,paused:this.dispatch.paused},defaultApprovalMode:this.defaultApprovalMode,sessions:[...this.sessions.values()].map(s => ({...s,approvals:[]}))}), {mode:0o600})
     fs.renameSync(tmp, this.file)
+    // A write that lands is what clears the storage banner, not a page reading the list.
+    this.emit('saved')
+  }
+  // Work Fleet does on its own (a timer, a finished run handing on) has no request to
+  // fail. A refusal with a status (no free agent, Fleet shutting down) is about that
+  // session, so it is said there; only a write that did not land is a storage failure,
+  // and only that locks the dashboard's writes.
+  fault(s, error) {
+    if (!error?.status) { this.emit('storage-error', error); return }
+    if (!s || !this.sessions.has(s.id)) return
+    s.error = String(error.message || error).slice(0,4000)
+    this.changed(s)
   }
   changed(s, immediate = false) {
     s.updatedAt = Date.now()
@@ -436,7 +448,7 @@ class ManagedSessions extends EventEmitter {
       this.projects.note(item.projectId, text.slice(0, 1000))
       if (item.deliverableId && prs.length) this.projects.deliverable(item.projectId, item.deliverableId, {addLinks:prs})
       this.emit('change','projects')
-    } catch (error) { this.emit('storage-error', error) }
+    } catch (error) { this.fault(null, error) }
   }
   launchFromDay(s, {item, need}, body) {
     const plan = need.launch
@@ -517,17 +529,28 @@ class ManagedSessions extends EventEmitter {
   // The project's manager: started on the first question, continued after that. It works
   // in the project's first repository so it can read the code it reports on.
   // A new project is a title. Its manager starts straight away and sets the rest up.
+  // The project is kept even when its manager cannot start (every agent busy): the
+  // answer says setup did not start, the log keeps why, and asking the manager later
+  // runs the setup then.
   createProject(body) {
-    const project = this.projects.create({name:body.name})
     const note = typeof body.note === 'string' && body.note.trim() ? text(body.note,'Note',8000) : ''
+    const project = this.projects.create({name:body.name})
+    let setup = {started:true}
     try { this.askProject(project.id,{message:note || 'Set up this project.',runPrompt:projectAgent.SETUP(project.name,note),requestId:body.requestId}) }
-    catch (error) { this.emit('storage-error',error) }
-    return this.projects.get(project.id)
+    catch (error) {
+      setup = {started:false,error:String(error.message || error)}
+      if (!error.status) this.emit('storage-error',error)
+      else { try { this.projects.note(project.id,`Setup did not start: ${setup.error} Ask the manager to set it up.`.slice(0,1000)) } catch (e) { this.fault(null,e) } }
+    }
+    return {...this.projects.get(project.id),setup}
   }
   askProject(projectId, body) {
     const project = this.projects.require(projectId)
     const message = text(body.message,'Message',16000)
-    const runPrompt = typeof body.runPrompt === 'string' ? body.runPrompt : projectAgent.OPENING(message)
+    // A project still only a title, with no manager yet, has not been set up: whatever
+    // the operator asks first, the manager sets it up with that as the note.
+    const unset = !project.brief && !project.deliverables.length && !this.managerOf(project.id)
+    const runPrompt = typeof body.runPrompt === 'string' ? body.runPrompt : unset ? projectAgent.SETUP(project.name,message) : projectAgent.OPENING(message)
     const rid = requestId(body.requestId || randomUUID())
     const existing = this.managerOf(project.id)
     if (existing) { this.send(existing.id,{message,runPrompt,requestId:rid}); return existing }
@@ -555,7 +578,7 @@ class ManagedSessions extends EventEmitter {
     const short = comment.replace(/\s+/g,' ').slice(0, 600)
     this.projects.note(p.id, `Comment on "${d.title}": ${short}`)
     const today = this.todayDay()
-    const item = today?.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    const item = today?.dayBoard.items.find(i => i.projectId === p.id && i.deliverableId === d.id && !['done','dropped'].includes(i.status))
     if (item) { try { day.act(today,{action:'update',itemId:item.id,note:`You commented on the project task: ${short}`},'operator'); this.changed(today,true) } catch {} }
     const pm = this.askProject(p.id,{message:`On "${d.title}": ${comment}`,runPrompt:projectAgent.COMMENT(d, comment),requestId:body.requestId})
     this.emit('change','projects')
@@ -590,7 +613,9 @@ class ManagedSessions extends EventEmitter {
     if (!d) fail('That deliverable is not in this project.')
     const today = this.todayDay()
     if (!today) fail('Start your day on the Today tab first, then add this to it.',409)
-    const existing = today.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    // A deliverable's id is its title's slug, so two projects can share one: only the
+    // pair names a task.
+    const existing = today.dayBoard.items.find(i => i.projectId === p.id && i.deliverableId === d.id && !['done','dropped'].includes(i.status))
     if (existing) return {item:existing,existing:true}
     // The task's own links travel with it. The Day does not fold a project task into
     // another item that shares a link (see day.add); the project's general links stay
@@ -629,7 +654,7 @@ class ManagedSessions extends EventEmitter {
       // A run already in flight reads the board when it next lists; a queued resume
       // behind it would only repeat that work.
       if (this.runs.has(s.id) || s.queue.some(q => q.background)) return
-      try { this.dayRun(s,'resume') } catch (error) { this.emit('storage-error',error) }
+      try { this.dayRun(s,'resume') } catch (error) { this.fault(s,error) }
     }, delay)
     timer.unref?.()
     this.dayTimers.set(s.id, timer)
@@ -652,7 +677,7 @@ class ManagedSessions extends EventEmitter {
       // the day's checks, so an error is retried. Three in a row is not a blip: the Day
       // waits for the operator. A deliberate stop always does.
       if (!['idle','error'].includes(s.status) || (s.dayFailures || 0) >= DAY_MAX_FAILURES || this.runs.has(s.id) || s.queue.length) continue
-      try { this.dayRun(s,'sweep') } catch (error) { this.emit('storage-error',error) }
+      try { this.dayRun(s,'sweep') } catch (error) { this.fault(s,error) }
     }
   }
   checkCapacity() {
@@ -677,7 +702,7 @@ class ManagedSessions extends EventEmitter {
       if (!next) { if (s.status === 'queued') { s.status = 'idle'; this.changed(s,true) } ; continue }
       s.queue = s.queue.slice(1)
       try { this.startTurn(s,next) }
-      catch (error) { this.emit('storage-error',error) }
+      catch (error) { this.fault(s,error) }
     }
   }
   send(id, body) {
@@ -692,6 +717,10 @@ class ManagedSessions extends EventEmitter {
     // may proceed.
     const holder = this.holderOf(s)
     const references = resolveReferences(body.references, {target:s, managed:[...this.sessions.values()], external:body.references?.length ? this.externalSessions() : [], transcriptFor})
+    // Admitted (or given a place to wait) before anything is kept: a refused message
+    // leaves no request id and no image files, so retrying it tries again rather than
+    // reading as already sent.
+    if (!this.runs.has(id) && !holder) this.checkCapacity()
     const attachments = hasImages ? this.saveImages(body.images) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
     const queued = {message,attachments,references,...(['day','thread','project'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
@@ -700,7 +729,6 @@ class ManagedSessions extends EventEmitter {
     // agent is free, instead of making the operator retry once it's idle.
     if (this.runs.has(id)) { s.queue = [...s.queue, queued]; this.changed(s,true); return s }
     if (holder) { s.queue = [...s.queue, queued]; s.waitingForRelease = true; this.changed(s,true); return s }
-    this.checkCapacity()
     // Every agent slot is busy: take a place in line and park the payload on the session,
     // the same place a mid-turn message already waits. dispatchNext() starts it when a
     // run ends. Without the queue, checkCapacity above has already thrown.
@@ -710,7 +738,8 @@ class ManagedSessions extends EventEmitter {
       this.changed(s,true)
       return s
     }
-    this.startTurn(s, queued)
+    try { this.startTurn(s, queued) }
+    catch (error) { s.requestIds = s.requestIds.filter(x => x !== rid); this.deleteAttachments(queued); throw error }
     return s
   }
   holderOf(s) {
@@ -728,7 +757,7 @@ class ManagedSessions extends EventEmitter {
       s.waitingForRelease = false
       const next = s.queue[0]
       s.queue = s.queue.slice(1)
-      try { this.startTurn(s, next) } catch (error) { this.emit('storage-error', error) }
+      try { this.startTurn(s, next) } catch (error) { this.fault(s, error) }
     }
   }
   startTurn(s, {message,attachments,references,runPrompt,background}) {
@@ -747,17 +776,20 @@ class ManagedSessions extends EventEmitter {
   saveImages(images) {
     if (!Array.isArray(images) || images.length > MAX_IMAGES) fail(`Attach up to ${MAX_IMAGES} images per message.`)
     const saved = []
-    for (const image of images) {
-      if (!image || typeof image.data !== 'string' || !image.data) fail('An attached image was empty.')
-      let buffer
-      try { buffer = Buffer.from(image.data, 'base64') } catch { fail('An attached image could not be decoded.') }
-      if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
-      const mediaType = sniffImage(buffer)
-      if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
-      const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
-      fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
-      saved.push({ id, mediaType, bytes: buffer.length })
-    }
+    // A bad image further down the list must not leave the earlier ones on disk.
+    try {
+      for (const image of images) {
+        if (!image || typeof image.data !== 'string' || !image.data) fail('An attached image was empty.')
+        let buffer
+        try { buffer = Buffer.from(image.data, 'base64') } catch { fail('An attached image could not be decoded.') }
+        if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
+        const mediaType = sniffImage(buffer)
+        if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
+        const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
+        fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
+        saved.push({ id, mediaType, bytes: buffer.length })
+      }
+    } catch (error) { this.deleteAttachments({ attachments: saved }); throw error }
     return saved
   }
   // Keep the conversation window, and delete the files of any message that fell out.
@@ -970,7 +1002,7 @@ class ManagedSessions extends EventEmitter {
       if (s.kind === 'day') { s.dayFailures = s.status === 'error' ? (s.dayFailures || 0)+1 : 0; if (s.dayBoard) s.dayBoard.focus = null }
       if (s.kind === 'thread' && s.status === 'idle') this.threadSummary(s)
       // An agent the Day launched says how it went, on the item it came from.
-      if (!run.background && ['agent','initiative'].includes(s.kind || 'agent')) { try { this.reportToDay(s) } catch (error) { this.emit('storage-error',error) } }
+      if (!run.background && ['agent','initiative'].includes(s.kind || 'agent')) { try { this.reportToDay(s) } catch (error) { this.fault(s,error) } }
       s.currentTool=null
       this.runs.delete(s.id)
       // A clean finish with something waiting picks it straight back up. A stop already
@@ -984,7 +1016,7 @@ class ManagedSessions extends EventEmitter {
       if (admitted) s.queue = s.queue.slice(1)
       else if (next) s.status='queued'
       try { this.changed(s,true) } catch (error) { this.emit('storage-error',error) }
-      if (admitted) { try { this.startTurn(s,next) } catch (error) { this.emit('storage-error',error) } }
+      if (admitted) { try { this.startTurn(s,next) } catch (error) { this.fault(s,error) } }
       // This session's own follow-up comes first — it is mid-conversation and already
       // holds the slot. Only what is genuinely left over goes to the queue.
       this.dispatchNext()

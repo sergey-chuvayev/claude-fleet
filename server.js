@@ -64,6 +64,8 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
   const listWatch=setInterval(scheduleList,2000)
   listWatch.unref?.()
   manager.on('storage-error',error=>{storageError='Unable to save Fleet conversations. Check disk space and permissions.';console.error(error.message)})
+  // Cleared by a write that lands, not by a page reading the list.
+  manager.on('saved',()=>{storageError=null})
   let theme=readTheme(), themeReadAt=Date.now()
   const currentTheme=()=>{
     if(Date.now()-themeReadAt>30000){theme=readTheme();themeReadAt=Date.now()}

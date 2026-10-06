@@ -349,6 +349,84 @@ test('a comment on a task is logged, reaches the task on Today, and asks the man
   } finally { await manager.close() }
 })
 
+// Every agent busy is a reason the manager cannot start, not a disk failure: the project
+// is kept, the answer says setup did not start, and nothing locks the dashboard's writes.
+test('a project created while every agent is busy is kept, says setup did not start, and sets up when asked later',async()=>{
+  const {createApp}=require('./server')
+  const directory=tmp(),releases=[],calls=[]
+  const manager=new ManagedSessions({directory,queue:false,queryFactory:async args=>{
+    calls.push(args)
+    let release;const finished=new Promise(r=>{release=r});releases.push(release)
+    return {close(){},async *[Symbol.asyncIterator](){
+      yield {type:'system',subtype:'init',session_id:randomUUID(),model:'claude-sonnet'}
+      await Promise.race([finished,new Promise(r=>args.options.abortController.signal.addEventListener('abort',r,{once:true}))])
+      yield {type:'result',result:'Done.',is_error:false}
+    }}
+  }})
+  const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{},total:0,generatedAt:Date.now()})})
+  try{
+    await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(0,'127.0.0.1',resolve)})
+    const base=`http://127.0.0.1:${app.server.address().port}`
+    const config=await (await fetch(base+'/api/control')).json()
+    const post=(url,data)=>fetch(base+url,{method:'POST',headers:{'content-type':'application/json','x-fleet-token':config.token,origin:base},body:JSON.stringify(data)})
+    const busy=Array.from({length:manager.dispatch.limit},()=>manager.create({cwd:directory,prompt:'Busy',requestId:randomUUID()}))
+    await until(()=>manager.runs.size===busy.length)
+    const response=await post('/api/projects',{name:'Live status for calls',note:'Spec is due Tue 6 Oct.',requestId:randomUUID()})
+    assert.equal(response.status,200)
+    const {project}=await response.json()
+    assert.equal(project.setup.started,false)
+    assert.match(project.setup.error,/already running/)
+    assert.equal(manager.projects.get(project.id).name,'Live status for calls','the project is kept')
+    assert.match(manager.projects.get(project.id).log.at(-1).text,/^Setup did not start: .*already running/)
+    assert.equal(manager.managerOf(project.id),null)
+    assert.equal((await (await fetch(base+'/api/control')).json()).storageError,null,'a busy Fleet is not a storage failure')
+    assert.equal((await post('/api/settings/approval-mode',{mode:'auto'})).status,200,'unrelated writes still work')
+    // A slot frees; asking the manager now runs the setup, once.
+    releases[0]()
+    await until(()=>manager.runs.size<busy.length)
+    const asked=await post(`/api/projects/${project.id}/ask`,{message:'Go ahead.',requestId:randomUUID()})
+    assert.equal(asked.status,200)
+    const pms=[...manager.sessions.values()].filter(x=>x.kind==='project' && x.projectId===project.id)
+    assert.equal(pms.length,1)
+    assert.match(calls.at(-1).prompt,/only a title: "Live status for calls"[\s\S]*Go ahead\./,'the first ask is the setup')
+    // A real write failure does latch writes, and only a write that lands clears it.
+    manager.emit('storage-error',Error('Disk full'))
+    assert.match((await (await fetch(base+'/api/control')).json()).storageError,/Unable to save/)
+    assert.match((await (await fetch(base+'/api/sessions')).json()).storageError,/Unable to save/,'reading the list does not clear it')
+    assert.equal((await post('/api/settings/approval-mode',{mode:'ask'})).status,503)
+    assert.equal((await post(`/api/managed/${busy[1].id}/stop`,{})).status,200)
+    assert.equal((await (await fetch(base+'/api/control')).json()).storageError,null,'the stop saved, so storage works again')
+  } finally { releases.forEach(r=>r()); await app.close(); app.server.closeAllConnections() }
+})
+
+// Deliverable ids are slugs of their titles, so the same title in two projects is the
+// same id. Today has to tell them apart by project as well.
+test('the same task title in two projects makes two Today items, each tied to its own project',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const a=make(manager.projects),made=manager.projects.define(manager.projects.create({name:'Another project'}).id,{deliverables:[queue.deliverables[0]]})
+    // Ids are unique now, but one line copied by hand from another project's file still
+    // brings its id: two projects can hold the same deliverable id.
+    await delay(20)
+    fs.writeFileSync(made.file,fs.readFileSync(made.file,'utf8').replace(made.deliverables[0].id,a.deliverables[0].id))
+    const b=manager.projects.get(made.id)
+    assert.equal(a.deliverables[0].id,b.deliverables[0].id,'equal ids in two projects')
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const first=manager.planDeliverable(a.id,a.deliverables[0].id)
+    const second=manager.planDeliverable(b.id,b.deliverables[0].id)
+    assert.equal(second.existing,false,'the other project\'s task is not mistaken for this one')
+    assert.notEqual(second.item.id,first.item.id)
+    assert.equal(second.item.projectId,b.id)
+    assert.equal(manager.planDeliverable(b.id,b.deliverables[0].id).item.id,second.item.id,'a retry of the same pair finds its own item')
+    assert.equal(manager.planDeliverable(a.id,a.deliverables[0].id).item.id,first.item.id)
+    assert.equal(d.dayBoard.items.filter(i=>i.deliverableId===a.deliverables[0].id).length,2)
+    manager.commentOnTask(b.id,{deliverableId:b.deliverables[0].id,message:'Only for B.',requestId:randomUUID()})
+    assert.match(second.item.log.at(-1).text,/Only for B\./,'a comment reaches its own project\'s item')
+    assert.ok(!first.item.log.some(l=>/Only for B/.test(l.text)),'and not the other one')
+  } finally { await manager.close() }
+})
+
 // Deliverable ids. Up to 0.54.0 a deliverable's id was its title cut to a 60-character
 // slug, so these pairs were one deliverable, and a title edited by hand was another.
 const LONG='Make the queue ring every free agent in turn, then the overflow group, then voicemail'
