@@ -1,7 +1,7 @@
 # React migration: performance gates, accessibility and stress results
 
 Work package 5 of `2026-10-06-react-migration-design.md` (sections 9 and 11). Measured on
-2026-10-06 on branch `test/stress-a11y-perf`, legacy `public/` (0.54.0) against the React
+2026-10-06 on branch `test/stress-a11y-perf` merged with `react-migration` at `9949739`, legacy `public/` (0.54.0) against the React
 production build, same machine, browser, fixture and viewport.
 
 ## Setup
@@ -10,7 +10,7 @@ production build, same machine, browser, fixture and viewport.
 | --- | --- |
 | Machine | Apple M4 Pro, 14 cores, 48 GB, macOS 26.6.2 |
 | Runtime | Node v24.13.0, Chromium 145.0.7632.6 headless shell (Playwright 1.58.2) |
-| Commit | `fb73f31` (React build after the fixes below), build id `0.54.0+e23f309cb714` (package version plus the Vite manifest hash, as `server.js` computes it) |
+| Commit | `e6c914d` (the fixes below, merged with `react-migration`), build id `0.54.0+fc5b1a41c7e8` (package version plus the Vite manifest hash, as `server.js` computes it) |
 | Fixture | `conversation-heavy` (164 messages in `c-heavy`, streaming last message, tools, approvals, queued follow-ups), served by `capture.js --serve` |
 | Viewport | 1440x900, scale 1, dark, en-GB, UTC |
 | Runs | per implementation 1 cold start (new browser, empty cache) and 3 warm runs (same context, reloaded); medians reported |
@@ -28,38 +28,39 @@ model, no network.
 
 | Metric | Target (plan) | Legacy 0.54.0 | React build | Verdict |
 | --- | --- | --- | --- | --- |
-| Cold startup to usable conversation | under 1.5 s, at most 10% worse than legacy | 219 ms | 136 ms | pass, 38% faster |
-| Warm startup (reload, cache warm) | same | 194 ms | 87 ms | pass, 55% faster |
+| Cold startup to usable conversation | under 1.5 s, at most 10% worse than legacy | 228 ms | 140 ms | pass, 39% faster |
+| Warm startup (reload, cache warm) | same | 199 ms | 89 ms | pass, 55% faster |
 | p95 input to next paint while streaming (30 keystrokes + 8 session switches) | under 100 ms | 24 ms | 40 ms | pass, see note 1 |
 | of which keystrokes in the composer, p95 | | 16 ms | 24 ms | |
-| of which session switches, p95 | | 40 ms | 48 ms | |
+| of which session switches, p95 | | 24 ms | 48 ms | |
 | Input or focus lost while streaming | none | none | none | pass |
 | Long tasks over 50 ms in 8 s of steady streaming | none repeated | 0 | 0 | pass |
-| Main-thread task time while streaming | | 216 ms/s | 220 ms/s | parity, see note 2 |
+| Main-thread task time while streaming | | 238 ms/s | 230 ms/s | parity, see note 2 |
 | Detail GETs for 80 stream events (8 s) | one in flight per resource, coalesced | 91, about 6.0 KB each (packed) | 91, about 6.0 KB each (packed) | parity, see note 3 |
 | Settled (8 s, no stream): GETs, 304 share | settled resources answer 304 | 4 GETs, 3 of them 304 | 4 GETs, 3 of them 304 | pass |
 | Idle animation-frame callbacks | no rAF polling | 0 per s | 0 per s | pass |
-| Idle main-thread task time | near zero for cosmetic work | 203 ms/s | 181 ms/s | see note 2 |
-| Idle script time | | 1.5 ms/s | 2.4 ms/s | pass |
-| Idle with reduced motion | | 6.8 ms/s | 0.9 ms/s | pass |
-| Initial JS, gzip | at most 250 KiB | 161 KiB (18 scripts, all loaded at start) | 119 KiB (12 chunks) | pass |
+| Idle main-thread task time | near zero for cosmetic work | 228 ms/s | 196 ms/s | see note 2 |
+| Idle script time | | 1.6 ms/s | 2.6 ms/s | pass |
+| Idle with reduced motion | | 7.1 ms/s | 0.8 ms/s | pass |
+| Initial JS, gzip | at most 250 KiB | 161 KiB (18 scripts, all loaded at start) | 119 KiB (14 chunks) | pass |
 | Initial CSS, gzip | | (in `styles.css`) | 9.1 KiB | |
-| Lazy JS, gzip (all other chunks) | | n/a | 139 KiB | |
-| Heap after 100 selection + modal cycles, after GC | within 10% of post-warm-up | +4.2% (7.4 MB) | +7.4% (9.1 MB) | pass |
-| DOM nodes and JS listeners after those 100 cycles | bounded | nodes -143, listeners 0 | nodes 0, listeners 0 | pass |
+| Lazy JS, gzip (all other chunks) | | n/a | 138 KiB | |
+| Heap after 100 selection + modal cycles, after GC | within 10% of post-warm-up | +3.8% (7.4 MB) | +7.4% (9.1 MB) | pass |
+| DOM nodes and JS listeners after those 100 cycles | bounded | nodes -113, listeners 0 | nodes 0, listeners 0 | pass |
 
-Per run (warm startup ms; switch p95 ms): legacy 135, 194, 197; 104, 40, 40. React 61,
-87, 90; 120, 48, 40. The first run of each pays for the first render of `c-error`.
+Per run (warm startup ms; switch p95 ms): legacy 135, 210, 199; 112, 24, 24. React 61,
+91, 89; 112, 48, 40. The first run of each pays for the first render of `c-error`.
+Before the merge (`fb73f31`) the same command gave the same picture within a few ms.
 
 Notes:
 
 1. The React build is slower than legacy on interaction (24 against 16 ms per keystroke,
-   48 against 40 ms per session switch, Event Timing granularity is 8 ms), while every
+   48 against 24 ms per session switch, Event Timing granularity is 8 ms), while every
    value stays under half the target. Not optimized here; the plan says not to trade
    features for it, and nothing here is near the gate.
 2. Idle and streaming main-thread time is dominated by 182 running CSS animations (the
    pixel avatars and status dots), which legacy has too: with reduced motion the idle cost
-   falls to 6.8 ms/s for legacy and 0.9 ms/s for React. Script time is 1.5 to 2.4 ms/s and
+   falls to 7.1 ms/s for legacy and 0.8 ms/s for React. Script time is 1.6 to 2.6 ms/s and
    no animation frame is requested while idle, so there is no JavaScript polling loop.
    Pausing avatars that are off screen would cut this for both; that is a design change
    and is left as a proposal.
