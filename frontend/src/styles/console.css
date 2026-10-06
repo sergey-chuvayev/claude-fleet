@@ -3,7 +3,9 @@
    them. Ported from public/styles.css in the legacy cascade order, keeping only the
    selectors that name console parts. Rules for `.detail:has(#composer) .conversation`
    are already in conversation.css (written against `.conversation`), and the divider
-   (.panel-splitter) is in shell.css. */
+   (.panel-splitter) is in shell.css. The Today and Projects consoles render #composer
+   too, with layouts of their own (today.css, projects.css), so the column layout
+   legacy wrote as `.detail:has(#composer)` is scoped to the Sessions view here. */
 
 .composer textarea, .other-answer input { border:1px solid var(--line); border-radius:var(--radius-md); padding:12px; background:var(--bg); color:var(--text); width:100%; font:inherit; resize:vertical; }
 .composer textarea { min-height:95px; font-size:var(--text-lg); line-height:1.6; }
@@ -24,7 +26,7 @@
 .answer-option small { display:block; font-size:var(--text-sm); color:var(--muted); line-height:1.6; margin-top:3px; }
 .other-answer { display:block; font-size:var(--text-sm); color:var(--muted); margin-top:8px; }
 .other-answer input { margin-top:6px }
-.detail:has(#composer) #detail-content { margin-top:25px; padding-top:22px; border-top:1px solid var(--line); }
+[data-view=sessions] .detail:has(#composer) #detail-content { margin-top:25px; padding-top:22px; border-top:1px solid var(--line); }
 @media(max-width:720px) {
   .composer-footer { flex-wrap:wrap }
   .composer-footer .note { max-width:170px }
@@ -57,17 +59,17 @@
 .close-agent::before { content:""; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:1px; height:16px; background:var(--line); }
 .close-agent:hover { color:var(--text) }
 .close-agent[data-armed="1"] { color:color-mix(in oklab,var(--term-red) 70%,var(--term-fg)); border-color:color-mix(in oklab,var(--term-red) 50%,var(--line)); }
-.detail:has(#composer) { display:flex; flex-direction:column; overflow:hidden; padding:0; }
-.detail:has(#composer) #control-panel { order:0; flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px 0; }
-.detail:has(#composer) .composer, .detail:has(#composer) #approvals, .detail:has(#composer) #agent-error { flex:none; }
-.detail:has(#composer) .composer { margin:10px 0 14px }
-.detail:has(#composer) #approvals { max-height:34vh; overflow:auto }
-.detail:has(#composer) #detail-content { order:2; flex:none; margin:0; padding:0 16px 16px; border:0; }
-.detail:has(#composer) #detail-content[hidden] { display:none!important }
+[data-view=sessions] .detail:has(#composer) { display:flex; flex-direction:column; overflow:hidden; padding:0; }
+[data-view=sessions] .detail:has(#composer) #control-panel { order:0; flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px 0; }
+[data-view=sessions] .detail:has(#composer) .composer, [data-view=sessions] .detail:has(#composer) #approvals, [data-view=sessions] .detail:has(#composer) #agent-error { flex:none; }
+[data-view=sessions] .detail:has(#composer) .composer { margin:10px 0 14px }
+[data-view=sessions] .detail:has(#composer) #approvals { max-height:34vh; overflow:auto }
+[data-view=sessions] .detail:has(#composer) #detail-content { order:2; flex:none; margin:0; padding:0 16px 16px; border:0; }
+[data-view=sessions] .detail:has(#composer) #detail-content[hidden] { display:none!important }
 .context-chip { font-family:var(--mono); font-variant-numeric:tabular-nums }
 .context-chip:empty { display:none }
 @media(max-width:720px) {
-  .detail:has(#composer) { display:block; overflow:visible }
+  [data-view=sessions] .detail:has(#composer) { display:block; overflow:visible }
 }
 .attach-tray { display:flex; gap:10px; flex-wrap:wrap; padding:8px 0 10px; }
 .attach-thumb { position:relative; margin:0; width:112px; font-family:var(--mono); font-size:var(--text-2xs); color:var(--faint); }
@@ -119,35 +121,35 @@
 .reference-note { font-size:var(--text-xs);color:var(--muted) }
 .reference-empty { padding:14px;color:var(--muted);font-size:var(--text-md) }
 .reference-state { font-size:var(--text-xs);color:var(--muted) }
-.detail:has(#composer) #control-panel { padding:14px 16px 0; overflow:hidden }
+[data-view=sessions] .detail:has(#composer) #control-panel { padding:14px 16px 0; overflow:hidden }
 #initiative-board { border:0; border-radius:0; margin:0; background:transparent; min-height:0; flex:0 1 auto; }
 #initiative-board[open] { display:flex; flex-direction:column }
 #initiative-board[open]::details-content { min-height:0; display:flex; flex-direction:column }
 #initiative-board>summary { flex:none; background:transparent; padding:10px 0 }
 #initiative-board .initiative-body { flex:1 1 auto; min-height:0; max-height:none; overflow:auto; padding:10px 0 }
 #initiative-board .initiative-handoff { border-radius:0; background:transparent; border-left:1px solid var(--line) }
-.detail:has(#composer) .composer { display:flex; flex-direction:column; min-height:130px; flex:0 1 auto; margin:0; padding:6px 0 12px; }
+[data-view=sessions] .detail:has(#composer) .composer { display:flex; flex-direction:column; min-height:130px; flex:0 1 auto; margin:0; padding:6px 0 12px; }
 .composer textarea { flex:1 1 0; min-height:50px; border:0; border-radius:0; background:transparent; resize:none; padding:10px 0; }
 .composer textarea:focus { outline:0; box-shadow:inset 2px 0 var(--accent); padding-left:10px }
 .composer-footer { flex:none }
 @media(max-width:720px) {
-  .detail:has(#composer) #control-panel { overflow:visible }
+  [data-view=sessions] .detail:has(#composer) #control-panel { overflow:visible }
   #initiative-board .initiative-body { max-height:32vh }
-  .detail:has(#composer) .composer { height:auto; min-height:170px; border-top:1px solid var(--line) }
+  [data-view=sessions] .detail:has(#composer) .composer { height:auto; min-height:170px; border-top:1px solid var(--line) }
 }
 .model-routing { font-size:var(--text-md);color:var(--muted);margin:0;padding:10px 20px;border-bottom:1px solid var(--line);line-height:1.6;flex:none;overflow-wrap:anywhere }
 .conversation-header { display:flex; flex:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); min-height:var(--panel-head); margin:0; padding:var(--space-3) 0; border:0 }
 .header-title { display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0; min-height:var(--control-sm) }
 .conversation-header h3 { margin:0; font-size:15px; line-height:20px; font-weight:600; letter-spacing:-.2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .header-controls { display:flex; flex:0 1 auto; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0 }
-.detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
-.detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
-.detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
-.detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:0 var(--space-5) var(--space-7); border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
+[data-view=sessions] .detail:has(#composer) { display:grid; grid-template-columns:minmax(0,1fr); padding:0; overflow:hidden }
+[data-view=sessions] .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) 280px }
+[data-view=sessions] .detail:has(#composer) #control-panel { padding:0 28px; min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column }
+[data-view=sessions] .detail:has(#composer) #detail-content { grid-column:2; grid-row:1; padding:0 var(--space-5) var(--space-7); border-left:1px solid var(--divider); overflow:auto; background:var(--pane); min-width:0 }
 .close-agent { font-size:var(--text-sm); padding:0 var(--space-3); color:var(--muted) }
 #composer-hint, #agent-state { font-family:"Avenir Next","Segoe UI",sans-serif }
 #composer-hint { max-width:none }
-.detail:has(#composer) .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+[data-view=sessions] .detail:has(#composer) .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
 .composer:focus-within { border-color:#62626c }
 .composer textarea { padding:2px 0 8px; font-family:inherit; font-size:var(--text-xl); line-height:1.6; color:var(--text) }
 .composer textarea:focus { padding-left:0; box-shadow:none }
@@ -157,16 +159,16 @@
 .composer-footer .button { font-size:var(--text-sm); padding:0 var(--space-3) }
 #initiative-board { border-bottom:1px solid var(--divider); font-size:var(--text-md) }
 @media(min-width:721px) and (max-width:1199px) {
-  .detail:has(#composer) { position:relative }
-  .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) }
-  .detail:has(#composer) #detail-content { position:absolute; top:0; bottom:0; right:0; width:280px; z-index:8; box-shadow:-20px 0 40px #0004 }
-  .detail:has(#composer) #control-panel { padding-inline:20px }
+  [data-view=sessions] .detail:has(#composer) { position:relative }
+  [data-view=sessions] .detail:has(#composer):has(#detail-content:not([hidden])) { grid-template-columns:minmax(0,1fr) }
+  [data-view=sessions] .detail:has(#composer) #detail-content { position:absolute; top:0; bottom:0; right:0; width:280px; z-index:8; box-shadow:-20px 0 40px #0004 }
+  [data-view=sessions] .detail:has(#composer) #control-panel { padding-inline:20px }
 }
 @media(max-width:720px) {
-  .detail:has(#composer), .detail:has(#composer):has(#detail-content:not([hidden])) { display:flex; flex-direction:column; padding:0; overflow:visible }
-  .detail:has(#composer) #control-panel { padding:0 16px; min-height:620px; overflow:visible }
-  .detail:has(#composer) .composer { min-height:125px; margin-bottom:20px; }
-  .detail:has(#composer) #detail-content { border-left:0; border-top:1px solid var(--line); padding:0 var(--space-4) var(--space-6); order:-1; max-height:400px }
+  [data-view=sessions] .detail:has(#composer), [data-view=sessions] .detail:has(#composer):has(#detail-content:not([hidden])) { display:flex; flex-direction:column; padding:0; overflow:visible }
+  [data-view=sessions] .detail:has(#composer) #control-panel { padding:0 16px; min-height:620px; overflow:visible }
+  [data-view=sessions] .detail:has(#composer) .composer { min-height:125px; margin-bottom:20px; }
+  [data-view=sessions] .detail:has(#composer) #detail-content { border-left:0; border-top:1px solid var(--line); padding:0 var(--space-4) var(--space-6); order:-1; max-height:400px }
 }
 .day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
 .day-gate-note[hidden] { display:none }
@@ -174,25 +176,25 @@
   .mode-picker :is(select,.fleet-select) { min-height:var(--touch) }
 }
 #control-panel:empty { display:none }
-.detail:has(#composer) #detail-content .page-head { display:none }
-.detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
-.detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
-.detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
-.detail:has(#composer) .detail-body .facts dd { padding-top:2px }
+[data-view=sessions] .detail:has(#composer) #detail-content .page-head { display:none }
+[data-view=sessions] .detail:has(#composer) #detail-content .page-body { padding:var(--space-3) 0 0 }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts { grid-template-columns:1fr }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts dt { padding-bottom:0; border:0 }
+[data-view=sessions] .detail:has(#composer) .detail-body .facts dd { padding-top:2px }
 .now-line { display:flex; align-items:center; gap:10px; flex:none; margin:8px 0 0; padding:7px 12px; border-radius:var(--radius-lg); background:color-mix(in oklab,var(--busy) 8%,var(--panel)); color:var(--text); font-size:var(--text-md); min-width:0 }
 .now-line[hidden] { display:none }
 .now-line .now-text { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .now-line .now-time { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
 .now-line[data-tone=needs] { background:var(--warn-surface); color:var(--stale) }
 .now-line[data-tone=needs] .pixel-run { color:var(--stale) }
-.detail:has(#composer) .composer { flex:none }
+[data-view=sessions] .detail:has(#composer) .composer { flex:none }
 .composer textarea { flex:1 0 auto; min-height:50px; max-height:40vh; overflow-y:auto }
 .conversation-header h3.is-renameable { cursor:text; border-radius:var(--radius-sm,4px) }
 .conversation-header h3.is-renameable:hover { text-decoration:underline dotted var(--faint); text-underline-offset:4px }
 .rename-input { min-width:0; width:min(420px,100%); height:var(--control-sm); padding:0 8px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg); color:var(--text); font:inherit; font-size:15px; font-weight:600 }
-.detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
-.detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
-.detail:has(#composer) #detail-content { grid-row:1 / -1 }
+[data-view=sessions] .detail:has(#composer):has(#review-panel:not([hidden])) { grid-template-rows:minmax(0,1fr) auto }
+[data-view=sessions] .detail:has(#composer) #review-panel { grid-column:1; grid-row:2; min-width:0 }
+[data-view=sessions] .detail:has(#composer) #detail-content { grid-row:1 / -1 }
 
 /* The approval mode's colour. Legacy marked the <select> itself with data-mode; the
    shared Select takes no data attributes, so the label around it carries the mode. */
@@ -201,5 +203,5 @@
 /* At phone widths the log has a fixed height (conversation.css); its frame, a flex item
    of the control panel here, must take that height instead of shrinking under it. */
 @media(max-width:720px) {
-  .detail:has(#composer) .conversation-frame { flex:none }
+  [data-view=sessions] .detail:has(#composer) .conversation-frame { flex:none }
 }

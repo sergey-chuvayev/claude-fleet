@@ -37,17 +37,20 @@
 @media(max-width:720px) {
   .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
 }
-#control-panel .project-console-head { flex:none; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:14px 28px 10px; min-width:0 }
+/* Scoped to .project-console, so nothing here reaches the Sessions or Today console. */
+.project-console .project-console-head { flex:none; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:14px 28px 10px; min-width:0 }
+.project-console .project-console-head .header-controls { margin-left:auto }
 .project-console-title { color:var(--text); font-size:var(--text-lg); font-weight:600; overflow-wrap:anywhere }
-.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
-#control-panel > .form-error { flex:none; margin:0 28px 8px }
-#control-panel > .conversation-frame { padding:0 28px }
-/* The manager's approvals and the composer under its conversation. */
-.project-console > #approvals { flex:none; padding:0 28px }
-.project-composer { flex:none; margin:0; padding:12px 28px 16px }
-.project-composer textarea { box-sizing:border-box; max-height:30vh; resize:none }
+.project-console .day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
+.project-console > .note { padding:14px 28px }
+.project-console > .conversation-frame { padding:0 28px }
+/* The console tail under the conversation: now-line, queue, error line, approvals, composer. */
+.project-console > :is(.now-line, #queued-messages, #agent-error, #approvals) { flex:none; margin-inline:28px }
+.project-console > #approvals { max-height:34vh; overflow:auto }
+.project-console > .composer { display:flex; flex-direction:column; flex:0 1 auto; min-height:110px; margin:8px 28px 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
 @media(max-width:720px) {
-  #control-panel .project-console-head, .project-console > #approvals, .project-composer { padding-inline:16px }
-  #control-panel > .form-error { margin-inline:16px }
-  #control-panel > .conversation-frame { padding:0 16px }
+  .project-console .project-console-head, .project-console > .note { padding-inline:16px }
+  .project-console > :is(.now-line, #queued-messages, #agent-error, #approvals) { margin-inline:16px }
+  .project-console > .composer { margin-inline:16px; min-height:170px }
+  .project-console > .conversation-frame { padding:0 16px }
 }
