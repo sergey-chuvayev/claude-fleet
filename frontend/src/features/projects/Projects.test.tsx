@@ -318,7 +318,7 @@ describe('Projects pane', () => {
       counts: { busy: 1, idle: 0, stale: 0, dead: 0 },
       total: 1,
     })
-    fleet.set('/api/managed/pm-1', { session: { id: 'pm-1', status: 'running', kind: 'project', messages: [{ id: 'm1', role: 'user', text: 'Set this up', at: 1 }], approvals: [] } })
+    fleet.set('/api/managed/pm-1', { session: { id: 'pm-1', status: 'running', kind: 'project', name: 'Alpha launch', messages: [{ id: 'm1', role: 'user', text: 'Set this up', at: 1 }], approvals: [] } })
     mount(
       <>
         <div id="projects-pane">
