@@ -12,12 +12,11 @@ import type { ProjectId } from '../../domain/ids'
 import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { projectsResource } from '../../transport/resources'
 import { ArchivedProjects } from './ArchivedProjects'
 import { NewProject } from './NewProject'
 import { ProjectPage } from './ProjectPage'
 import { ProjectsMemoryProvider } from './ProjectsContext'
-import { Callout, PageHead } from './pageKit'
+import { Callout, PageHead } from '../../components/ui'
 import { useCurrentProject } from './useCurrentProject'
 import { useRefreshWhileVisible } from './useRefreshWhileVisible'
 import './projects.css'
@@ -40,7 +39,7 @@ function Projects() {
   const sessions = useResource(client.resources.sessions).data?.sessions
   // new: the form is open. closed: the operator cancelled it with no project to go back to.
   const [editing, setEditing] = useState<'new' | 'closed' | null>(null)
-  useRefreshWhileVisible(projectsResource.key, REFRESH_MS)
+  useRefreshWhileVisible(client.resources.projects.key, REFRESH_MS)
 
   // Keep the selection on a project that exists. A fallback (archived, gone) is not a
   // choice, so it is not written back to fleet:project.

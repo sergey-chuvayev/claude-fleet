@@ -14,7 +14,7 @@ import {
 } from '../../transport/contracts'
 import { HttpError } from '../../transport/errors'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { mutationInvalidates, projectsResource } from '../../transport/resources'
+import { mutationInvalidates } from '../../transport/resources'
 import { teamsResource } from '../teams/catalog'
 import { isWorking, localDate, type RowInfo, rowInfo } from './day'
 
@@ -131,7 +131,7 @@ export function useTeams(): readonly Named[] {
 
 /** Active projects, for item tags and the project picker. */
 export function useProjects(): readonly Named[] {
-  const projects = useResource(projectsResource).data
+  const projects = useResource(useFleetClient().resources.projects).data
   return useMemo(() => (projects ? projects.filter(p => !p.archived) : NONE), [projects])
 }
 

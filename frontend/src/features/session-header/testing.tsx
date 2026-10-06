@@ -71,8 +71,6 @@ export const detailOf = (file: { response: { body: unknown } }): DetailBody => b
 
 /** Mount `ui` (the SessionDetail, usually) with `selection` chosen in the Sessions view. */
 export function mountConsole(fleet: ConsoleFleet, ui: ReactElement, selection: Selection | null, storage = new MemoryStorage()) {
-  // The shared plain resources (projects) read the page's own fetch.
-  vi.stubGlobal('fetch', fleet.fetch)
   const harness: Harness = makeHarness(fleet.fetch, storage)
   if (selection) harness.store.dispatch({ type: 'select', selection })
   const view = renderWith(harness, ui)

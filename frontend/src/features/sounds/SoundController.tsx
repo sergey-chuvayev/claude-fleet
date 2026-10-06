@@ -1,7 +1,7 @@
 // Plays the tones for what changed in the session list (agent finished, needs you).
-// Renders nothing. Mounted once, in the always-present top bar (UpdateStatus), because
-// the app shell has no slot for a background controller. The first snapshot only sets
-// the baseline, and the audio unlocks on the first pointer interaction.
+// Renders nothing. Mounted once by the shell (app/background.tsx), so it runs on every
+// view. The first snapshot only sets the baseline, and the audio unlocks on the first
+// pointer interaction.
 import { useEffect, useRef } from 'react'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { type SoundPlayer, type SoundSeen, seenOf, soundFor, sounds } from './sounds'

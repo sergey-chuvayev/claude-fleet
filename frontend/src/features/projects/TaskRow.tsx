@@ -10,10 +10,9 @@ import { useToast } from '../../components/Toast'
 import { Markdown } from '../../components/markdown/Markdown'
 import { type Deliverable, type Project, DELIVERABLE_STATES } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
-import { projectsResource } from '../../transport/resources'
 import { useDraft, useProjectsMemory } from './ProjectsContext'
 import { DAY_STATUS, STATE, STATE_TONE } from './model'
-import { LinkChips, Row } from './pageKit'
+import { LinkChips, Row } from '../../components/ui'
 import { errorMessage, newRequestId, useProjectPost } from './useProjectPost'
 
 const STATE_OPTIONS = DELIVERABLE_STATES.map(value => ({ value, label: STATE[value] ?? value }))
@@ -35,7 +34,7 @@ export function TaskRow({ project, deliverable: d }: { project: Project; deliver
     setPendingState(state)
     try {
       await post(`/api/projects/${project.id}/deliverable`, { deliverableId: d.id, state })
-      await client.store.refresh(projectsResource)
+      await client.store.refresh(client.resources.projects)
     } catch (error) {
       toast(errorMessage(error))
     } finally {
@@ -48,7 +47,7 @@ export function TaskRow({ project, deliverable: d }: { project: Project; deliver
     try {
       const answer = (await post(`/api/projects/${project.id}/today`, { deliverableId: d.id })) as { existing?: boolean }
       toast(answer.existing ? 'Already on today.' : 'On today. The Day agent is preparing a launch brief.')
-      await client.store.refresh(projectsResource)
+      await client.store.refresh(client.resources.projects)
     } catch (error) {
       toast(errorMessage(error))
     } finally {
@@ -129,7 +128,7 @@ function TaskDetail({ project, deliverable: d }: { project: Project; deliverable
       await post(`/api/projects/${project.id}/comment`, { deliverableId: d.id, message, requestId: newRequestId() })
       comment.clear()
       toast('Comment sent. The project manager is updating the task.')
-      await client.store.refresh(projectsResource)
+      await client.store.refresh(client.resources.projects)
     } catch (error) {
       // The text stays, so a refused comment (the agents are busy) can be sent again.
       toast(errorMessage(error))

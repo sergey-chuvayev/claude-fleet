@@ -1,7 +1,7 @@
 // Test support for the modal features (search, connections, settings, update): a fake
 // Fleet answering control and the session list from the fleet-mixed pack, plus
-// per-test routes for the rest. The same handler serves the FleetClient's injected
-// fetch and the page-level fetch the GET helpers use (stubbed on globalThis).
+// per-test routes for the rest, behind the FleetClient's injected fetch, which every
+// read and write goes through.
 import { vi } from 'vitest'
 import controlFixture from '../../test/fixtures/fleet-mixed/get-control.json'
 import sessionsFixture from '../../test/fixtures/fleet-mixed/get-sessions.json'
@@ -70,9 +70,8 @@ export type Fleet = ReturnType<typeof fakeFleet>
 
 let mounted: Harness | null = null
 
-/** Render under the real providers; the page-level fetch is the fake too. */
+/** Render under the real providers over the fake Fleet. */
 export function mount(fleet: Fleet, ui: ReactNode) {
-  vi.stubGlobal('fetch', (url: string, init?: RequestInit) => fleet.fetch(url, init))
   mounted = makeHarness(fleet.fetch)
   return { harness: mounted, ...renderWith(mounted, ui) }
 }

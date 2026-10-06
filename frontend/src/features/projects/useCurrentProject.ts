@@ -4,11 +4,10 @@
 // store's job; the pane keeps it pointing at a project that exists.
 import { useSelection } from '../../app/AppStore'
 import type { Project } from '../../transport/contracts'
-import { useResource } from '../../transport/hooks'
-import { projectsResource } from '../../transport/resources'
+import { useFleetClient, useResource } from '../../transport/hooks'
 
 export function useCurrentProject(): { projects: Project[] | undefined; project: Project | undefined; error: Error | null } {
-  const state = useResource(projectsResource)
+  const state = useResource(useFleetClient().resources.projects)
   const selection = useSelection('projects')
   const projects = state.data
   const wanted = selection?.kind === 'project-manager' ? selection.projectId : null

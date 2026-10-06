@@ -14,7 +14,7 @@ import { Select } from '../../components/Select'
 import { useNow } from '../../components/clock'
 import { type SessionSummary, parseSearchJob } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { errorText, getJson, isNotFound } from '../settings/rest'
+import { errorText, isNotFound } from '../../transport/errors'
 import { SearchResults, type SearchView } from './SearchResults'
 import '../../styles/search.css'
 
@@ -58,7 +58,7 @@ export function useSearch() {
         const abort = new AbortController()
         controller.current = abort
         try {
-          const next = parseSearchJob(await getJson(`/api/search/${encodeURIComponent(id)}`, { signal: abort.signal }))
+          const next = await client.getJson(`/api/search/${encodeURIComponent(id)}`, parseSearchJob, { signal: abort.signal, timeoutMs: 8000 })
           if (mine !== ticket.current || next.id !== id) return
           setJob(next)
           if (next.status === 'thinking') poll(id, mine)
@@ -77,7 +77,7 @@ export function useSearch() {
         }
       }, POLL_MS)
     },
-    [],
+    [client],
   )
 
   const submit = useCallback(

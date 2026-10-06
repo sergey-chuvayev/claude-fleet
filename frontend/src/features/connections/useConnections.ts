@@ -10,9 +10,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOptionalToast } from '../../components/Toast'
 import { type ConnectionResult, parseConnections } from '../../transport/contracts'
-import { HttpError } from '../../transport/errors'
+import { HttpError, errorText } from '../../transport/errors'
 import { useFleetClient } from '../../transport/hooks'
-import { errorText } from '../settings/rest'
 
 export type ConnectionAction = 'check' | 'reconnect' | 'enable' | 'disable' | 'authenticate'
 

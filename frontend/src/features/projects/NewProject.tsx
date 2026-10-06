@@ -12,7 +12,7 @@ import { useFleetClient } from '../../transport/hooks'
 import { ArchivedProjects } from './ArchivedProjects'
 import { useDraft } from './ProjectsContext'
 import { Switcher } from './ProjectPage'
-import { PageHead } from './pageKit'
+import { PageHead } from '../../components/ui'
 import { adoptProject, errorMessage, newRequestId, useProjectPost } from './useProjectPost'
 
 export interface NewProjectProps {

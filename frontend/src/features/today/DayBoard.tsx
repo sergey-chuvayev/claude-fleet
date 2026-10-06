@@ -10,7 +10,7 @@ import { Select } from '../../components/Select'
 import { useNow } from '../../components/clock'
 import { useToast } from '../../components/Toast'
 import type { DayItemId, ManagedId, ProjectId } from '../../domain/ids'
-import { tokens as compactTokens } from '../../domain/format'
+import { clockAt, tokens as compactTokens } from '../../domain/format'
 import type { DayAction, DayItem, DayMode, DayPriority, DaySubagent } from '../../transport/contracts'
 import {
   type LiveContext,
@@ -39,7 +39,8 @@ import {
   workingLine,
 } from './day'
 import { DayNeed } from './DayNeed'
-import { Bar, DayLinks, Group, List, Log, PageHead, Pill, Ring, Row, Section, Stat } from './ui'
+import { Bar, Group, List, Log, PageHead, Pill, Ring, Row, Section, Stat } from '../../components/ui'
+import { DayLinks } from './ui'
 import {
   type Named,
   type TodayRows,
@@ -436,7 +437,7 @@ function TodayRow({ item, live, open, flash, onOpenChange, parts }: TodayRowProp
       <ThreadGist item={item} />
       <Context item={item} />
       <DayLinks links={item.links} />
-      <Log entries={item.log.slice(-6)} />
+      <Log entries={item.log.slice(-6).map(entry => [clockAt(entry.at), entry.text] as const)} />
       <AskBox item={item} act={act} />
       <div className="ui-actions">
         <Select value={item.mode} options={MODE_OPTIONS} onChange={mode => void change({ mode }, 'Updated')} label="How" disabled={busy} />
@@ -466,7 +467,9 @@ function TodayRow({ item, live, open, flash, onOpenChange, parts }: TodayRowProp
   )
   return (
     <Row
-      itemId={item.id}
+      card={item.id}
+      evidence={item.id}
+      lazy
       tone={rowTone(item, live)}
       orbTitle={rowOrbTitle(item, live)}
       title={item.title}
@@ -618,7 +621,7 @@ function RestRow({ item, done, parts }: { item: DayItem; done: boolean; parts: B
   }
   return (
     <Row
-      itemId={item.id}
+      card={item.id}
       tone={done ? 'done' : 'todo'}
       orbTitle={done ? 'Done' : 'Later'}
       title={item.title}
