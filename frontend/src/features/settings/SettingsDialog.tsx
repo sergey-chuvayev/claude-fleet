@@ -1,9 +1,15 @@
-// Placeholder (shell slot): the Settings dialog. Replace this file with the settings
-// feature; the head below is the legacy one. Clear any password field on close.
+// The Settings dialog (F23): how Fleet runs. The agent queue and approval default, the
+// background service, notifications and sounds, and the AI Gateway key. Each section
+// owns its own requests; closing the dialog unmounts them all, which drops late answers
+// and clears the gateway key field.
 import type { ModalProps } from '../../app/modals'
 import { MODAL_IDS } from '../../app/modals'
-import { Dialog, DialogHead } from '../../components/Dialog'
-import { EmptyState } from '../../components/EmptyState'
+import { Dialog, DialogFoot, DialogHead } from '../../components/Dialog'
+import '../../styles/settings.css'
+import { AgentsSection } from './AgentsSection'
+import { GatewaySection } from './GatewaySection'
+import { NotificationsSection } from './NotificationsSection'
+import { StartupSection } from './StartupSection'
 
 export function SettingsDialog({ onClose }: ModalProps<'settings'>) {
   return (
@@ -17,8 +23,17 @@ export function SettingsDialog({ onClose }: ModalProps<'settings'>) {
         closeLabel="Close settings"
       />
       <div className="modal-body">
-        <EmptyState title="Settings are on their way." text="The queue, startup and gateway settings will appear here." />
+        <AgentsSection />
+        <StartupSection />
+        <NotificationsSection />
+        <GatewaySection />
       </div>
+      <DialogFoot>
+        <span>No restart needed.</span>
+        <span>
+          <kbd>Esc</kbd> close
+        </span>
+      </DialogFoot>
     </Dialog>
   )
 }

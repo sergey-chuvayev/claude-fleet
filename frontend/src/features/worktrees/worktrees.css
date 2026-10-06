@@ -1,0 +1,22 @@
+/* ── Worktrees ────────────────────────────────────────────────────────────── */
+.worktrees-pane { display:flex; flex-direction:column }
+.worktrees-pane .page-body { max-width:960px }
+.worktrees-pane .ui-row-meta a { color:inherit }
+.worktrees-pane .ui-row-meta a:hover { color:var(--accent) }
+.worktrees-pane .ui-empty { margin:0; padding:12px 0 }
+.worktrees-pane .ui-empty h3 { font-size:var(--text-md) }
+/* A merged branch is the row you act on: keep its name readable instead of struck through. */
+.worktrees-pane .ui-row[data-tone=done] .ui-row-title { color:var(--text); text-decoration:none }
+.worktrees-pane .page-body>.note { margin:var(--space-4) 0 0 }
+.worktree-detail .note { margin:0 0 6px }
+.worktree-detail code, .worktree-plan code, .worktree-lead code { font-size:var(--text-sm); overflow-wrap:anywhere }
+.worktree-why, .worktree-sessions { margin:0 0 10px; padding-left:18px; color:var(--muted); font-size:var(--text-md); line-height:1.7 }
+.worktree-sessions { list-style:none; padding-left:0 }
+.modal-worktree { width:min(620px, calc(100vw - 32px)) }
+.modal-worktree .modal-body { padding:0 32px 28px }
+.worktree-lead { margin:0 0 18px; color:var(--muted); font-size:var(--text-md); line-height:1.6 }
+.worktree-plan { display:grid; gap:10px; margin:0 0 18px; padding:0; list-style:none; font-size:var(--text-md); line-height:1.5 }
+.worktree-plan li { display:grid; gap:2px; min-width:0 }
+.worktree-plan small { color:var(--faint); font-size:var(--text-sm); line-height:1.5 }
+.worktree-actions { display:flex; justify-content:flex-end; gap:var(--space-3); margin-top:20px }
+@media(max-width:640px) { .modal-worktree .modal-body { padding:0 20px 20px } }

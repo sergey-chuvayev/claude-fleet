@@ -1,7 +1,15 @@
 // Resource keys, resource factories and the invalidation map in one place, so the
 // question "what refetches when X happens" has one answer (plan section 7).
 import { type FetchLike, conditionalGet } from './conditional'
-import { ProtocolError } from './errors'
+import {
+  type ProgressReport,
+  type Project,
+  type WorktreeReport,
+  parseProgress,
+  parseProjects,
+  parseWorktrees,
+} from './contracts'
+import { ProtocolError, httpErrorFrom, withTimeout } from './errors'
 import type { Resource } from './store'
 
 /** Every key the app uses. Keys qualify entities by kind (and engine for external transcripts). */
@@ -89,3 +97,86 @@ export function resourceFamily<A extends readonly unknown[], T>(
     return resource
   }
 }
+
+// ── Plain JSON resources: projects, progress, worktrees ─────────────────────
+// These routes answer without an ETag, so they are fetched plainly. The transport
+// client keeps its fetch private, so these use the page's own: main.tsx hands the
+// client `window.fetch` too. Looked up per call, so a test can replace it.
+// TODO(transport owner): expose these on FleetClient.resources and drop browserFetch.
+const browserFetch: FetchLike = (input, init) => globalThis.fetch(input, init)
+const READ_TIMEOUT_MS = 15_000
+
+export interface PlainResourceSpec<T> {
+  readonly key: string
+  readonly url: string
+  readonly parse: (raw: unknown) => T
+  /** Keep the held object when a refetch changed nothing, so idle polling re-renders nothing. */
+  readonly equal?: (a: T, b: T) => boolean
+}
+
+export function plainResource<T>(fetch: FetchLike, spec: PlainResourceSpec<T>): Resource<T> {
+  return {
+    key: spec.key,
+    async load({ signal, current }) {
+      const timed = withTimeout(signal, READ_TIMEOUT_MS)
+      try {
+        const response = await fetch(spec.url, { cache: 'no-store', signal: timed.signal })
+        if (!response.ok) throw await httpErrorFrom(response)
+        let raw: unknown
+        try {
+          raw = await response.json()
+        } catch {
+          throw new ProtocolError(`Fleet sent an unreadable answer for ${spec.url}.`)
+        }
+        const data = spec.parse(raw)
+        return { data: current !== undefined && spec.equal?.(current, data) ? current : data }
+      } finally {
+        timed.done()
+      }
+    },
+  }
+}
+
+const sameJson = <T,>(a: T, b: T): boolean => JSON.stringify(a) === JSON.stringify(b)
+
+/** A value with the moment it was read, for views that refresh when older than a window. */
+export interface Fetched<T> {
+  readonly value: T
+  readonly fetchedAt: number
+}
+const stamped =
+  <T,>(parse: (raw: unknown) => T) =>
+  (raw: unknown): Fetched<T> => ({ value: parse(raw), fetchedAt: Date.now() })
+
+export const archivedProjectsKey = 'projects:archived'
+export const worktreesKey = 'worktrees'
+
+/** Active projects. Refetched on the `projects` event and every few seconds while Projects is open. */
+export const projectsResource: Resource<Project[]> = plainResource(browserFetch, {
+  key: keys.projects,
+  url: '/api/projects',
+  parse: parseProjects,
+  equal: sameJson,
+})
+/** Active and archived projects together (the route's `archived=1`); filter on `archived`. */
+export const archivedProjectsResource: Resource<Project[]> = plainResource(browserFetch, {
+  key: archivedProjectsKey,
+  url: '/api/projects?archived=1',
+  parse: parseProjects,
+  equal: sameJson,
+})
+export const progressResource: Resource<Fetched<ProgressReport>> = plainResource(browserFetch, {
+  key: keys.progress,
+  url: '/api/progress',
+  parse: stamped(parseProgress),
+})
+export const worktreesResource: Resource<Fetched<WorktreeReport>> = plainResource(browserFetch, {
+  key: worktreesKey,
+  url: '/api/worktrees',
+  parse: stamped(parseWorktrees),
+})
+
+/** What a project mutation (create, archive, restore, deliverable, ask, comment) makes out of date. */
+export const projectMutationInvalidates = (): string[] => [keys.projects, archivedProjectsKey, keys.sessions]
+/** Clearing a worktree changes the checkout list. */
+export const worktreeMutationInvalidates = (): string[] => [worktreesKey]
