@@ -5,7 +5,7 @@ const os=require('node:os')
 const {randomUUID}=require('node:crypto')
 const {spawn}=require('node:child_process')
 const {defaultCwd}=require('./paths')
-const fail=(message,status=400)=>Object.assign(new Error(message),{status})
+const fail=(message,status=400,code)=>Object.assign(new Error(message),{status,...(code?{code}:{})})
 const STATES=new Set(['connected','failed','needs-auth','pending','disabled'])
 // Deliberately do not expose config, stderr, or raw errors: MCP transports can
 // include bearer headers, environment variables and credential-bearing URLs.
@@ -54,7 +54,7 @@ class Connections {
     this.probe.timer=setTimeout(()=>this.dispose(),this.idleMs);this.probe.timer.unref?.()
   }
   async target(data) {
-    if(this.closed)throw fail('Fleet is shutting down.',503)
+    if(this.closed)throw fail('Fleet is shutting down.',503,'SHUTTING_DOWN')
     const session=data.sessionId ? this.manager.get(data.sessionId) : null
     const run=session && this.manager.runs.get(session.id)
     if(run && (!run.query || run.stopping || run.finished))throw fail('The agent is starting or stopping. Try again in a moment.',409)
@@ -86,7 +86,7 @@ class Connections {
     return {query:this.probe.query,cwd,source:'project',connectionId:this.probe.id}
   }
   async request(data={}) {
-    if(this.busy)throw fail('Another connection check is in progress. Try again shortly.',409)
+    if(this.busy)throw fail('Another connection check is in progress. Try again shortly.',409,'CAPACITY')
     if(!['check','reconnect','enable','disable','authenticate'].includes(data.action || 'check'))throw fail('Unknown connection action.')
     this.busy=true;this.deadline=Date.now()+this.timeoutMs
     try {
