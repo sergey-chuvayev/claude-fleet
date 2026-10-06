@@ -113,6 +113,34 @@ describe('AppShell', () => {
     expect(document.getElementById('details-toggle')?.hidden).toBe(true)
   })
 
+  it('makes Progress a view of its own, and keeps aria-pressed on exactly the current tab through every switch', async () => {
+    const storage = new MemoryStorage()
+    boot(fixtureFetch(), storage)
+    const workspace = document.querySelector('.workspace')!
+    const nav = screen.getByRole('navigation', { name: 'Fleet view' })
+    const pressed = () => within(nav).getAllByRole('button').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.id)
+    expect(within(nav).getAllByRole('button').map(b => b.id)).toEqual(['view-today', 'view-projects', 'view-sessions', 'view-progress', 'view-worktrees'])
+    expect(pressed()).toEqual(['view-sessions'])
+
+    const press = (name: string) => fireEvent.click(within(nav).getByRole('button', { name: new RegExp(`^${name}`) }))
+
+    press('Progress')
+    await waitFor(() => expect(document.getElementById('progress-pane')).toBeTruthy())
+    expect(workspace.getAttribute('data-view')).toBe('progress')
+    expect(pressed()).toEqual(['view-progress'])
+    expect(storage.getItem('fleet:view')).toBe('progress')
+    // Its own pane, not the Sessions one, and no inspector beside it.
+    expect(document.getElementById('sessions-pane')).toBeNull()
+    expect(document.getElementById('detail')).toBeNull()
+
+    for (const [name, view] of [['Today', 'today'], ['Progress', 'progress'], ['Projects', 'projects'], ['Sessions', 'sessions'], ['Progress', 'progress']] as const) {
+      press(name)
+      await waitFor(() => expect(workspace.getAttribute('data-view')).toBe(view))
+      expect(pressed()).toEqual([`view-${view}`])
+    }
+    expect(document.getElementById('progress-pane')).toBeTruthy()
+  })
+
   it('opens Search with Cmd+K and New agent with Ctrl+N, one layer at a time, and returns focus on close', async () => {
     boot(fixtureFetch())
     const search = screen.getByRole('button', { name: /Search/ })

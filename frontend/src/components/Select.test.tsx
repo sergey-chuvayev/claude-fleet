@@ -139,6 +139,42 @@ describe('Select', () => {
   })
 })
 
+describe('Select closes on scroll only when the trigger moves', () => {
+  const setup = () => {
+    render(
+      <div>
+        <div data-testid="panel">
+          <Controlled />
+        </div>
+        <div data-testid="elsewhere">a console log following a stream</div>
+      </div>,
+    )
+    fireEvent.click(trigger())
+    expect(trigger().getAttribute('aria-expanded')).toBe('true')
+  }
+
+  it('stays open when something that does not hold the trigger scrolls', () => {
+    setup()
+    fireEvent.scroll(screen.getByTestId('elsewhere'))
+    expect(trigger().getAttribute('aria-expanded')).toBe('true')
+    // Nor does the menu scrolling itself.
+    fireEvent.scroll(menu())
+    expect(trigger().getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('closes when a panel holding the trigger scrolls', () => {
+    setup()
+    fireEvent.scroll(screen.getByTestId('panel'))
+    expect(trigger().getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('closes when the page scrolls', () => {
+    setup()
+    fireEvent.scroll(document)
+    expect(trigger().getAttribute('aria-expanded')).toBe('false')
+  })
+})
+
 describe('select helpers (as select.js)', () => {
   it('match cycles through labels starting with the typed text', () => {
     const labels = ['Opus', 'Sonnet', 'Haiku', 'Opus 4']
