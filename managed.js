@@ -576,7 +576,7 @@ class ManagedSessions extends EventEmitter {
     const short = comment.replace(/\s+/g,' ').slice(0, 600)
     this.projects.note(p.id, `Comment on "${d.title}": ${short}`)
     const today = this.todayDay()
-    const item = today?.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    const item = today?.dayBoard.items.find(i => i.projectId === p.id && i.deliverableId === d.id && !['done','dropped'].includes(i.status))
     if (item) { try { day.act(today,{action:'update',itemId:item.id,note:`You commented on the project task: ${short}`},'operator'); this.changed(today,true) } catch {} }
     const pm = this.askProject(p.id,{message:`On "${d.title}": ${comment}`,runPrompt:projectAgent.COMMENT(d, comment),requestId:body.requestId})
     this.emit('change','projects')
@@ -611,7 +611,9 @@ class ManagedSessions extends EventEmitter {
     if (!d) fail('That deliverable is not in this project.')
     const today = this.todayDay()
     if (!today) fail('Start your day on the Today tab first, then add this to it.',409)
-    const existing = today.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    // A deliverable's id is its title's slug, so two projects can share one: only the
+    // pair names a task.
+    const existing = today.dayBoard.items.find(i => i.projectId === p.id && i.deliverableId === d.id && !['done','dropped'].includes(i.status))
     if (existing) return {item:existing,existing:true}
     // The task's own links travel with it. The Day does not fold a project task into
     // another item that shares a link (see day.add); the project's general links stay

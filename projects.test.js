@@ -377,3 +377,26 @@ test('a project created while every agent is busy is kept, says setup did not st
     assert.equal((await (await fetch(base+'/api/control')).json()).storageError,null,'the stop saved, so storage works again')
   } finally { releases.forEach(r=>r()); await app.close(); app.server.closeAllConnections() }
 })
+
+// Deliverable ids are slugs of their titles, so the same title in two projects is the
+// same id. Today has to tell them apart by project as well.
+test('the same task title in two projects makes two Today items, each tied to its own project',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const a=make(manager.projects),b=manager.projects.define(manager.projects.create({name:'Another project'}).id,{deliverables:[queue.deliverables[0]]})
+    assert.equal(a.deliverables[0].id,b.deliverables[0].id,'equal titles, equal ids')
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const first=manager.planDeliverable(a.id,a.deliverables[0].id)
+    const second=manager.planDeliverable(b.id,b.deliverables[0].id)
+    assert.equal(second.existing,false,'the other project\'s task is not mistaken for this one')
+    assert.notEqual(second.item.id,first.item.id)
+    assert.equal(second.item.projectId,b.id)
+    assert.equal(manager.planDeliverable(b.id,b.deliverables[0].id).item.id,second.item.id,'a retry of the same pair finds its own item')
+    assert.equal(manager.planDeliverable(a.id,a.deliverables[0].id).item.id,first.item.id)
+    assert.equal(d.dayBoard.items.filter(i=>i.deliverableId===a.deliverables[0].id).length,2)
+    manager.commentOnTask(b.id,{deliverableId:b.deliverables[0].id,message:'Only for B.',requestId:randomUUID()})
+    assert.match(second.item.log.at(-1).text,/Only for B\./,'a comment reaches its own project\'s item')
+    assert.ok(!first.item.log.some(l=>/Only for B/.test(l.text)),'and not the other one')
+  } finally { await manager.close() }
+})
