@@ -64,7 +64,8 @@ function sniffImage(buffer) {
 // A delegation can run a sub-agent through an unbounded number of tool calls; capped here
 // so a long-running one cannot grow the session file without limit.
 const MAX_DELEGATION_STEPS = 200
-function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error }
+// `code` is the machine-readable reason the HTTP layer reports; without one it derives a default from the status.
+function fail(message, status = 400, code) { const error = new Error(message); error.status = status; if (code) error.code = code; throw error }
 function text(value, name, max) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) fail(`${name} must contain 1–${max} characters.`)
   return value.trim()
@@ -274,8 +275,8 @@ class ManagedSessions extends EventEmitter {
     const rid = requestId(body.requestId)
     const previous = [...this.sessions.values()].find(s => s.createRequestId === rid)
     if (previous) return previous
-    if (this.closed) fail('Fleet is shutting down.',503)
-    if (this.sessions.size >= 100) fail('Fleet has reached its 100-session limit.',409)
+    if (this.closed) fail('Fleet is shutting down.',503,'SHUTTING_DOWN')
+    if (this.sessions.size >= 100) fail('Fleet has reached its 100-session limit.',409,'CAPACITY')
     // A Day is not about a project, but its directory decides which project-scoped
     // connectors it can reach, so it stays where the operator's last Day ran.
     if (body.kind === 'day' && !body.cwd) body = {...body,cwd:process.env.CLAUDE_FLEET_DAY_CWD || [...this.sessions.values()].filter(s => s.kind === 'day').sort((a,b) => b.createdAt-a.createdAt)[0]?.cwd || defaultCwd()}
@@ -297,13 +298,13 @@ class ManagedSessions extends EventEmitter {
     // agents; teams, Days and project managers are built on Claude's own features.
     const engine = body.engine === 'codex' ? 'codex' : 'claude'
     if (engine === 'codex') {
-      if (!this.codex.available()) fail('Codex is not installed on this machine. Install it with npm install -g @openai/codex, then sign in with codex login.',409)
-      if (body.teamId) fail('Teams run on Claude. Start a Codex agent without a team.',409)
+      if (!this.codex.available()) fail('Codex is not installed on this machine. Install it with npm install -g @openai/codex, then sign in with codex login.',409,'UNSUPPORTED_ENGINE')
+      if (body.teamId) fail('Teams run on Claude. Start a Codex agent without a team.',409,'UNSUPPORTED_ENGINE')
     }
     if (body.resumeSessionId && engine === 'codex') {
       const source = this.codex.sessions().find(x => x.sessionId === body.resumeSessionId)
       if (!source) fail('That Codex session is not on this machine.',409)
-      if (source.alive) fail('Codex is still working on that session. Continue it here once it finishes.',409)
+      if (source.alive) fail('Codex is still working on that session. Continue it here once it finishes.',409,'UNSUPPORTED_ENGINE')
       const real = dir => { try { return fs.realpathSync(dir) } catch { return dir } }
       if (real(source.cwd || '') !== cwd) fail('That session is not in this project.',409)
       if ([...this.sessions.values()].some(x => x.sessionId === source.sessionId)) fail('This conversation is already managed by Fleet.',409)
@@ -683,11 +684,11 @@ class ManagedSessions extends EventEmitter {
     }
   }
   checkCapacity() {
-    if (this.closed) fail('Fleet is shutting down.',503)
+    if (this.closed) fail('Fleet is shutting down.',503,'SHUTTING_DOWN')
     // With the queue on, being over the limit is a reason to wait, not to refuse, so
     // the limit is enforced by admit() below instead of by this throw.
     if (this.queueing) return
-    if (this.runs.size >= this.dispatch.limit) fail(`${this.dispatch.limit} agents are already running. Stop one or wait for it to finish.`,409)
+    if (this.runs.size >= this.dispatch.limit) fail(`${this.dispatch.limit} agents are already running. Stop one or wait for it to finish.`,409,'CAPACITY')
   }
   // Hand the slot a finished run just freed to whoever has waited longest. Loops
   // because a waiting session can have gone away, or had its queue emptied by a stop,
@@ -787,7 +788,7 @@ class ManagedSessions extends EventEmitter {
         if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
         const mediaType = sniffImage(buffer)
         if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
-        if (engine === 'codex' && !CODEX_IMAGE_TYPES.has(mediaType)) fail('Codex agents take PNG, JPEG and WebP images. Convert the GIF first.')
+        if (engine === 'codex' && !CODEX_IMAGE_TYPES.has(mediaType)) fail('Codex agents take PNG, JPEG and WebP images. Convert the GIF first.',400,'UNSUPPORTED_ENGINE')
         const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
         fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
         saved.push({ id, mediaType, bytes: buffer.length })
@@ -1276,7 +1277,7 @@ class ManagedSessions extends EventEmitter {
   decide(id,approvalId,body) {
     this.get(id)
     const pending=this.pending.get(approvalId)
-    if (!pending || pending.sessionId!==id) fail('This approval is no longer pending.',409)
+    if (!pending || pending.sessionId!==id) fail('This approval is no longer pending.',409,'STALE_APPROVAL')
     if (!['allow','deny'].includes(body.decision)) fail('Choose allow or deny.')
     if (body.decision==='deny') pending.finish({behavior:'deny',message:typeof body.reason==='string' && body.reason.trim() ? body.reason.slice(0,2000) : 'The user declined this action.'})
     else {

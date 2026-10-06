@@ -318,7 +318,7 @@ function parseAnswer(value) {
   return { answer: data.answer.trim().slice(0, 1500), matches }
 }
 
-function fail(message, status = 400) { const error = new Error(message); error.status = status; throw error }
+function fail(message, status = 400, code) { const error = new Error(message); error.status = status; if (code) error.code = code; throw error }
 
 class SearchJobs {
   constructor({ queryFactory, model = process.env.CLAUDE_FLEET_SEARCH_MODEL || 'haiku', getCorpus = corpus } = {}) {

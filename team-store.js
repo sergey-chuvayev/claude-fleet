@@ -5,7 +5,7 @@ const { randomUUID } = require('node:crypto')
 const { TEAMS, boundedModel, roleLimits } = require('./teams')
 
 const TOOL_OPTIONS = ['Read','Glob','Grep','Bash','Write','Edit','MultiEdit','NotebookEdit','WebSearch','WebFetch']
-const bad = message => { throw Object.assign(new Error(message), {status:400}) }
+const bad = message => { throw Object.assign(new Error(message), {status:400, code:'VALIDATION'}) }
 function string(value, label, max) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) bad(`${label} must contain 1–${max} characters.`)
   return value.trim()

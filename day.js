@@ -9,7 +9,9 @@
 // An item never blocks the day. When the agent needs the operator it records a `need`
 // on that item and moves on; answering it hands the item back.
 const {randomUUID}=require('node:crypto')
-const fail=message=>{throw new Error(message)}
+// Day validation is operator or agent input: a 400 the HTTP layer reports as VALIDATION. Limits are
+// a 409 CAPACITY, a missing item or question a 404.
+const fail=(message,status=400,code)=>{throw Object.assign(new Error(message),{status,code:code || (status===404 ? 'NOT_FOUND' : status===409 ? 'CONFLICT' : 'VALIDATION')})}
 const SOURCES=['slack','linear','granola','github','calendar','me']
 const PRIORITIES=['must','should','could']
 const STATUSES=['proposed','today','in_progress','waiting_on_you','done','later','dropped']
@@ -22,7 +24,7 @@ const DECISIONS=['approve','reject','edit','reply','choose','info']
 const MAX_ITEMS=200,MAX_NEEDS=20,MAX_LOG=50,MAX_LINKS=20
 const dateOf=(at=Date.now())=>{const d=new Date(at);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function ledger(s) {return s.dayBoard ||= {date:dateOf(),items:[],cursors:{}}}
-function itemFor(s,id) {const item=ledger(s).items.find(i=>i.id===id);if(!item)fail('Item not found. Read the Day board.');return item}
+function itemFor(s,id) {const item=ledger(s).items.find(i=>i.id===id);if(!item)fail('Item not found. Read the Day board.',404);return item}
 const str=(value,name,max,optional=false)=>{
   if (value===undefined && optional) return undefined
   if (typeof value!=='string' || !value.trim() || value.length>max) fail(`${name} must contain 1-${max} characters.`)
@@ -61,7 +63,7 @@ function add(s,input,by) {
     log(twin,`Merged from ${input.source || 'another source'}: ${String(input.title || '').slice(0,200)}`)
     return {merged:true,item:twin}
   }
-  if (board.items.length>=MAX_ITEMS) fail(`The Day board has reached its ${MAX_ITEMS}-item limit.`)
+  if (board.items.length>=MAX_ITEMS) fail(`The Day board has reached its ${MAX_ITEMS}-item limit.`,409,'CAPACITY')
   const item={id:randomUUID(),title:str(input.title,'Title',200),source:oneOf(input.source,SOURCES,'Source'),links:urls,context:str(input.context,'Context',8000,true) || '',
     priority:oneOf(input.priority ?? 'should',PRIORITIES,'Priority'),
     // The operator's own items are already decided; the agent's are proposals until triaged.
@@ -77,8 +79,8 @@ function minutes(value) {
 }
 function update(s,input,by) {
   const item=itemFor(s,input.itemId),status=oneOf(input.status,STATUSES,'Status',true)
-  if (status==='waiting_on_you' && !open(item).length) fail('Record what you need with ask; an item waits on the operator only for an open question.')
-  if (status==='done' && open(item).some(n=>['approve','launch'].includes(n.kind))) fail('This item has an unanswered approval. It cannot be done before the operator decides.')
+  if (status==='waiting_on_you' && !open(item).length) fail('Record what you need with ask; an item waits on the operator only for an open question.',409)
+  if (status==='done' && open(item).some(n=>['approve','launch'].includes(n.kind))) fail('This item has an unanswered approval. It cannot be done before the operator decides.',409)
   // Triage is the operator's call: the agent proposes, it never promotes its own items.
   if (by==='agent' && item.status==='proposed' && status && !['proposed','dropped'].includes(status)) fail('Proposed items are triaged by the operator. Use ask if you need a decision.')
   if (input.title!==undefined) item.title=str(input.title,'Title',200)
@@ -94,7 +96,7 @@ function update(s,input,by) {
 }
 function ask(s,input,ctx={}) {
   const item=itemFor(s,input.itemId),kind=oneOf(input.kind,NEED_KINDS,'Kind')
-  if (open(item).length>=MAX_NEEDS) fail('This item already has too many open questions. Wait for answers.')
+  if (open(item).length>=MAX_NEEDS) fail('This item already has too many open questions. Wait for answers.',409,'CAPACITY')
   const options=input.options===undefined ? undefined : input.options
   if (kind==='choose' && (!Array.isArray(options) || options.length<2 || options.length>6 || options.some(o=>typeof o!=='string' || !o.trim() || o.length>200))) fail('A choice needs 2-6 options.')
   // An approval is only meaningful if the operator sees exactly what will go out.
@@ -117,8 +119,8 @@ function ask(s,input,ctx={}) {
 // item for any kind of question: "not yet, ask Thomas first".
 function answer(s,itemId,needId,value,decision) {
   const item=itemFor(s,itemId),need=item.needs.find(n=>n.id===needId)
-  if (!need) fail('Question not found.')
-  if (need.answer!==undefined) fail('This question is already answered.')
+  if (!need) fail('Question not found.',404)
+  if (need.answer!==undefined) fail('This question is already answered.',409)
   const text=str(value,'Answer',16000)
   if (decision!==undefined) oneOf(decision,DECISIONS,'Decision')
   const settled=decision==='reply' ? 'reply'
@@ -138,7 +140,7 @@ function triage(s,itemId,{status,priority,mode,projectId}={}) {
     oneOf(status,['today','later','dropped','proposed','done'],'Triage')
     // Done by hand still respects an approval the agent is waiting on: closing the item
     // would leave a draft approved for nothing, or a question nobody will read.
-    if (status==='done' && open(item).length) fail('Answer the open questions on this item first.')
+    if (status==='done' && open(item).length) fail('Answer the open questions on this item first.',409)
     item.status=status
   }
   if (priority!==undefined) item.priority=oneOf(priority,PRIORITIES,'Priority')
@@ -268,7 +270,7 @@ function threadAct(s,itemId,input) {
   }
   if (input.action==='withdraw') {
     const need=item.needs.find(n=>n.id===input.needId)
-    if (!need || need.answer!==undefined) fail('No open question with that id on this item.')
+    if (!need || need.answer!==undefined) fail('No open question with that id on this item.',404)
     need.answer='withdrawn';need.decision='withdrawn';need.answeredAt=Date.now();need.seen=true
     if (!open(item).length && item.status==='waiting_on_you') item.status='in_progress'
     log(item,`Thread withdrew: ${need.question.slice(0,200)}`)
