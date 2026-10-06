@@ -180,10 +180,9 @@ This section records current routes and return envelopes. “200” is the curre
 | `/api/update` | none | 200 `{update:UpdateStatus}` | answers cache and triggers background check |
 | `/manifest.webmanifest` | none | 200 manifest JSON | dynamic theme colors; no-cache |
 | `/theme.css` | none | 200 generated CSS | no-cache; server refreshes theme reading periodically |
-| `/`, `/index.html` | none | 200 HTML | explicit static allowlist; no-cache |
-| `/styles.css`, `/vendor/libs.js` | none | 200 CSS/JS | explicit static allowlist; no-cache |
-| `/app.js`, `/select.js`, `/review.js`, `/ui.js`, `/sync.js`, `/control.js`, `/blocks.js`, `/ask.js`, `/teams.js`, `/day.js`, `/sounds.js`, `/projects.js`, `/progress.js`, `/worktrees.js`, `/views.js`, `/connections.js`, `/settings.js` | none | 200 JavaScript | legacy production entries removed together at cutover |
-| `/icons/fleet-192.png`, `/icons/fleet-512.png` | none | 200 PNG | preserve installed-app identity |
+| `/`, `/index.html` | none | 200 HTML | `dist/index.html`, read once at startup; no-cache; 503 with build instructions when no build was loaded (package 6) |
+| `/assets/<name>-<hash>.<ext>` | none | 200 JS/CSS/asset | only files the loaded Vite manifest lists; immutable; anything else under any path is a JSON 404 (package 6) |
+| `/icons/fleet-192.png`, `/icons/fleet-512.png` | none | 200 PNG | preserve installed-app identity; served from `dist/icons` (source `frontend/public/icons`) |
 
 ### POST routes
 

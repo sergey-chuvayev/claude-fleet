@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/icons/fleet-512.png" width="88" alt="">
+<img src="frontend/public/icons/fleet-512.png" width="88" alt="">
 
 # Claude Fleet
 
@@ -90,8 +90,11 @@ npm install
 ./start.sh
 ```
 
-`start.sh` is the same entry point as the installed `claude-fleet` command, so
-both prefer the `claude` already on your PATH over the one bundled with the SDK.
+`start.sh` builds the web app into `dist/` (`npm run build:frontend`, about a second)
+and then runs the same entry point as the installed `claude-fleet` command, so both
+prefer the `claude` already on your PATH over the one bundled with the SDK. Running
+`node bin/claude-fleet.js` directly needs that build first; without it Fleet stops at
+startup and says so.
 
 </details>
 
@@ -235,7 +238,7 @@ collapsed.
 Tool blocks are rendered per tool: a shell command as a prompt line, an edit as a
 diff, a to-do list as a checklist, everything else as its input. Assistant text is
 Markdown with syntax-highlighted code. Markdown, sanitising and highlighting come
-from `marked`, `DOMPurify` and `highlight.js`, bundled into `public/vendor/libs.js`
+from `marked`, `DOMPurify` and `highlight.js`, bundled into the web app's build
 and served by Fleet itself. There is no CDN, and the page's content security policy
 still allows scripts only from Fleet.
 
@@ -731,13 +734,14 @@ above); Fleet holds no GitHub credentials of its own and uses your existing `gh`
 
 ## How it is built
 
-Vanilla HTML, CSS and JavaScript over a Node HTTP server, with the official Claude
-Agent SDK for managed runs. Five runtime dependencies, no framework, no build step
-for the app itself.
+A React and TypeScript web app (in [`frontend/`](frontend/README.md), built with Vite
+into `dist/`) over a Node HTTP server, with the official Claude Agent SDK for managed
+runs. The server needs no build step and two runtime dependencies (the SDK and Zod);
+React and the Markdown libraries are bundled into the built page.
 
 | File | Responsibility |
 |---|---|
-| [`server.js`](server.js) | Local HTTP API, event stream, origin and token checks, static assets |
+| [`server.js`](server.js) | Local HTTP API, event stream, origin and token checks, the built web app |
 | [`fleet.js`](fleet.js) | Cached, read-only collection of external Claude sessions |
 | [`archive.js`](archive.js) | Which sessions are put away, the age rule, and its store |
 | [`managed.js`](managed.js) | SDK runs, approvals, tool blocks, persistence, cancellation |
@@ -756,17 +760,13 @@ for the app itself.
 | [`permissions.js`](permissions.js) | The three approval modes and the command list that still stops |
 | [`theme.js`](theme.js) | Reads the local Warp palette and renders it as CSS variables |
 | [`catalog.js`](catalog.js) | Read-only listing of a project's slash commands and skills |
-| `public/app.js` | Dashboard layout, session list, filters, monitoring, resizable panels |
-| `public/blocks.js` | Incremental block rendering, Markdown, highlighting |
-| `public/control.js` | New-agent draft, composer, approvals, streamed updates |
-| `public/review.js` | The inspector's PR panel and the feedback it sends |
-| `public/ask.js` | The Ask panel, its polling, and the result cards |
+| [`frontend/`](frontend/README.md) | The browser app: React views, the transport, styles and their tests |
 | [`paths.js`](paths.js) | Where Fleet's own state lives, and carrying over an old checkout's |
 | [`update.js`](update.js) | The npm version check, its cache, and the self-install |
 | [`open.js`](open.js) | Opens the dashboard as a Chromium app window, falling back across browsers |
 | [`service.js`](service.js) | Start at login: the LaunchAgent, its handover, and restarts under launchd |
 | [`bin/claude-fleet.js`](bin/claude-fleet.js) | The installed command: start, install-app, update, service |
-| `build/` | Vendored browser bundle, icon drawing, macOS launcher |
+| `build/` | Icon drawing and the macOS launcher |
 
 Fleet keeps its own state — conversations, attachments, the archive, the process
 lock — in `~/.claude-fleet`, never in the install directory, which npm replaces on
@@ -798,25 +798,29 @@ preference.
 ### Development
 
 ```bash
-npm test          # node --test across *.test.js
-npm run vendor    # rebuild public/vendor/libs.js after changing its inputs
+npm run build:frontend  # the web app, into dist/ (also run by prepack and start.sh)
+npm run typecheck       # tsc over frontend/
+npm run test:frontend   # Vitest and Testing Library
+npm test                # node --test across *.test.js, including the packed-release test
+npm run dev:frontend    # Vite with hot reload against a running Fleet (frontend/README.md)
 ```
 
 Tests run against a throwaway `CLAUDE_FLEET_HOME` (see `test-setup.js`), so a test
-run never touches your real state.
+run never touches your real state. `package.test.js` packs the release (which builds
+the web app), installs it without devDependencies into a temporary prefix, starts it
+and checks every asset it serves; it skips itself when `npm` is not on the PATH.
+
+`dist/` is generated and ignored by version control. The tarball ships it, built by
+`prepack`, and not the `frontend/` sources. The server reads the build's Vite manifest
+once at startup and serves only `index.html`, the icons and the hashed files that
+manifest lists; anything else is a JSON 404. A running Fleet keeps serving the build it
+started with and holds each file in memory once served, so rebuilding under it does
+not mix two builds into one page. A file it had not served yet before a rebuild
+removed it answers 404 until Fleet restarts.
 
 Releasing is a tag push. `npm version patch && git push --follow-tags` runs the
-suite, checks the tag against `package.json`, and publishes to npm with provenance.
-
-`app.js`, `blocks.js` and `control.js` are classic scripts sharing one global
-scope, so a duplicate top-level `const` across files is a `SyntaxError` that kills
-the page and `node --check` cannot see it. The test suite loads all three in one VM
-context and fails on any such collision. **Run `npm test` after touching a browser
-script.**
-
-Fleet reads `index.html` from disk per request, but its static allowlist is held in
-memory, so an old process will serve a new page whose new assets 404. Restart after
-adding a route.
+typecheck, the build and both test suites, checks the tag against `package.json`,
+and publishes to npm with provenance.
 
 ## License
 

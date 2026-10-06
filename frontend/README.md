@@ -1,7 +1,30 @@
 # Fleet frontend (React + TypeScript)
 
-The browser app that replaces `public/` at cutover. Until then the server still
-serves `public/`; this app runs only under Vite or as a build in `dist/`.
+Fleet's browser app. The server serves its production build from `dist/`; the
+legacy `public/` app was removed at cutover (work package 6).
+
+## Production build and serving
+
+- `npm run build:frontend` writes `dist/` with `dist/.vite/manifest.json`. `dist/` is
+  ignored by version control; `prepack` builds it, so the npm tarball ships `dist/` and
+  not these sources. `start.sh` builds it on every start of a checkout.
+- `server.js` (`loadFrontend`) reads the manifest and `index.html` once at startup and
+  serves only `/`, `/index.html`, the hashed files the manifest lists (`assets/*`,
+  `cache-control: immutable`), `/icons/fleet-192.png` and `/icons/fleet-512.png` (copied
+  from `frontend/public/icons/`), plus the generated `/theme.css` and
+  `/manifest.webmanifest`. Everything else, including dot segments and encoded
+  separators, is a JSON 404.
+- `buildId` in `/api/control` is `<version>+<first 12 hex of sha256(manifest)>`.
+- A process keeps the asset set it loaded and holds each file in memory once served.
+  A rebuild or reinstall under a running server can remove a chunk it never served;
+  that request 404s until the server restarts (the page's build check covers it).
+- Without a build, `node bin/claude-fleet.js` exits at startup and tells you to run
+  `npm run build:frontend`.
+- The CSP stays `script-src 'self'` with no `unsafe-eval`; the built `index.html` has a
+  single module script and no inline script. `package.test.js` (A29) checks all of this
+  against the packed, installed release.
+- A new file in `frontend/public/` is served only if the server gets an exact route for
+  it; hashed assets need nothing beyond being imported.
 
 ## Develop
 
@@ -40,7 +63,7 @@ npm run build:frontend         # dist/ with .vite/manifest.json
 - `src/app/`: the shell and the `fleet:*` preferences adapter.
 - `src/domain/`: ids and pure helpers. `src/components/`: shared primitives
   (the Markdown boundary lives here). `src/features/<area>/`: feature code.
-- `src/styles/tokens.css`: design tokens ported from `public/styles.css`.
+- `src/styles/tokens.css`: design tokens ported from the legacy `public/styles.css`.
 - `src/test/`: fakes (the server's real `sync.js` behind a fake fetch) and fixtures.
 
 ## Plugging a feature into the shell
@@ -73,7 +96,7 @@ replaces its own placeholder file; it does not edit the shell.
   `RelativeTime`/`Elapsed`/`useNow`, `useSeen`. Formatters: `domain/format.ts`.
 - **Styles**: `styles/shell.css` and `styles/components.css` are the legacy rules
   whose selectors name only shell or primitive classes, ported in legacy order.
-  A feature ports its own rules from `public/styles.css` into a stylesheet it
+  A feature ports its own rules from the legacy `public/styles.css` into a stylesheet it
   imports from its component (as `styles/conversation.css` is); those load after
   the shell's, so a legacy rule that sat earlier than a shell rule of equal
   specificity needs a look.
