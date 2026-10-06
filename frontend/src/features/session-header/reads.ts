@@ -1,5 +1,5 @@
-// The console's plain JSON reads: the model catalog and a session's slash commands
-// (the tag picker reads the shared projects resource from transport/resources). They are store resources like everything
+// The console's plain JSON read: a session's slash commands. (The model picker shares
+// the launch dialog's models resource, the tag picker the shared projects resource.) They are store resources like everything
 // else (one in-flight request per key, last good data kept through a failure), made
 // once per client so each key has one Resource object.
 //
@@ -9,7 +9,7 @@
 // configured) instead of the global one, so a fake Fleet sees these requests too.
 import type { FetchLike } from '../../transport/conditional'
 import type { FleetClient } from '../../transport/client'
-import { type Command, type ModelOption, type Project, parseCommands, parseModels } from '../../transport/contracts'
+import { type Command, type Project, parseCommands } from '../../transport/contracts'
 import { ProtocolError, httpErrorFrom, withTimeout } from '../../transport/errors'
 import type { Resource } from '../../transport/store'
 
@@ -49,25 +49,10 @@ function jsonResource<T>(client: FleetClient, key: string, url: string, parse: (
 }
 
 export const commandsKey = (managedId: string) => `commands:${managedId}`
-export const MODELS_KEY = 'models'
-
-/** A session's commands and skills; its catalog depends on the session's directory. */
 export const commandsResource = (client: FleetClient, managedId: string): Resource<readonly Command[]> =>
   jsonResource(client, commandsKey(managedId), `/api/managed/${encodeURIComponent(managedId)}/commands`, parseCommands)
-
-export const modelsResource = (client: FleetClient): Resource<{ models: ModelOption[] }> =>
-  jsonResource(client, MODELS_KEY, '/api/models', parseModels)
 
 /** Id and name of each active project, for the tag picker. */
 export function projectChoices(projects: readonly Project[] | undefined): ReadonlyArray<{ id: string; name: string }> {
   return (projects ?? []).filter(p => !p.archived).map(p => ({ id: p.id, name: p.name }))
 }
-
-/** The model choices that work when the catalog cannot be read (legacy STANDARD_MODELS). */
-export const STANDARD_MODELS: readonly ModelOption[] = [
-  { value: '', displayName: 'Fleet default' },
-  { value: 'opus', displayName: 'Opus' },
-  { value: 'sonnet', displayName: 'Sonnet' },
-  { value: 'haiku', displayName: 'Haiku' },
-  { value: 'auto-jev', displayName: 'Auto · Jev' },
-]

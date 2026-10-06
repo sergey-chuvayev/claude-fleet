@@ -12,7 +12,8 @@ import { keys, mutationInvalidates, projectMutationInvalidates, projectsResource
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { isWorking } from '../conversation/format'
 import { failureText, sessionCommand } from './mutations'
-import { STANDARD_MODELS, modelsResource, projectChoices } from './reads'
+import { STANDARD_MODELS, modelOptions, modelsResource } from '../launch/models'
+import { projectChoices } from './reads'
 import { APPROVAL_MODES, CODEX_SANDBOX, MODE_TOASTS, contextShare, gated, renameable, stateText, titleOf } from './status'
 
 export interface SessionHeaderProps {
@@ -170,9 +171,7 @@ function ModelPicker({ managedId, selected }: { managedId: string; selected: str
   const toast = useToast()
   const models = useResource(modelsResource(client))
   const [value, setPending] = usePending(selected)
-  const list = models.data?.models ?? STANDARD_MODELS
-  const options: SelectOption[] = list.map(m => ({ value: m.value, label: m.displayName || m.value || 'Default', description: m.description ?? undefined }))
-  if (!options.some(o => o.value === value)) options.push({ value, label: value || 'Default' })
+  const options = modelOptions(models.data ?? STANDARD_MODELS, value)
   const change = (model: string) => {
     if (model === value) return
     setPending(model)

@@ -318,13 +318,13 @@ export const modelRoutingSchema = z.looseObject({
 })
 export type ModelRouting = z.infer<typeof modelRoutingSchema>
 
-export const teamRoleSchema = z.looseObject({
+const boardRoleSchema = z.looseObject({
   model: nullableString.optional(),
   description: nullableString.optional(),
 })
 export const teamSnapshotSchema = z.looseObject({
   manager: z.string(),
-  roles: z.record(z.string(), teamRoleSchema),
+  roles: z.record(z.string(), boardRoleSchema),
   workflow: z
     .looseObject({ mode: z.string().optional(), reviewers: z.array(z.string()).optional(), maxAttempts: z.number().optional() })
     .nullable()
@@ -410,7 +410,7 @@ export function parseSessionAnswer(raw: unknown): ManagedDetail | null {
   }
 }
 
-// ── /api/managed/:id/commands, /api/models ─────────────────────────────────
+// ── /api/managed/:id/commands ───────────────────────────────────────────────
 
 export const commandSchema = z.looseObject({
   name: z.string().min(1),
@@ -431,19 +431,279 @@ export function parseCommands(raw: unknown): readonly Command[] {
   })
 }
 
-export const modelOptionSchema = z.looseObject({
-  value: z.string(),
-  displayName: nullableString.optional(),
-  description: nullableString.optional(),
-})
-export type ModelOption = z.infer<typeof modelOptionSchema>
 
-export function parseModels(raw: unknown): { models: ModelOption[] } {
-  const result = z.looseObject({ models: z.array(modelOptionSchema).min(1) }).safeParse(raw)
-  if (!result.success) throw new ContractError('/api/models', issues(result.error))
+// ── Session rows, as the list and the inspector read them ──────────────────
+// The snapshot schema above checks only what identity needs. The list and the
+// inspector read many more fields; each is checked here on its own and falls back to
+// "absent" when it does not have the expected shape, so one odd field costs that
+// field, not the row. Read through `sessionRowOf`, which validates a row object once
+// and caches the result by identity, so an unchanged row costs nothing per render.
+
+const optionalText = z.string().nullable().optional().catch(null)
+const optionalNumber = z.number().nullable().optional().catch(null)
+const optionalBoolean = z.boolean().nullable().optional().catch(null)
+/** Timestamps arrive as epoch milliseconds or ISO strings. */
+const optionalTime = z.union([z.number(), z.string()]).nullable().optional().catch(null)
+
+const sessionLinkSchema = z.looseObject({ url: z.string(), kind: z.string().optional(), label: z.string().optional() })
+export type SessionLink = z.infer<typeof sessionLinkSchema>
+
+const turnStepSchema = z.looseObject({
+  /** Tool name. */
+  t: z.string(),
+  /** Family of work: inspect, change, run, delegate, ask, other. */
+  k: z.string().optional(),
+  ok: z.boolean().optional(),
+  target: z.string().nullable().optional(),
+})
+const turnNowSchema = z.looseObject({ t: z.string(), target: z.string().nullable().optional(), at: z.number().nullable().optional() })
+const turnSchema = z.looseObject({
+  steps: z.array(turnStepSchema).catch([]),
+  turnStartedAt: z.number().nullable().optional().catch(null),
+  current: turnNowSchema.nullable().optional().catch(null),
+  last: turnNowSchema.nullable().optional().catch(null),
+})
+export type TurnSummary = z.infer<typeof turnSchema>
+
+const delegationSummarySchema = z.looseObject({
+  id: z.string().min(1),
+  role: z.string().catch('agent'),
+  model: z.string().nullable().optional().catch(null),
+  status: z.string().catch('running'),
+})
+export type DelegationSummary = z.infer<typeof delegationSummarySchema>
+
+const sessionRowFieldsSchema = z.object({
+  managedStatus: z.string().optional().catch(undefined),
+  queuePosition: optionalNumber,
+  lastPrompt: optionalText,
+  latestResponse: optionalText,
+  latestResponseAt: optionalTime,
+  startedAt: optionalTime,
+  branch: optionalText,
+  model: optionalText,
+  contextTokens: optionalNumber,
+  contextLimit: optionalNumber,
+  permissionMode: optionalText,
+  messages: optionalNumber,
+  resumeCmd: optionalText,
+  transcriptTruncated: optionalBoolean,
+  background: optionalBoolean,
+  spawnedByPid: optionalNumber,
+  spawnedByName: optionalText,
+  kind: optionalText,
+  teamId: optionalText,
+  teamName: optionalText,
+  threadOpen: optionalBoolean,
+  links: z.array(sessionLinkSchema).nullable().optional().catch(null),
+  turn: turnSchema.nullable().optional().catch(null),
+  openElsewhere: z
+    .looseObject({ entrypoint: z.string().nullable().optional(), name: z.string().nullable().optional(), state: z.string().nullable().optional() })
+    .nullable()
+    .optional()
+    .catch(null),
+  taskProgress: z
+    .looseObject({ verified: z.number(), total: z.number(), blocked: z.number().optional() })
+    .nullable()
+    .optional()
+    .catch(null),
+  dayProgress: z
+    .looseObject({ done: z.number(), total: z.number(), waiting: z.number().optional(), proposed: z.number().optional() })
+    .nullable()
+    .optional()
+    .catch(null),
+  delegations: z.array(delegationSummarySchema).nullable().optional().catch(null),
+})
+export type SessionRowFields = z.infer<typeof sessionRowFieldsSchema>
+/** A row with the fields the list and inspector read, typed. */
+export type SessionRow = SessionSummary & SessionRowFields
+
+const rowCache = new WeakMap<object, SessionRow>()
+
+/** The typed view of a validated snapshot row; the same object for the same row. */
+export function sessionRowOf(summary: SessionSummary): SessionRow {
+  const cached = rowCache.get(summary)
+  if (cached) return cached
+  const fields = sessionRowFieldsSchema.parse(summary)
+  const row: SessionRow = { ...summary, ...fields }
+  rowCache.set(summary, row)
+  return row
+}
+
+// ── A delegation's full record, from /api/managed/:id (taskBoard.delegations) ──
+
+const delegationStepSchema = z.looseObject({
+  id: z.string().min(1),
+  tool: z.string().catch('Tool'),
+  target: z.string().nullable().optional().catch(null),
+  status: z.string().catch('done'),
+  input: z.unknown().optional(),
+  result: z.string().nullable().optional().catch(null),
+  ms: z.number().nullable().optional().catch(null),
+  truncated: z.boolean().optional().catch(false),
+})
+export type DelegationStep = z.infer<typeof delegationStepSchema>
+
+const tokenUsageSchema = z.looseObject({
+  input_tokens: z.number().optional(),
+  output_tokens: z.number().optional(),
+  cache_read_input_tokens: z.number().optional(),
+  cache_creation_input_tokens: z.number().optional(),
+})
+
+const delegationRecordSchema = z.looseObject({
+  id: z.string().min(1),
+  role: z.string().optional().catch(undefined),
+  model: z.string().nullable().optional().catch(null),
+  status: z.string().optional().catch(undefined),
+  attempt: z.number().nullable().optional().catch(null),
+  startedAt: z.number().nullable().optional().catch(null),
+  finishedAt: z.number().nullable().optional().catch(null),
+  prompt: z.string().nullable().optional().catch(null),
+  report: z.string().nullable().optional().catch(null),
+  usage: tokenUsageSchema.nullable().optional().catch(null),
+  runtimeUsage: z.looseObject({ total_tokens: z.number().nullable().optional() }).nullable().optional().catch(null),
+  steps: z.array(delegationStepSchema).optional().catch([]),
+  stepsTruncated: z.boolean().optional().catch(false),
+})
+export type DelegationRecord = z.infer<typeof delegationRecordSchema>
+
+/**
+ * One delegation out of a managed detail's task board, or null when the board does not
+ * list it. A malformed record is a ContractError, not a silent blank.
+ */
+export function delegationOf(detail: ManagedDetail, delegationId: string): DelegationRecord | null {
+  const board = (detail.session as Record<string, unknown>).taskBoard
+  const list = typeof board === 'object' && board !== null ? (board as Record<string, unknown>).delegations : undefined
+  if (!Array.isArray(list)) return null
+  const raw: unknown = list.find(item => typeof item === 'object' && item !== null && (item as { id?: unknown }).id === delegationId)
+  if (raw === undefined) return null
+  const result = delegationRecordSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/managed/:id', `taskBoard.delegations: ${issues(result.error)}`)
   return result.data
 }
 
+// ── /api/pr-status ──────────────────────────────────────────────────────────
+
+const prStatusSchema = z.union([
+  z.looseObject({
+    ok: z.literal(true),
+    url: z.string().optional(),
+    state: z.string(),
+    draft: z.boolean().optional(),
+    number: z.number().nullable().optional(),
+    ci: z.looseObject({ result: z.enum(['pass', 'fail', 'pending', 'none']), failing: z.array(z.string()).catch([]) }),
+  }),
+  z.looseObject({ ok: z.literal(false), url: z.string().optional(), reason: z.string().optional() }),
+])
+export type PrStatus = z.infer<typeof prStatusSchema>
+
+export function parsePrStatus(raw: unknown): PrStatus {
+  const result = z.looseObject({ status: prStatusSchema }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/pr-status', issues(result.error))
+  return result.data.status
+}
+
+// ── /api/archive and /api/archive/rule ─────────────────────────────────────
+
+const archiveResultSchema = z.looseObject({ changed: z.number(), archived: z.number().optional() })
+export type ArchiveResult = z.infer<typeof archiveResultSchema>
+
+export function parseArchiveResult(raw: unknown): ArchiveResult {
+  const result = archiveResultSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/archive', issues(result.error))
+  return result.data
+}
+
+const archiveRuleSchema = z.object({ enabled: z.boolean(), days: z.number() })
+export type ArchiveRule = z.infer<typeof archiveRuleSchema>
+
+export function parseArchiveRuleResult(raw: unknown): ArchiveRule {
+  const result = z.looseObject({ rule: archiveRuleSchema }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/archive/rule', issues(result.error))
+  return result.data.rule
+}
+
+// ── /api/models, /api/teams, POST /api/managed (the launch dialog) ──────────
+
+const modelOptionSchema = z.looseObject({
+  value: z.string(),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+})
+export type ModelOption = z.infer<typeof modelOptionSchema>
+// An empty list is a broken answer, not "no models": the caller keeps its fallback.
+const modelsSchema = z.looseObject({ models: z.array(modelOptionSchema).min(1) })
+
+export function parseModels(raw: unknown): ModelOption[] {
+  const result = modelsSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/models', issues(result.error))
+  return result.data.models
+}
+
+export const teamModeSchema = z.enum(['team', 'owner-review'])
+export type TeamMode = z.infer<typeof teamModeSchema>
+
+const teamSummarySchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string(),
+  description: z.string().optional(),
+  manager: z.string().optional(),
+  mode: teamModeSchema.optional(),
+  custom: z.boolean().optional(),
+  roles: z.array(z.looseObject({ name: z.string(), description: z.string().optional(), model: nullableString.optional() })),
+})
+export type TeamSummary = z.infer<typeof teamSummarySchema>
+const teamCatalogSchema = z.looseObject({ teams: z.array(teamSummarySchema), tools: z.array(z.string()) })
+export type TeamCatalog = z.infer<typeof teamCatalogSchema>
+
+export function parseTeamCatalog(raw: unknown): TeamCatalog {
+  const result = teamCatalogSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/teams', issues(result.error))
+  return result.data
+}
+
+const teamRoleSchema = z.looseObject({
+  description: z.string(),
+  prompt: z.string(),
+  model: nullableString.optional(),
+  maxTurns: z.number().optional(),
+  effort: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  disallowedTools: z.array(z.string()).optional(),
+})
+export type TeamRole = z.infer<typeof teamRoleSchema>
+const teamDefinitionSchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string(),
+  description: z.string(),
+  manager: z.string(),
+  roles: z.record(z.string(), teamRoleSchema),
+  workflow: z
+    .looseObject({ mode: teamModeSchema.optional(), reviewers: z.array(z.string()), maxAttempts: z.number().optional() })
+    .optional(),
+})
+export type TeamDefinition = z.infer<typeof teamDefinitionSchema>
+const teamAnswerSchema = z.looseObject({ team: teamDefinitionSchema })
+
+/** GET /api/teams/:id and POST /api/teams both answer `{team}`. */
+export function parseTeamAnswer(raw: unknown): TeamDefinition {
+  const result = teamAnswerSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/teams/:id', issues(result.error))
+  return result.data.team
+}
+
+const launchedSchema = z.looseObject({
+  session: z.looseObject({ ...managedSessionShape, messages: z.array(z.unknown()).optional() }),
+})
+export type LaunchedSession = z.infer<typeof launchedSchema>['session']
+
+/** POST /api/managed: the created (or, for a repeated request id, the existing) session. */
+export function parseLaunched(raw: unknown): LaunchedSession {
+  const result = launchedSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/managed', issues(result.error))
+  return result.data.session
+}
 // ── /api/projects, /api/progress, /api/worktrees ───────────────────────────
 // Plain JSON routes (no ETag, no packed arrays). Loose about fields the client does
 // not read, defaulted where the server may omit a field (a project just created or

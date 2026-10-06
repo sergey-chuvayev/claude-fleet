@@ -1,0 +1,141 @@
+/* The New agent dialog. Ported from public/styles.css (0.54.0) in legacy source order:
+   the composer rules the launch prompt shares with a conversation's composer, the
+   rate-limit warning, the new-agent form, and "Launch stays close to the task". Every
+   rule is scoped to `.modal-launch` so the conversation composer's own stylesheet
+   (features/composer) and this one cannot reach each other's elements; scoping adds
+   the same specificity to each rule, so their order among themselves still decides,
+   as it did in the legacy file. Legacy `#draft-panel` is the dialog section, written
+   `.modal-launch` here. */
+
+/* Managed conversations (the composer the launch prompt borrows) */
+.modal-launch .composer textarea {
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  padding:12px;
+  background:var(--bg);
+  color:var(--text);
+  width:100%;
+  font:inherit;
+  resize:vertical;
+}
+.modal-launch .composer textarea {
+  min-height:95px;
+  font-size:var(--text-lg);
+  line-height:1.6;
+}
+.modal-launch .composer textarea:focus { outline:1px solid var(--accent); outline-offset:0 }
+.modal-launch .composer-footer {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:end;
+  margin-top:9px;
+}
+.modal-launch .composer-footer .note {
+  margin-right:auto;
+  font-size:var(--text-xs);
+  max-width:240px;
+}
+@media(max-width:720px) {
+  .modal-launch .composer-footer { flex-wrap:wrap }
+  .modal-launch .composer-footer .note { max-width:170px }
+}
+.modal-launch .composer textarea {
+  font:var(--code)/1.6 var(--mono);
+  background:var(--term-bg);
+  border-color:var(--line);
+  color:var(--text);
+}
+.modal-launch .composer textarea:focus {
+  border-color:var(--term-accent);
+  outline:none;
+  box-shadow:0 0 0 1px color-mix(in oklab,var(--term-accent) 40%,transparent);
+}
+/* The same wall, repeated where it changes a decision rather than only informing one. */
+.modal-launch .rate-warning {
+  font-size:var(--text-md);
+  line-height:1.6;
+  color:var(--stale);
+  border:1px solid color-mix(in oklab,var(--stale) 45%,var(--line));
+  background:color-mix(in oklab,var(--stale) 9%,var(--panel));
+  border-radius:var(--radius-lg);
+  padding:11px 14px;
+  margin:0 0 12px;
+}
+.modal-launch .composer textarea {
+  flex:1 1 0; min-height:50px; border:0; border-radius:0;
+  background:transparent; resize:none; padding:10px 0;
+}
+.modal-launch .composer textarea:focus { outline:0; box-shadow:inset 2px 0 var(--accent); padding-left:10px }
+.modal-launch .composer-footer { flex:none }
+.modal-launch .composer textarea { padding:2px 0 8px; font-family:inherit; font-size:var(--text-xl); line-height:1.6; color:var(--text) }
+.modal-launch .composer textarea:focus { padding-left:0; box-shadow:none }
+.modal-launch .composer textarea::placeholder { color:var(--faint) }
+.modal-launch .composer-footer { gap:8px; padding-top:4px }
+.modal-launch .composer-footer .note { font:10px/1.5 "Avenir Next","Segoe UI",sans-serif; color:var(--faint) }
+.modal-launch .composer-footer .button { font-size:var(--text-sm); padding:0 var(--space-3) }
+.modal-launch textarea { border-radius:10px }
+.modal-launch .composer textarea { flex:1 0 auto; min-height:50px; max-height:40vh; overflow-y:auto }
+
+/* New-agent form shared by the launch dialog and its team editor. */
+.modal-launch { flex:1; min-height:0; display:flex; flex-direction:column }
+.modal-launch .draft-form { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; padding:14px 16px 0 }
+.modal-launch .draft-head { flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:10px; border-bottom:1px solid var(--line) }
+.modal-launch .draft-heading { display:flex; align-items:baseline; gap:10px; min-width:0 }
+.modal-launch .draft-heading h3 { margin:0; font-size:14px; font-weight:600 }
+.modal-launch .draft-setup { flex:none; display:grid; grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)); gap:10px; padding-top:14px }
+.modal-launch .draft-field { display:flex; flex-direction:column; gap:6px; min-width:0 }
+.modal-launch .draft-field>span { font-size:var(--text-xs); color:var(--muted); letter-spacing:.06em; text-transform:uppercase }
+.modal-launch .draft-field input, .modal-launch .draft-field select { width:100%; max-width:none; height:36px; border:1px solid var(--line); border-radius:var(--radius-md); background-color:var(--bg); color:var(--text); font:inherit; font-size:var(--text-sm) }
+.modal-launch .draft-field input { padding:0 10px }
+.modal-launch .draft-field input:read-only { color:var(--faint) }
+.modal-launch .draft-field input:focus-visible, .modal-launch .draft-field select:focus-visible, .modal-launch .draft-composer textarea:focus-visible { outline:1px solid var(--accent); outline-offset:0 }
+.modal-launch .draft-notes { flex:none; margin:8px 0 0; min-height:1.4em; line-height:1.6 }
+.modal-launch .draft-link { padding:0; border:0; background:none; color:var(--muted); font:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer }
+.modal-launch .draft-link:hover:not(:disabled) { color:var(--text) }
+.modal-launch .draft-link:disabled { opacity:.45; cursor:default }
+.modal-launch .draft-empty { flex:1; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; text-align:center }
+.modal-launch .draft-empty h2 { margin:0; font-size:22px; font-weight:500 }
+.modal-launch .draft-empty .note { max-width:46ch; margin:0 }
+.modal-launch .draft-form .form-error, .modal-launch .draft-form .rate-warning { flex:none; margin:0 0 10px; padding:0 }
+.modal-launch .draft-form .rate-warning { padding:10px 14px }
+.modal-launch .draft-composer { flex:none; margin:10px 0 14px }
+.modal-launch .draft-composer textarea { min-height:120px }
+@media(max-width:720px) {
+  .modal-launch .draft-setup { grid-template-columns:minmax(0,1fr) minmax(0,1fr) }
+  .modal-launch .draft-field-dir { grid-column:1/-1 }
+}
+.modal-launch .draft-composer textarea { border-radius:var(--radius-lg) }
+
+/* Launch stays close to the task: a compact dialog over the current conversation. */
+.modal.modal-launch { flex:initial; width:min(780px,100%); }
+.modal-launch .draft-form { padding:24px 28px; gap:0; }
+.modal-launch .draft-head { order:0; padding-bottom:20px; }
+.modal-launch .draft-heading { flex-direction:column; align-items:flex-start; gap:5px; }
+.modal-launch .draft-heading h3 { display:flex; align-items:center; gap:9px; font-size:15px; }
+.modal-launch .launch-mark { color:var(--muted); font-size:22px; }
+.modal-launch .draft-empty { order:1; flex:none; min-height:0; align-items:flex-start; padding:24px 0 16px; text-align:left; }
+.modal-launch .draft-empty h2 { font-size:26px; letter-spacing:-.6px; }
+.modal-launch .draft-empty .note { max-width:none; }
+.modal-launch .draft-composer { display:contents; }
+.modal-launch .draft-composer textarea { order:2; flex:none; width:100%; min-height:150px; padding:16px; background:var(--bg); border:1px solid var(--line); font:inherit; font-size:15px; line-height:1.6; resize:vertical; }
+/* Legacy matched the focus rules above at equal specificity and won by order; scoped, they
+   gain a pseudo-class, so the focused prompt restates what the rule above sets. */
+.modal-launch .draft-composer textarea:focus { padding:16px; border:1px solid var(--line); }
+.modal-launch .draft-setup { order:3; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding-top:20px; }
+.modal-launch .draft-field-dir { grid-column:1/-1; }
+.modal-launch .draft-field input, .modal-launch .draft-field select, .modal-launch .draft-field .fleet-select { height:40px; width:100%; }
+.modal-launch .draft-notes { order:4; margin:12px 0; }
+.modal-launch .draft-notes>span:not(:empty) { display:block; }
+.modal-launch #launch-blocked, .modal-launch #launch-capacity, .modal-launch #launch-error { order:5; margin:8px 0; }
+.modal-launch .composer-footer { order:6; margin-top:12px; padding-top:18px; border-top:1px solid var(--line); }
+.modal-launch .composer-footer .note { margin-left:auto; font-size:11px; }
+.modal-launch #team-editor { order:7; }
+.modal-launch [hidden] { display:none !important; }
+@media(max-width:540px) {
+  .modal-launch .draft-form { padding:18px; }
+  .modal-launch .draft-empty h2 { font-size:23px; }
+  .modal-launch .composer-footer { flex-wrap:wrap; }
+  .modal-launch .composer-footer .note { order:3; width:100%; margin:8px 0 0; text-align:center; }
+  .modal-launch #launch-submit { margin-left:auto; }
+}

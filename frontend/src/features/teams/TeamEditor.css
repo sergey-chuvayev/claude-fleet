@@ -1,0 +1,97 @@
+/* The team editor inside the New agent dialog. Ported from public/styles.css (0.54.0)
+   in legacy order: "Configurable teams share the launch dialog...", its narrow-width
+   rules, the effort picker, and the launch dialog's padding for the editor. Legacy
+   `#draft-panel` is the dialog section, written `.modal-launch` here. */
+.team-editor-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:20px;
+}
+.team-editor-head h3 { margin:5px 0 8px; font-size:var(--text-title) }
+.team-editor-head p { margin:0 }
+.team-editor-head>.button { flex-shrink:0 }
+.team-meta, .team-rules {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin:16px 0;
+}
+.team-meta>label:last-child { grid-column:1/-1 }
+.team-role-list { margin:20px 0 }
+.team-role { border-top:1px solid var(--line) }
+.team-role:last-child { border-bottom:1px solid var(--line) }
+.team-role>summary {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  cursor:pointer;
+  padding:16px 0;
+}
+.team-role>summary strong { min-width:100px; color:var(--text) }
+.team-role>summary span {
+  flex:1;
+  color:var(--muted);
+  font-size:var(--text-sm);
+}
+.team-role>summary small { color:var(--accent) }
+.team-role-fields {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  padding:0 0 20px;
+}
+.team-wide { grid-column:1/-1 }
+.team-role-fields textarea { font-family:var(--mono); font-size:var(--text-md) }
+.team-role-kind, .team-tools {
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
+  align-items:center;
+}
+#team-editor .team-role-kind label, #team-editor .team-tools label {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:6px;
+}
+#team-editor input[type=checkbox], #team-editor input[type=radio] {
+  width:auto;
+  min-height:20px;
+  accent-color:var(--accent);
+}
+.team-role-kind button { margin-left:auto }
+.team-role-fields fieldset {
+  margin:0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+}
+.team-role-fields legend {
+  font-size:var(--text-sm);
+  color:var(--muted);
+  padding:0 6px;
+}
+.team-editor-actions {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:20px 0 0;
+}
+@media(max-width:720px) {
+  .team-meta, .team-rules, .team-role-fields { grid-template-columns:1fr }
+  .team-role>summary { flex-wrap:wrap }
+  .team-role>summary span { flex-basis:100%; order:3 }
+  .team-role>summary small { margin-left:auto }
+}
+#team-editor { padding:3px 32px 28px }
+@media(max-width:720px) {
+  #team-editor { padding:0 20px 24px }
+  .team-editor-head { align-items:start; flex-wrap:wrap }
+}
+/* The team editor's effort picker matches the 42px fields around it. */
+.team-role-fields :is(select,.fleet-select) { width:100%; max-width:none; min-height:42px; padding-inline:12px 10px; background-color:var(--bg); color:var(--text); font-size:var(--text-md); border-radius:var(--radius-md) }
+.modal-launch #team-editor { padding:14px 0 24px }
+.modal-launch.is-editing-team .draft-form { padding-top:6px }
