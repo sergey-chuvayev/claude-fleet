@@ -336,7 +336,7 @@ describe('Projects pane', () => {
     expect(await screen.findByText('Project manager · Alpha launch')).toBeTruthy()
     expect(screen.getByText('Changes need your approval').getAttribute('title')).toContain('never messages people')
     expect((await screen.findAllByText('Set this up')).length).toBeGreaterThan(0)
-    expect(screen.getByLabelText('Message to the project manager')).toBeTruthy()
+    expect((document.getElementById('message-input') as HTMLTextAreaElement).placeholder).toBe('Ask about this project: status, blockers, are we on track…')
   })
 
   it('lists member sessions and opens one in Sessions', async () => {
