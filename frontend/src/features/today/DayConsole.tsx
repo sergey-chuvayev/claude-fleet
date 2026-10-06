@@ -115,7 +115,7 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
           <ConsoleState status={status} currentTool={threadId ? null : detail?.currentTool} queued={threadId ? 0 : (detail?.queue?.length ?? 0)} />
         </div>
         <div className="header-controls">
-          {shown && fields && shown.engine !== 'codex' ? <ModelPicker key={shownId} managedId={shownId} selected={fields.selectedModel ?? ''} /> : null}
+          {shown && fields && shown.engine !== 'codex' ? <ModelPicker key={`model:${shownId}`} managedId={shownId} selected={fields.selectedModel ?? ''} /> : null}
           <span
             className="subtle day-gate-note"
             title="Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board."
@@ -127,7 +127,7 @@ function DayConsoleView({ dayId, rows }: { dayId: string; rows: ReadonlyMap<stri
           </button>
           {/* A closed thread hands the console back to the Day; a closed Day leaves the list, and the console with it. */}
           <CloseButton
-            key={shownId}
+            key={`close:${shownId}`}
             managedId={shownId}
             working={isWorking(status)}
             onClosed={() => {
