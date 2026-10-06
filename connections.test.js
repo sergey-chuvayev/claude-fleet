@@ -80,7 +80,7 @@ test('switching projects and an idle lease close the diagnostic process',async()
     await new Promise(r=>setTimeout(r,30));assert.equal(f.queries[1].closed,1)
   }finally{f.close();fs.rmSync(second,{recursive:true,force:true})}
 })
-test('HTTP connection checks require same-origin control authorization and ship the UI',async()=>{
+test('HTTP connection checks require same-origin control authorization',async()=>{
   const {ManagedSessions}=require('./managed'),{createApp}=require('./server')
   const f=fixture(),manager=new ManagedSessions({directory:f.dir,queryFactory:f.manager.queryFactory})
   const app=createApp({manager,collectSessions:()=>({sessions:[],counts:{}})})
@@ -92,8 +92,9 @@ test('HTTP connection checks require same-origin control authorization and ship 
     assert.equal((await post({'x-fleet-token':token,origin:'https://other.example'})).status,403)
     const res=await post({'x-fleet-token':token});assert.equal(res.status,200)
     assert.equal((await res.json()).connections.servers.length,2)
-    assert.equal((await fetch(base+'/connections.js')).status,200)
-    assert.match(await (await fetch(base)).text(),/id="open-connections"/)
+    // The legacy script and its markup went with public/ at cutover; the dialog is in the
+    // React build, which package.test.js checks as shipped.
+    assert.equal((await fetch(base+'/connections.js')).status,404)
   }finally{await app.close();f.close()}
 })
 test('signing in opens the page Claude returns in the browser, and only an https one',async()=>{

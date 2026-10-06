@@ -15,12 +15,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      # The web app is built here and by prepack, never committed: dist/ is ignored.
+      # Build first, as a user of the checkout would, before the suites run.
       - run: npm run typecheck
-      - run: npm run test:frontend
       - run: npm run build:frontend
-      # The browser bundle is committed, so a stale one would ship silently.
-      # Rebuild it and fail if it differs from what is checked in.
-      - run: npm run vendor
-      - name: public/vendor/libs.js is up to date
-        run: git diff --exit-code -- public/vendor/libs.js
+      - run: npm run test:frontend
+      - run: npm test
+      # A29: pack a copy of the checkout, install it without devDependencies, start it and
+      # check every asset. Opt-in, because packing builds the web app.
+      - name: Packed release (A29)
+        run: node --require ./test-setup.js --test package.test.js
+        env:
+          FLEET_PACKAGE_TEST: '1'

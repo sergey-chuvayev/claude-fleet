@@ -1,10 +1,10 @@
 // Side-by-side screenshots of the React Search, Connections and Settings dialogs
 // against the legacy ones, both served against the same fixture pack, clock and motion
-// settings. Legacy on the left (the fixture server serves public/), React on the right
-// (Vite dev). The baseline folder has no shots of these dialogs, so the legacy side is
-// captured live here.
+// settings. Legacy on the left (public/, from a pre-cutover checkout's fixture server:
+// LEGACY_ROOT, see ../../legacy.mjs), React on the right (Vite dev). The baseline folder
+// has no shots of these dialogs, so the legacy side is captured live here.
 //
-//   PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/compare/modals/capture.mjs
+//   LEGACY_ROOT=/tmp/fleet-legacy PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/compare/modals/capture.mjs
 //
 // Output: <viewport>/<dialog>.png next to this file.
 import { spawn } from 'node:child_process'
@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { legacyCapture, requireLegacyRoot } from '../../legacy.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repo = path.resolve(here, '../../../..')
@@ -79,16 +80,27 @@ async function shoot(browser, url, [width, height], step) {
 }
 
 async function main() {
+  const legacyFixtures = legacyCapture(requireLegacyRoot())
   const { chromium } = loadPlaywright()
-  const fixture = await start(process.execPath, [fixtures, '--serve', 'fleet-mixed'], {}, /FIXTURE_SERVER (\S+)/)
-  const legacyUrl = fixture.match[1]
-  const fleetPort = new URL(legacyUrl).port
-  const vite = await start('npx', ['vite', '--config', 'frontend/vite.config.mts'], { FLEET_PORT: fleetPort, FLEET_DEV_PORT: String(DEV_PORT) }, /Local:/)
   const browser = await chromium.launch()
+  // The legacy page comes from a pre-cutover checkout's fixture server (../../legacy.mjs).
+  // Both fixture servers use one fixed directory per pack, so they run one after the other.
+  const legacyShots = new Map()
+  const old = await start(process.execPath, [legacyFixtures, '--serve', 'fleet-mixed'], {}, /FIXTURE_SERVER (\S+)/)
+  try {
+    for (const [label, size] of Object.entries(VIEWPORTS)) {
+      for (const [name, step] of Object.entries(SHOTS)) legacyShots.set(`${label}/${name}`, await shoot(browser, old.match[1], size, step))
+    }
+  } finally {
+    await old.stop()
+  }
+  const fixture = await start(process.execPath, [fixtures, '--serve', 'fleet-mixed'], {}, /FIXTURE_SERVER (\S+)/)
+  const fleetPort = new URL(fixture.match[1]).port
+  const vite = await start('npx', ['vite', '--config', 'frontend/vite.config.mts'], { FLEET_PORT: fleetPort, FLEET_DEV_PORT: String(DEV_PORT) }, /Local:/)
   try {
     for (const [label, size] of Object.entries(VIEWPORTS)) {
       for (const [name, step] of Object.entries(SHOTS)) {
-        const legacy = await shoot(browser, legacyUrl, size, step)
+        const legacy = legacyShots.get(`${label}/${name}`)
         const react = await shoot(browser, `http://127.0.0.1:${DEV_PORT}/`, size, step)
         const sheet = await browser.newPage({ viewport: { width: size[0] * 2 + 24, height: size[1] + 40 } })
         const img = buf => `data:image/png;base64,${buf.toString('base64')}`

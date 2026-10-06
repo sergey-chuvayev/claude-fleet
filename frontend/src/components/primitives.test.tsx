@@ -11,13 +11,12 @@ import { CopyButton } from './CopyButton'
 import { Disclosure } from './Disclosure'
 import { Notifier, NotificationsProvider, useAnnounce } from './Toast'
 
-// The legacy functions, evaluated from public/app.js itself.
+// The legacy functions, evaluated from a verbatim copy of public/app.js's avatar code
+// (public/ was removed at cutover).
 function legacyAvatar(): (seed: string, initial: string, tone: number, working: boolean) => string {
-  const source = readFileSync(createRequire(import.meta.url).resolve('../../../public/app.js'), 'utf8')
-  const start = source.indexOf('const GLYPHS')
-  const end = source.indexOf('// Draft contents survive')
+  const source = readFileSync(createRequire(import.meta.url).resolve('../test/fixtures/legacy-pixel-avatar.txt'), 'utf8')
   // biome-ignore lint: evaluating the legacy source on purpose
-  return new Function(`${source.slice(start, end)}; return pixelAvatar`)()
+  return new Function(`${source}; return pixelAvatar`)()
 }
 
 afterEach(() => vi.useRealTimers())

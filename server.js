@@ -43,9 +43,11 @@ function errorBody(status, message, code, extra = {}) {
 }
 // Identifies the frontend that is being served: the package version, plus a hash of the Vite
 // manifest when a build exists, so a rebuilt page reads as a new build without a version bump.
+const MANIFESTS = [path.join('.vite','manifest.json'),'manifest.json']
+const buildIdOf = manifest => `${VERSION}+${createHash('sha256').update(manifest).digest('hex').slice(0,12)}`
 function buildId(root = __dirname) {
-  for (const file of [path.join('dist','.vite','manifest.json'),path.join('dist','manifest.json')]) {
-    try { return `${VERSION}+${createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex').slice(0,12)}` } catch {}
+  for (const file of MANIFESTS) {
+    try { return buildIdOf(fs.readFileSync(path.join(root,'dist',file))) } catch {}
   }
   return VERSION
 }
@@ -55,14 +57,71 @@ const MODEL_FALLBACK = [
   { value:'sonnet', displayName:'Sonnet', description:'Balanced' },
   { value:'haiku', displayName:'Haiku', description:'Fastest' },
 ]
-const PUBLIC = path.join(__dirname,'public')
-const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
+const DIST = path.join(__dirname,'dist')
+const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.woff2':'font/woff2','.webmanifest':'application/manifest+json'}
+const ICONS = ['/icons/fleet-192.png','/icons/fleet-512.png']
+const NOT_BUILT = dir => `Fleet's web app is not built (${path.join(dir,'.vite','manifest.json')} is missing). In a source checkout, run \`npm run build:frontend\`, then start Fleet again.`
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null, prStatus = createPrStatus()} = {}) {
+// The production web app: the Vite build in dist/, read once. Only index.html, the icons and
+// the hashed files the manifest lists are ever served, so nothing else on disk is reachable.
+// A process keeps serving the build it loaded: a page it handed out asks for that build's
+// files, which are read on first request and then held in memory. A rebuild or reinstall
+// under a running Fleet can still remove a file before it was first read; that request
+// 404s and the page's build check (buildId) sends it to reload against the new server.
+function loadFrontend(dir = DIST) {
+  let raw
+  for (const file of MANIFESTS) {
+    try { raw = fs.readFileSync(path.join(dir,file)); break } catch {}
+  }
+  if (!raw) return {built:false, error:NOT_BUILT(dir), buildId:VERSION, files:new Map()}
+  // A half-written build (a rebuild in progress, an interrupted install) is reported the
+  // same way as a missing one, with what went wrong.
+  try { return readBuild(dir, raw) } catch (error) {
+    return {built:false, error:`Fleet's web app in ${dir} could not be read (${error.message}). In a source checkout, run \`npm run build:frontend\`, then start Fleet again.`, buildId:VERSION, files:new Map()}
+  }
+}
+// A source checkout (frontend/ next to this file) whose sources changed after its last
+// build serves an old page. One stat walk at startup; an npm install has no frontend/ and
+// returns at once. Returns the warning to print, or null.
+function staleBuild(root = __dirname) {
+  if (!fs.existsSync(path.join(root,'frontend'))) return null
+  let built
+  try { built = fs.statSync(path.join(root,'dist','.vite','manifest.json')).mtimeMs } catch { return null }
+  const newer = file => { try { return fs.statSync(file).mtimeMs > built } catch { return false } }
+  const walk = dir => {
+    let entries
+    try { entries = fs.readdirSync(dir,{withFileTypes:true}) } catch { return null }
+    for (const entry of entries) {
+      const full = path.join(dir,entry.name)
+      const found = entry.isDirectory() ? walk(full) : newer(full) ? full : null
+      if (found) return found
+    }
+    return null
+  }
+  const changed = [path.join(root,'frontend','index.html'),path.join(root,'package-lock.json')].find(newer) || walk(path.join(root,'frontend','src'))
+  return changed ? `Fleet's web app in dist/ is older than ${path.relative(root,changed)}, so this page may be out of date. Run \`npm run build:frontend\`, then restart Fleet.` : null
+}
+function readBuild(dir, raw) {
+  const manifest = JSON.parse(raw.toString('utf8'))
+  const files = new Map()
+  const add = file => {
+    // Vite names its output assets/<name>-<hash>.<ext>. Anything else in a manifest is not ours to serve.
+    if (typeof file === 'string' && /^assets\/[\w.-]+$/.test(file) && TYPES[path.extname(file)]) files.set(`/${file}`, {file:path.join(dir,file), type:TYPES[path.extname(file)], immutable:true})
+  }
+  for (const entry of Object.values(manifest)) for (const file of [entry.file, ...(entry.css || []), ...(entry.assets || [])]) add(file)
+  const index = fs.readFileSync(path.join(dir,'index.html'))
+  for (const route of ['/','/index.html']) files.set(route, {data:index, type:TYPES['.html'], immutable:false})
+  for (const route of ICONS) files.set(route, {file:path.join(dir,route.slice(1)), type:TYPES['.png'], immutable:false})
+  return {built:true, buildId:buildIdOf(raw), files}
+}
+
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null, prStatus = createPrStatus(), frontend = loadFrontend()} = {}) {
   const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
   // New for every server process: a client that sees it change knows the server restarted.
-  const instanceId=randomUUID(), BUILD_ID=buildId()
+  const instanceId=randomUUID(), BUILD_ID=frontend.buildId
+  // Bytes of each served file, read on first request and kept for the life of the process.
+  const served=new Map()
   const clients=new Set(), changes=new Set()
   let eventTimer=null, storageError=null
   const broadcast=()=>{
@@ -344,11 +403,20 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/review.js':'review.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/sounds.js':'sounds.js','/projects.js':'projects.js','/progress.js':'progress.js','/worktrees.js':'worktrees.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
-      const file=files[url.pathname]
-      if(!file) return json(res,404,errorBody(404,'Not found.','NOT_FOUND'))
-      const data=await fs.promises.readFile(path.join(PUBLIC,file))
-      res.writeHead(200,{'content-type':TYPES[path.extname(file)],'cache-control':'no-cache'});res.end(data)
+      // The web app. A raw path with dot segments or encoded separators is refused before
+      // lookup (URL parsing would otherwise fold `/assets/../x` into `/x`); after that only an
+      // exact route from the loaded build matches, so no request reaches any other file.
+      const raw=req.url.split('?')[0]
+      if(/\/\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(raw)) return json(res,404,errorBody(404,'Not found.','NOT_FOUND'))
+      if(!frontend.built && (url.pathname==='/' || url.pathname==='/index.html')) return json(res,503,errorBody(503,frontend.error,'UNAVAILABLE'))
+      const asset=frontend.files.get(url.pathname)
+      if(!asset) return json(res,404,errorBody(404,'Not found.','NOT_FOUND'))
+      let data=asset.data || served.get(url.pathname)
+      if(!data){
+        try{data=await fs.promises.readFile(asset.file)}catch(error){if(error.code==='ENOENT') return json(res,404,errorBody(404,'Not found.','NOT_FOUND'));throw error}
+        served.set(url.pathname,data)
+      }
+      res.writeHead(200,{'content-type':asset.type,'cache-control':asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache','content-length':data.length});res.end(data)
     }catch(error){if(!res.headersSent) json(res,error.status||500,error.status ? errorBody(error.status,error.message,error.code,error) : errorBody(500,'Fleet could not complete the request. Check the server log.','INTERNAL'));else res.end();if(!error.status) console.error(error)}
   })
   server.requestTimeout=15000
@@ -385,6 +453,12 @@ function relaunch({entry,args,port,why,log=serverLog(),watchMs=4000,spawn=requir
 // in a `require.main` block: bin/claude-fleet.js calls this, which keeps argv[1]
 // pointing at the installed command that a restart needs to re-run.
 function main(){
+  // Without a build there is no page to serve: say so and how to fix it, rather than
+  // starting a server whose every page load fails.
+  const frontend=loadFrontend()
+  if(!frontend.built){console.error(`\n  ${frontend.error}\n`);process.exit(1)}
+  const stale=staleBuild()
+  if(stale) console.warn(`\n  ${stale}\n`)
   let app
   const service=new Service()
   // Hand the port to the version that was just installed. argv[1] is the entry npm
@@ -412,7 +486,7 @@ function main(){
     await relaunch({entry:process.argv[1],args:relaunchArgs(),port:app.server.address()?.port || port,why:'The service did not take over'}).settled
     process.exit(0)
   }
-  try{app=createApp({restart,service,handover})}catch(error){
+  try{app=createApp({restart,service,handover,frontend})}catch(error){
     // Already running is the everyday case, not a crash: put the window the operator
     // asked for on screen and leave quietly. Exiting 1 with no window was the whole
     // reason a second `claude-fleet` looked like a broken one.
@@ -450,4 +524,4 @@ function main(){
   return app
 }
 if(require.main===module) main()
-module.exports={createApp,main,relaunch,buildId,errorBody,API_VERSION}
+module.exports={createApp,main,relaunch,buildId,loadFrontend,staleBuild,errorBody,API_VERSION}

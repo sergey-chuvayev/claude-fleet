@@ -1,10 +1,12 @@
 # Production-build journeys, accessibility and performance
 
 Work package 5 of the migration plan (`docs/plans/2026-10-06-react-migration-design.md`,
-sections 9 and 11). Everything here runs the production build (`dist/`) in Chromium
-against the real server (`createApp`) on a throwaway home with fake runtimes, served by
+sections 9 and 11). Everything here runs the production build (`dist/`) in Chromium,
+served by the real server (`createApp` serves `dist/` since the cutover, with its own
+manifest allowlist, security headers and CSP) on a throwaway home with fake runtimes:
 `frontend/src/test/fixtures/capture.js --serve <pack>`. No model is called, nothing in
-`~/.claude`, `~/.codex` or `~/.claude-fleet` is read or written.
+`~/.claude`, `~/.codex` or `~/.claude-fleet` is read or written. Rebuild after a source
+change: the fixture server serves whatever `dist/` holds.
 
 ## Run
 
@@ -29,10 +31,13 @@ server (the journeys write state), so the full run takes about a minute.
 To poke at the build by hand: `node frontend/e2e/journeys/serve.mjs day-full --port 4400`.
 
 Performance, legacy against React (about four minutes; results and their reading are in
-`docs/plans/2026-10-06-react-migration-perf.md`):
+`docs/plans/2026-10-06-react-migration-perf.md`). `public/` is gone since the cutover, so
+the legacy side runs from a pre-cutover checkout named by `LEGACY_ROOT` (see
+`../legacy.mjs`); without it only React is measured:
 
 ```sh
-PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/journeys/perf.mjs --runs 3 --out /tmp/perf.json
+git worktree add /tmp/fleet-legacy a8c8498
+LEGACY_ROOT=/tmp/fleet-legacy PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/journeys/perf.mjs --runs 3 --out /tmp/perf.json
 PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/journeys/perf.mjs react --runs 1   # one side, quick
 ```
 
@@ -43,7 +48,7 @@ of these commands at a time on a machine.
 
 | File | What |
 | --- | --- |
-| `serve.mjs` | `dist/` with server.js's security headers (CSP included) in front of a fixture server. `/api`, `/theme.css` and `/manifest.webmanifest` are forwarded after Fleet's own Host/Origin/Sec-Fetch-Site guard is applied to this server's address, as `frontend/dev/fleet-proxy.mts` does for Vite. The fixture server's guards are never relaxed. |
+| `serve.mjs` | Starts a fixture server (this checkout's, or a pre-cutover one for the legacy page), which serves `dist/` itself. `startFront` is a transparent proxy in front of it for the performance runs (request counts, a synthetic stream), applying Fleet's own Host/Origin/Sec-Fetch-Site guard to its own address as `frontend/dev/fleet-proxy.mts` does for Vite. The fixture server's guards are never relaxed. |
 | `harness.mjs` | Loading Playwright and axe-core from outside the repo, a page per test (fixture clock, en-GB, UTC, page errors and 5xx answers fail the test), `eventually`, POST recording. |
 | `journeys.mjs` | The user journeys. |
 | `a11y.mjs` | A23: keyboard only, 390px, 200% zoom, reduced motion, long dialog, statuses in words, axe per view and dialog. |

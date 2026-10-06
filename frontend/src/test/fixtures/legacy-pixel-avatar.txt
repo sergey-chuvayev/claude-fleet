@@ -1,0 +1,49 @@
+// Verbatim from public/app.js at 0.54.0 (removed at cutover): the avatar oracle for components/primitives.test.tsx.
+const GLYPHS = {
+  A:'0111010001111111000110001', B:'1111010001111101000111110', C:'0111110000100001000001111', D:'1111010001100011000111110',
+  E:'1111110000111101000011111', F:'1111110000111101000010000', G:'0111110000100111000101111', H:'1000110001111111000110001',
+  I:'1111100100001000010011111', J:'0011100010000101001001100', K:'1001010100110001010010010', L:'1000010000100001000011111',
+  M:'1000111011101011000110001', N:'1000111001101011001110001', O:'0111010001100011000101110', P:'1111010001111101000010000',
+  Q:'0111010001101011001001101', R:'1111010001111101001010001', S:'0111110000011100000111110', T:'1111100100001000010000100',
+  U:'1000110001100011000101110', V:'1000110001100010101000100', W:'1000110001101011101110001', X:'1000101010001000101010001',
+  Y:'1000101010001000010000100', Z:'1111100010001000100011111', 0:'0111010011101011100101110', 1:'0010001100001000010001110',
+  2:'1111000001011101000011111', 3:'1111000001001100000111110', 4:'1001010010111110001000010', 5:'1111110000111100000111110',
+  6:'0111010000111101000101110', 7:'1111100001000100010000100', 8:'0111010001011101000101110', 9:'0111010001011110000101110',
+}
+const AVATAR_TONES = ['#a8d8bf', '#b9b2ff', '#e6c891', '#9fcbe8', '#eba9b8']
+// A small deterministic generator, so a session's pattern is the same on every render.
+function seeded(text) {
+  let h = 2166136261
+  for (const ch of String(text)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000 }
+}
+// The 7 cells span the whole 38px tile edge to edge with 1px gaps. 38 does not divide
+// by 7, so cell edges are rounded to whole pixels (cells are 4 or 5 wide) and stay crisp.
+// A fine 9×9 dot matrix filling the tile, each pixel on whole screen pixels so it stays
+// crisp; the 5×5 letter sits in the middle.
+const AVATAR_GRID = 9
+const AVATAR_EDGES = Array.from({ length: AVATAR_GRID + 1 }, (_, i) => Math.round(i * 39 / AVATAR_GRID))
+function pixelAvatar(seed, initial, tone, working) {
+  const rand = seeded(seed), glyph = GLYPHS[initial] || null, now = Date.now() / 1000, cells = []
+  for (let y = 0; y < AVATAR_GRID; y++) for (let x = 0; x < AVATAR_GRID; x++) {
+    const gx = x - 2, gy = y - 2
+    const inGlyph = !!glyph && gx >= 0 && gx < 5 && gy >= 0 && gy < 5 && glyph[gy * 5 + gx] === '1'
+    const r = rand()
+    // Dim field, brighter towards the right; a few lit "stars"; the letter on top.
+    const base = inGlyph ? 0.95 : Math.min(0.45, 0.05 + r * 0.11 + (x / (AVATAR_GRID - 1)) * 0.12 + (r > 0.95 ? 0.24 : 0)) + (working && !inGlyph ? 0.08 : 0)
+    let motion = ''
+    if (working) {
+      const length = 1.4 + rand() * 1.8, phase = rand() * length
+      // The field breathes and many pixels flare like stars, bright enough to read as
+      // "working" from across the list; the letter pulses within a readable range.
+      const high = inGlyph ? 0.72 : rand() > 0.6 ? 0.95 : Math.min(0.55, base * 2.4 + 0.1)
+      motion = ` style="--o:${base.toFixed(2)};--hi:${high.toFixed(2)};animation-duration:${length.toFixed(2)}s;animation-delay:-${((now + phase) % length).toFixed(2)}s"`
+    }
+    const x0 = AVATAR_EDGES[x], y0 = AVATAR_EDGES[y]
+    cells.push(`<rect x="${x0}" y="${y0}" width="${AVATAR_EDGES[x + 1] - 1 - x0}" height="${AVATAR_EDGES[y + 1] - 1 - y0}" rx=".6" opacity="${base.toFixed(2)}"${motion}/>`)
+  }
+  // Working, a band of light also sweeps across the pixels. Its phase comes from the
+  // clock too, so the list redrawing does not restart it.
+  const sweep = working ? `<defs><linearGradient id="sweep-${tone}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect class="avatar-sweep" x="-38" y="0" width="38" height="38" fill="url(#sweep-${tone})" style="animation-delay:-${(now % 2.8).toFixed(2)}s"/>` : ''
+  return `<svg class="avatar-pixels" viewBox="0 0 38 38" shape-rendering="crispEdges" fill="${AVATAR_TONES[tone]}" aria-hidden="true">${cells.join('')}${sweep}</svg>`
+}

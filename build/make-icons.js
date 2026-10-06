@@ -83,7 +83,8 @@ function crc32(buffer) {
 }
 
 const theme = readTheme()
-const out = path.join(__dirname, '..', 'public', 'icons')
+// Vite copies frontend/public/ into dist/ as is, so the server serves them from dist/icons.
+const out = path.join(__dirname, '..', 'frontend', 'public', 'icons')
 fs.mkdirSync(out, { recursive: true })
 for (const size of [192, 512]) {
   const file = path.join(out, `fleet-${size}.png`)
