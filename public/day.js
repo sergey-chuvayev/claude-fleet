@@ -63,7 +63,10 @@ window.FleetDay=(()=>{
   function waitingHtml(items) {
     const waiting=items.filter(i=>open(i).length).sort((a,b)=>open(a)[0].at-open(b)[0].at)
     if(!waiting.length) return ''
-    return UI.section('Waiting on you',waiting.map(item=>`<article class="ui-card" data-tone="needs"><div class="day-card-head">${head(item)}</div>${open(item).map(n=>needHtml(item,n)).join('')}${linksHtml(item)}</article>`).join(''),{count:waiting.reduce((n,i)=>n+open(i).length,0),cls:'day-waiting'})
+    // A question about work an agent did needs that work at hand: its session, the item's
+    // full story further down the board, and the item's links.
+    const foot=item=>`<div class="day-card-foot">${launchedHtml(item)}${item.thread?.sessionId && !item.thread.closed ? `<button type="button" class="day-launch-chip" data-open-session="${escape(item.thread.sessionId)}" data-state="idle" title="Open the conversation about this item"><span class="dot"></span>Thread <i class="ico ico-arrow" aria-hidden="true"></i></button>`:''}${linksHtml(item)}<button type="button" class="button ghost day-card-details" data-show-item="${escape(item.id)}" title="Open this item on the board: its context, log and actions">Details</button></div>`
+    return UI.section('Waiting on you',waiting.map(item=>`<article class="ui-card" data-tone="needs"><div class="day-card-head">${head(item)}</div>${open(item).map(n=>needHtml(item,n)).join('')}${foot(item)}</article>`).join(''),{count:waiting.reduce((n,i)=>n+open(i).length,0),cls:'day-waiting'})
   }
   function triageHtml(items) {
     const proposed=items.filter(i=>i.status==='proposed')
@@ -81,7 +84,8 @@ window.FleetDay=(()=>{
       const x=sessions.find(x=>x.managedId===id)
       if(!x)return `<span class="day-launch-chip" data-state="closed">Session closed</span>`
       const p=x.taskProgress
-      return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions"><span class="dot"></span>${escape(x.teamName || 'Agent')} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} <i class="ico ico-arrow" aria-hidden="true"></i></button>`
+      const name=x.teamName || x.title || x.name || 'Agent'
+      return `<button type="button" class="day-launch-chip" data-open-session="${escape(id)}" data-state="${escape(x.managedStatus)}" title="Open in Sessions: ${escape(name)}"><span class="dot"></span>${escape(name.length>40 ? `${name.slice(0,39)}…` : name)} · ${escape(LAUNCH_STATE[x.managedStatus] || x.managedStatus)}${p?.total ? ` · ${p.verified}/${p.total} verified`:''} <i class="ico ico-arrow" aria-hidden="true"></i></button>`
     }).join('')}</div>`
   }
   // Today's items under their priority. A row says only what is unusual about it (it
@@ -429,6 +433,8 @@ window.FleetDay=(()=>{
         .then(async ({result})=>{field.value='';await window.Fleet.tick();showThread(result.threadId)})
         .catch(error=>{toast(error.message);askItem.disabled=false})
     }
+    const details=target.closest('[data-show-item]')
+    if(details){event.preventDefault();return showItem(details.dataset.showItem)}
     const opener=target.closest('[data-open-session]')
     if(opener){event.preventDefault();window.FleetViews?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
     const answer=target.closest('[data-answer],[data-answer-value]')

@@ -3454,3 +3454,7 @@ details.project-brief[open]>summary { margin-bottom:8px }
 .task-sources { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
 .task-sources-label { color:var(--faint); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.06em }
 .ui-row details[open] .ui-row-meta>.ui-links { display:none }
+/* The foot of a Waiting on you card: the session behind it, its links, the item itself. */
+.day-card-foot { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:10px }
+.day-card-foot .day-launched, .day-card-foot .day-links { margin:0 }
+.day-card-foot .day-card-details { margin-left:auto; color:var(--muted); height:26px; min-height:0; padding:0 10px; font-size:var(--text-sm) }
