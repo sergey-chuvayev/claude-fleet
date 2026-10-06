@@ -44,7 +44,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 
-const bad = (message, status = 400) => { throw Object.assign(new Error(message), {status}) }
+const bad = (message, status = 400, code) => { throw Object.assign(new Error(message), {status, ...(code ? {code} : {})}) }
 const STATES = ['todo','doing','review','done']
 const MARK = {todo:' ', doing:'~', review:'?', done:'x'}
 const FROM_MARK = {' ':'todo', '~':'doing', '?':'review', x:'done', X:'done'}
@@ -285,7 +285,7 @@ class ProjectStore {
   }
   // A project starts from a title; its manager fills in the rest.
   create({ name } = {}) {
-    if (this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one first.`)
+    if (this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one first.`, 409, 'CAPACITY')
     return this.write({id:randomUUID(), name:string(name,'Project name',100), deadline:null, archived:false, repos:[], links:[], brief:'', deliverables:[], sections:[], log:[{at:Date.now(), text:'Project created.'}]})
   }
   // The manager's way of setting the project up or changing what it is. Any field left
@@ -335,7 +335,7 @@ class ProjectStore {
   active() { return this.all().filter(p => !p.archived).length }
   archive(id, archived = true) {
     const p = this.require(id)
-    if (!archived && p.archived && this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one before restoring this one.`, 409)
+    if (!archived && p.archived && this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one before restoring this one.`, 409, 'CAPACITY')
     p.archived = !!archived
     return this.write(p)
   }

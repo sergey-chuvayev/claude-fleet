@@ -3,14 +3,14 @@ const fs=require('node:fs')
 const path=require('node:path')
 const {randomUUID}=require('node:crypto')
 const {stateDir}=require('./paths')
-const fail=(message,status=400)=>Object.assign(new Error(message),{status})
+const fail=(message,status=400,code)=>Object.assign(new Error(message),{status,...(code?{code}:{})})
 class GatewaySettings {
   constructor({directory=stateDir(),env=process.env,fetchImpl=fetch}={}) {
     this.file=path.join(directory,'gateway-key.json');this.env=env;this.fetchImpl=fetchImpl
   }
   savedKey(){
     try{return JSON.parse(fs.readFileSync(this.file,'utf8')).apiKey || ''}
-    catch(error){if(error.code==='ENOENT')return '';throw fail('Unable to read the saved AI Gateway key. Check Fleet storage permissions.',503)}
+    catch(error){if(error.code==='ENOENT')return '';throw fail('Unable to read the saved AI Gateway key. Check Fleet storage permissions.',503,'STORAGE_UNAVAILABLE')}
   }
   key(){return this.savedKey() || this.env.AI_GATEWAY_API_KEY || ''}
   status(){const saved=!!this.savedKey();return {configured:saved || !!this.env.AI_GATEWAY_API_KEY,source:saved ? 'saved':this.env.AI_GATEWAY_API_KEY ? 'environment':null}}
@@ -21,7 +21,7 @@ class GatewaySettings {
       fs.mkdirSync(path.dirname(this.file),{recursive:true,mode:0o700})
       fs.writeFileSync(temp,JSON.stringify({apiKey:apiKey.trim()}),{mode:0o600,flag:'wx'})
       fs.renameSync(temp,this.file)
-    }catch{throw fail('Unable to save the AI Gateway key. Check Fleet storage permissions.',503)}
+    }catch{throw fail('Unable to save the AI Gateway key. Check Fleet storage permissions.',503,'STORAGE_UNAVAILABLE')}
     finally{try{fs.unlinkSync(temp)}catch{}}
     return this.status()
   }
