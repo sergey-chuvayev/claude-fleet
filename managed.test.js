@@ -405,7 +405,7 @@ test('a chosen model is passed to the SDK, changed per turn, and validated', asy
     await until(() => s.status === 'idle')
     manager.send(s.id, { message:'Third', requestId:randomUUID() })
     await until(() => calls.length === 3)
-    assert.equal(calls[2], 'sonnet')
+    assert.equal(calls[2], 'claude-opus-5-5')
 
     assert.throws(() => manager.setModelChoice(s.id, { model:'not a model!' }), /not valid/)
     assert.throws(() => manager.create({ cwd:directory, prompt:'x', requestId:randomUUID(), model:'a b c' }), /not valid/)

@@ -405,7 +405,7 @@ its branch alone. Deleting code is never the same click as tidying a list.
 Each delegation adds context and reporting overhead. Use a team when independent work or
 verification warrants it. For a one-line fix, launch an agent.
 
-Fleet explicitly selects the manager's model (Sonnet for a single agent) and removes a
+Fleet explicitly selects the manager's model (Opus 5.5 for a single agent) and removes a
 trailing `[1m]` suffix instead of inheriting the global extended-context choice. This avoids
 opting into the extended window; it is not a hard token ceiling on an existing conversation.
 Built-in roles use these limits, configurable in copied teams:
