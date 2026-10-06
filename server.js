@@ -184,12 +184,13 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
         if(url.pathname==='/api/projects'){const project=manager.createProject(data);manager.emit('change','projects');return json(res,200,{project})}
-        const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask|today)$/)
+        const projectAction=url.pathname.match(/^\/api\/projects\/([\w-]+)\/(archive|deliverable|ask|today|comment)$/)
         if(projectAction){
           const [,pid,act]=projectAction
           const result=act==='archive' ? {project:manager.projects.archive(pid,data.archived!==false)}
             : act==='deliverable' ? {deliverable:manager.projects.deliverable(pid,String(data.deliverableId || ''),{state:data.state,note:data.note})}
             : act==='today' ? manager.planDeliverable(pid,String(data.deliverableId || ''))
+            : act==='comment' ? {session:manager.detail(manager.commentOnTask(pid,{deliverableId:String(data.deliverableId || ''),message:data.message,requestId:data.requestId}).id)}
             : {session:manager.detail(manager.askProject(pid,data).id)}
           manager.emit('change','projects')
           return json(res,200,result)

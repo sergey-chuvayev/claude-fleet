@@ -56,7 +56,9 @@ window.FleetProjects=(()=>{
     const todayButton=d=>onToday[d.id] ? `<button type="button" class="button ghost is-on-today" data-open-today="${escape(onToday[d.id].itemId)}" title="On today's Day: ${escape(DAY_STATUS[onToday[d.id].status] || onToday[d.id].status)}">${onToday[d.id].status==='done' ? 'Done today' : 'On Today'} <i class="ico ico-arrow" aria-hidden="true"></i></button>` : d.state==='done' ? '' : `<button type="button" class="button ghost" data-plan-today="${escape(d.id)}" title="Put this on today's Day. The Day agent prepares a launch brief for you to approve."><i class="ico ico-plus" aria-hidden="true"></i> Today</button>`
     // A task shows its sources as chips; its brief, the context an agent starts from,
     // opens in place.
-    const taskDetail=d=>d.brief || d.links?.length ? `<div class="task-detail">${d.brief ? `<div class="project-md">${md(d.brief)}</div>`:'<p class="note">No brief yet. Ask the project manager to write one.</p>'}${d.links?.length ? `<div class="task-sources"><span class="task-sources-label">Sources</span>${UI.links(d.links)}</div>`:''}</div>`:''
+    // Every task opens: its brief and sources, and a comment box. A comment goes to the
+    // project manager, which updates the task, and into the project log.
+    const taskDetail=d=>`<div class="task-detail">${d.brief ? `<div class="project-md">${md(d.brief)}</div>`:'<p class="note">No brief yet. Comment below to give it one, or ask the project manager.</p>'}${d.links?.length ? `<div class="task-sources"><span class="task-sources-label">Sources</span>${UI.links(d.links)}</div>`:''}<div class="ui-ask task-comment"><textarea data-keep="comment:${escape(p.id)}:${escape(d.id)}" data-task-comment="${escape(d.id)}" rows="1" maxlength="8000" placeholder="Comment on this task: a decision, new info, what changed…"></textarea><button type="button" class="button" data-send-comment="${escape(d.id)}">Comment <i class="ico ico-arrow" aria-hidden="true"></i></button></div></div>`
     const deliverables=UI.list(p.deliverables.map(d=>UI.row({tone:STATE_TONE[d.state],orbTitle:STATE[d.state],title:escape(d.title),key:`task:${d.id}`,detail:taskDetail(d),meta:`${UI.links(d.links,{limit:3,cls:'is-quiet'})}${d.note ? `<span class="ui-row-latest" title="${escape(d.note)}">${escape(d.note)}</span>`:''}`,side:`${todayButton(d)}<select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select>`})).join(''))
     const sessions=members.length ? UI.list(members.map(s=>UI.row({tone:SESSION_TONE[s.managedStatus],orbTitle:SESSION_STATE[s.managedStatus] || s.managedStatus,title:escape((s.title || s.name || 'Session').slice(0,80)),meta:UI.pill(escape(SESSION_STATE[s.managedStatus] || s.managedStatus),SESSION_TONE[s.managedStatus]),side:`<button type="button" class="button ghost" data-open-session="${escape(s.managedId)}">Open <i class="ico ico-arrow" aria-hidden="true"></i></button>`})).join(''),'is-compact') : '<p class="note">No sessions yet. Tag one from its console, or launch from your Day.</p>'
     const log=(p.log || []).slice(-5).reverse()
@@ -146,6 +148,19 @@ window.FleetProjects=(()=>{
     if(onDay)return window.FleetDay?.showItem?.(onDay.dataset.openToday)
     const opener=t.closest('[data-open-session]')
     if(opener){window.FleetViews?.switchView('sessions');return window.Fleet.select(opener.dataset.openSession)}
+    const send=t.closest('[data-send-comment]')
+    if(send){
+      const field=pane().querySelector(`[data-task-comment="${CSS.escape(send.dataset.sendComment)}"]`),message=field?.value.trim()
+      if(!message)return toast('Write your comment first.')
+      send.disabled=true
+      try{
+        await api(`/api/projects/${selected}/comment`,{deliverableId:send.dataset.sendComment,message,requestId:crypto.randomUUID()})
+        field.value='';field.dispatchEvent(new Event('input',{bubbles:true}))
+        toast('Comment sent. The project manager is updating the task.')
+        await window.Fleet.tick();await load(true)
+      }catch(error){toast(error.message);send.disabled=false}
+      return
+    }
     const ask=t.closest('[data-ask-project]')
     if(ask){
       const field=pane().querySelector('[data-project-ask]'),message=field?.value.trim()
@@ -195,7 +210,11 @@ window.FleetProjects=(()=>{
     pane().addEventListener('click',act)
     pane().addEventListener('submit',submit)
     pane().addEventListener('change',change)
-    pane().addEventListener('keydown',event=>{if(event.key==='Enter' && !event.shiftKey && event.target.matches('[data-project-ask]')){event.preventDefault();pane().querySelector('[data-ask-project]')?.click()}})
+    pane().addEventListener('keydown',event=>{
+      if(event.key!=='Enter' || event.shiftKey)return
+      if(event.target.matches('[data-project-ask]')){event.preventDefault();pane().querySelector('[data-ask-project]')?.click()}
+      if(event.target.matches('[data-task-comment]')){event.preventDefault();pane().querySelector(`[data-send-comment="${CSS.escape(event.target.dataset.taskComment)}"]`)?.click()}
+    })
   }
   mount()
   // The console's own controls use this to offer a project to tag a session with.

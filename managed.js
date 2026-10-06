@@ -541,6 +541,23 @@ class ManagedSessions extends EventEmitter {
     catch (error) { this.sessions.delete(id); throw error }
     return pm
   }
+  // A comment on one task. It is kept in the project log and on the task's item on
+  // today's Day (so neither loses it, whatever the manager does next), then handed to
+  // the manager to fold into the task.
+  commentOnTask(projectId, body) {
+    const p = this.projects.require(projectId)
+    const d = p.deliverables.find(x => x.id === body.deliverableId)
+    if (!d) fail('That deliverable is not in this project.')
+    const comment = text(body.message,'Comment',8000)
+    const short = comment.replace(/\s+/g,' ').slice(0, 600)
+    this.projects.note(p.id, `Comment on "${d.title}": ${short}`)
+    const today = this.todayDay()
+    const item = today?.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
+    if (item) { try { day.act(today,{action:'update',itemId:item.id,note:`You commented on the project task: ${short}`},'operator'); this.changed(today,true) } catch {} }
+    const pm = this.askProject(p.id,{message:`On "${d.title}": ${comment}`,runPrompt:projectAgent.COMMENT(d, comment),requestId:body.requestId})
+    this.emit('change','projects')
+    return pm
+  }
   // What a manager reads: the project, its sessions as summaries, and today's Day items.
   projectStatus(projectId) {
     const p = this.projects.require(projectId)

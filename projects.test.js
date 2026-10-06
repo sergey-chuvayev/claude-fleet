@@ -306,3 +306,24 @@ test('a deliverable goes on today as work to start, once, and the project knows 
     assert.equal(manager.projects.get(p.id).deliverables.find(x=>x.id===second.id).state,'todo','only the one asked for moves')
   } finally { await manager.close() }
 })
+
+test('a comment on a task is logged, reaches the task on Today, and asks the manager to update the task',async()=>{
+  const {directory,manager}=setup()
+  try{
+    const p=make(manager.projects)
+    const task=p.deliverables[1]
+    const d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const {item}=manager.planDeliverable(p.id,task.id)
+    const pm=manager.commentOnTask(p.id,{deliverableId:task.id,message:'Franco says MP3 only, no WAV.',requestId:randomUUID()})
+    assert.equal(pm.kind,'project')
+    assert.equal(manager.projects.get(p.id).log.at(-1).text,`Comment on "${task.title}": Franco says MP3 only, no WAV.`)
+    assert.match(item.log.at(-1).text,/You commented on the project task: Franco says MP3 only/)
+    await until(()=>pm.messages.some(m=>m.role==='user' && m.runPrompt?.includes(task.id)))
+    const asked=pm.messages.filter(m=>m.role==='user').at(-1)
+    assert.equal(asked.text,`On "${task.title}": Franco says MP3 only, no WAV.`,'the console shows the comment as written')
+    assert.match(asked.runPrompt,new RegExp(`deliverableId ${task.id}`),'the manager is told which task it is about')
+    assert.throws(()=>manager.commentOnTask(p.id,{deliverableId:'nope',message:'x'}),/not in this project/)
+    assert.throws(()=>manager.commentOnTask(p.id,{deliverableId:task.id,message:'  '}),/Comment/)
+  } finally { await manager.close() }
+})

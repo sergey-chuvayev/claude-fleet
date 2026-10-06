@@ -153,7 +153,9 @@ Each deliverable is a task an agent can pick up cold. It carries:
 - its **sources**, the ticket, Slack thread, PR or doc it came from, as indented links.
 
 On the Projects tab the sources show as chips under each task, and the brief opens in
-place. Press **+ Today** to start one: the item on your Day carries the task's brief and
+place. Each open task has a comment box: write a decision, new information or what
+changed, and the project manager updates that task's brief, links or state. The comment
+is kept in the project log, and on the task's item if it is on today's Day. Press **+ Today** to start one: the item on your Day carries the task's brief and
 links, the project's brief, decisions and recent log, and the path to the file. The
 launched session is told where the project file is. When it finishes, its report and
 any pull request go back into the project's log and onto the deliverable.

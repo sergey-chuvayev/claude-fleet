@@ -54,6 +54,14 @@ function reachesPeople(tool) {
   return PEOPLE_SERVICES.test(match[1]) || PEOPLE_ACTIONS.test(match[2])
 }
 
+// The operator commenting on one task: the manager folds it into that task.
+const COMMENT = (d, comment) => `Read the project with the project tool (status) first.
+
+The operator commented on the deliverable "${d.title}" (deliverableId ${d.id}):
+${comment}
+
+Bring that task up to date with it: its brief (what it is, what was decided, scope, "Done when"), its links, and its state and note when the comment says where it stands. Record it under "Decisions" too when it concerns the whole project. If the comment is a question, answer it, and still record anything it settles. Then reply in one or two sentences with what you changed.`
+
 async function server(projectId, ctx, changed) {
   const {createSdkMcpServer,tool}=await import('@anthropic-ai/claude-agent-sdk')
   const {z}=require('zod/v4')
@@ -74,4 +82,4 @@ async function server(projectId, ctx, changed) {
     catch(error){return {isError:true,content:[{type:'text',text:error.message}]}}
   })]})
 }
-module.exports = { SYSTEM, OPENING, SETUP, server, reachesPeople }
+module.exports = { SYSTEM, OPENING, SETUP, COMMENT, server, reachesPeople }
