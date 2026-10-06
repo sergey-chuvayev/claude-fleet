@@ -203,9 +203,9 @@ function selectControl(session) {
       if(!files.length) return            // ordinary text paste proceeds untouched
       event.preventDefault(); attachImages(files)
     })
-    $('composer').addEventListener('dragover',event=>{ if([...(event.dataTransfer?.types || [])].some(t=>t==='Files' || t==='application/x-fleet-session')){ event.preventDefault(); $('composer').classList.add('is-dropping') } })
+    $('composer').addEventListener('dragover',event=>{ if([...(event.dataTransfer?.types || [])].some(t=>t==='Files')){ event.preventDefault(); $('composer').classList.add('is-dropping') } })
     $('composer').addEventListener('dragleave',()=>$('composer').classList.remove('is-dropping'))
-    $('composer').addEventListener('drop',event=>{ event.preventDefault(); $('composer').classList.remove('is-dropping'); const reference=event.dataTransfer?.getData('application/x-fleet-session'); if(reference){addReference(reference);return} attachImages([...(event.dataTransfer?.files || [])].filter(f=>f.type.startsWith('image/'))) })
+    $('composer').addEventListener('drop',event=>{ event.preventDefault(); $('composer').classList.remove('is-dropping'); attachImages([...(event.dataTransfer?.files || [])].filter(f=>f.type.startsWith('image/'))) })
     $('attach-tray').addEventListener('click',event=>{ const b=event.target.closest('[data-remove]'); if(b){ removeImage(Number(b.dataset.remove)) } })
     renderTray()
     $('reference-tray').addEventListener('click',event=>{
@@ -869,12 +869,4 @@ function openReferencedSession(id) {
   if(!source){toast('This session is no longer available.');return}
   selected=key(source);filter=source.background?'background':'all';render()
 }
-document.addEventListener('dragstart',event=>{
-  const row=event.target.closest('.session[data-session]')
-  if(!row || !event.dataTransfer)return
-  const session=(snapshot?.sessions || []).find(s=>key(s)===row.dataset.session)
-  if(!session || !referenceIdFor(session))return
-  event.dataTransfer.setData('application/x-fleet-session',referenceIdFor(session))
-  event.dataTransfer.effectAllowed='copy'
-})
 })()
