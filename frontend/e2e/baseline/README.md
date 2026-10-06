@@ -23,3 +23,5 @@ Output: `screens/<viewport>/<shot>.png` for 1440x900, 1280x800, 900x900 and 390x
 | `worktrees` | fleet-mixed | the Worktrees tab |
 
 The browser clock is fixed to the fixture clock, animations are off, motion is reduced, and the locale is `en-GB` in UTC. Fonts are the machine's own: regenerate on the same OS before diffing two sets. Not covered: the team editor open, narrow modal height, 200% zoom and long-title rows; add shots to `SHOTS` in `capture.mjs` as the React build reaches them.
+
+Screenshots are visually stable but not byte-identical between runs (about a fifth of them differ by a few pixels, in the animated avatars and scroll position), so compare by eye or with a tolerance, not by hash.
