@@ -3,7 +3,6 @@
 // team editor read the catalog; nothing else does. Saving a team changes the catalog
 // only: a running initiative carries its own team snapshot, which no save touches
 // (plan section 7, "team save affects catalog and launch editor only").
-import { getJson, perClient } from '../launch/get'
 import type { FleetClient } from '../../transport/client'
 import { type TeamCatalog, type TeamDefinition, parseTeamAnswer, parseTeamCatalog } from '../../transport/contracts'
 import type { Resource } from '../../transport/store'
@@ -11,15 +10,11 @@ import type { Resource } from '../../transport/store'
 export const TEAMS_KEY = 'teams'
 
 /** The catalog as a store resource: last good copy kept through a failed refresh. */
-export const teamsResource = perClient(
-  (client): Resource<TeamCatalog> => ({
-    key: TEAMS_KEY,
-    load: async ({ signal }) => ({ data: await getJson(client, '/api/teams', parseTeamCatalog, signal) }),
-  }),
-)
+export const teamsResource = (client: FleetClient): Resource<TeamCatalog> =>
+  client.resources.plain({ key: TEAMS_KEY, url: '/api/teams', parse: parseTeamCatalog })
 
 export function fetchTeam(client: FleetClient, id: string): Promise<TeamDefinition> {
-  return getJson(client, `/api/teams/${encodeURIComponent(id)}`, parseTeamAnswer)
+  return client.getJson(`/api/teams/${encodeURIComponent(id)}`, parseTeamAnswer)
 }
 
 /** Save a custom team, then reload the catalog so the launch form lists it. */

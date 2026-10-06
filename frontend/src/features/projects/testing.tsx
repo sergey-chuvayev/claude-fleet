@@ -1,7 +1,6 @@
 // Test support for Projects, Progress and Worktrees: a fake Fleet that answers from the
 // fixture packs, records every POST, and lets a test change what the next GET says.
-// The plain-JSON resources fetch through the page's `fetch`, so the same fake is also
-// installed as the global one.
+// Every read goes through the client's fetch, which is this fake.
 import { render } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { vi } from 'vitest'
@@ -80,7 +79,6 @@ export function mounted(): Mounted {
 
 /** Mount UI in the real providers over a fake Fleet. Call `unmount()` (afterEach) to clean up. */
 export function mount(ui: ReactNode, fleet: FakeFleet, preferences: Record<string, string> = {}): Mounted {
-  vi.stubGlobal('fetch', fleet.fetch)
   const storage = new MemoryStorage(preferences)
   const harness = makeHarness(fleet.fetch, storage)
   current = harness

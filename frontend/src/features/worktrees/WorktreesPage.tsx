@@ -14,8 +14,7 @@ import { Select } from '../../components/Select'
 import { useAnnounce } from '../../components/Toast'
 import type { Checkout } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { worktreesResource } from '../../transport/resources'
-import { Callout, List, PageHead, Pill, Row, Section, Stat } from '../projects/pageKit'
+import { Callout, List, PageHead, Pill, Row, Section, Stat } from '../../components/ui'
 import { useRefreshWhileVisible } from '../projects/useRefreshWhileVisible'
 import './worktrees.css'
 
@@ -129,14 +128,14 @@ export function WorktreesPage() {
   const { openModal } = useActions()
   const preferences = usePreferences()
   const filter = usePreference('worktreesFilter')
-  const state = useResource(worktreesResource)
+  const state = useResource(client.resources.worktrees)
   const report = state.data?.value
   // Open rows stay open across redraws and refreshes: the page owns that, not the DOM.
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set())
-  useRefreshWhileVisible(worktreesResource.key, FRESH_MS, state.data?.fetchedAt)
+  useRefreshWhileVisible(client.resources.worktrees.key, FRESH_MS, state.data?.fetchedAt)
 
   const refresh = () => {
-    void client.store.refresh(worktreesResource).then(() => announce('Worktrees refreshed'))
+    void client.store.refresh(client.resources.worktrees).then(() => announce('Worktrees refreshed'))
   }
   const toggle = (path: string, open: boolean) =>
     setOpened(previous => {
@@ -192,7 +191,7 @@ export function WorktreesPage() {
       />
       <div className="page-body">
         <Section
-          title="Checkouts"
+          label="Checkouts"
           count={shown.length}
           aside={
             <span className="note">

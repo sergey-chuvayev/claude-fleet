@@ -8,7 +8,6 @@ export { DayConsole } from './DayConsole'
 export { ReportBack } from './ReportBack'
 export { TodayPane } from './TodayPane'
 export { groupBoardEvents } from './groupBoardEvents'
-export { linkLabel } from './day'
 
 /** Show one Day item on the board, opened and in view (a project's task, a notification). */
 export function useShowDayItem(): (itemId: string) => void {

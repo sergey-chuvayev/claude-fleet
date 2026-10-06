@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { type ServiceStatus, parseService, parseServiceChange } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
 import { page, waitForNewServer } from './handover'
-import { errorText, getJson } from './rest'
+import { errorText } from '../../transport/errors'
 
 export const HANDOVER_FAILED =
   'Fleet did not come back. Open the Claude Fleet app, or see ~/Library/Logs/claude-fleet.log.'
@@ -19,11 +19,12 @@ export function StartupSection() {
 
   useEffect(() => {
     const abort = new AbortController()
-    getJson('/api/service', { signal: abort.signal })
-      .then(raw => setService(parseService(raw)))
+    client
+      .getJson('/api/service', parseService, { signal: abort.signal, timeoutMs: 8000 })
+      .then(setService)
       .catch(() => {})
     return () => abort.abort()
-  }, [])
+  }, [client])
 
   const toggle = async (enabled: boolean) => {
     if (busy) return
@@ -36,7 +37,7 @@ export function StartupSection() {
       const answer = parseServiceChange(await client.post('/api/service', { enabled }))
       setService(answer.service)
       if (answer.restarting) {
-        const outcome = await waitForNewServer({ previous: { instanceId: previous?.instanceId, buildId: previous?.buildId } })
+        const outcome = await waitForNewServer({ client, previous: { instanceId: previous?.instanceId, buildId: previous?.buildId } })
         if (outcome === 'changed') return page.reload()
         setError(HANDOVER_FAILED)
       }

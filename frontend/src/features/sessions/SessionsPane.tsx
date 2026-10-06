@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSelection } from '../../app/AppStore'
 import { selectionKey } from '../../app/state'
 import { useNow } from '../../components/clock'
+import { PageHead } from '../../components/ui'
 import {
   DEFAULT_ARCHIVE_RULE,
   dateCounts,
@@ -60,17 +61,18 @@ export function SessionsPane() {
 
   return (
     <>
-      <header className="page-head list-pane-head">
-        <div className="page-title">
-          <h2>
+      <PageHead
+        className="list-pane-head"
+        title={
+          <>
             Agents{' '}
             <span id="shown-count" className="ui-count">
               {shown?.length ?? 0}
             </span>
-          </h2>
-        </div>
-        {partition && counts ? (
-          <div className="page-actions">
+          </>
+        }
+        actions={
+          partition && counts ? (
             <FilterMenu
               status={status}
               date={filter.date}
@@ -80,9 +82,9 @@ export function SessionsPane() {
               archived={partition.archived.length}
               dateCounts={counts}
             />
-          </div>
-        ) : null}
-      </header>
+          ) : null
+        }
+      />
       {partition && (status === 'dead' || status === 'archived') ? (
         <ArchiveBar filter={status} partition={partition} rule={snapshot?.archiveRule ?? DEFAULT_ARCHIVE_RULE} />
       ) : null}

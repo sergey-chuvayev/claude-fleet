@@ -8,6 +8,9 @@
 //   client.resources.sessions    /api/sessions snapshot, conditional
 //   client.resources.managed(id) /api/managed/:id detail, conditional, one resource per id
 //   client.resources.history(engine, id)  /api/sessions/history, conditional
+//   client.resources.projects / archivedProjects / progress / worktrees  plain JSON, polled
+//   client.resources.plain(spec) any other plain JSON route as a store resource, one per key
+//   client.getJson(path, parse)  one plain GET, validated; throws HttpError with the server's code
 //   client.post(path, body)      POST with X-Fleet-Token; returns unvalidated JSON
 //   client.start() / stop()      event stream, visibility, timers
 import type { FetchLike } from './conditional'
@@ -16,7 +19,10 @@ import {
   type Engine,
   type History,
   type ManagedDetail,
+  type ProgressReport,
+  type Project,
   type SessionSnapshot,
+  type WorktreeReport,
   parseControl,
   parseHistory,
   parseManagedDetail,
@@ -24,7 +30,19 @@ import {
 } from './contracts'
 import { HttpError, ProtocolError, httpErrorFrom, withTimeout } from './errors'
 import { type EventSourceFactory, EventStream, type StreamStatus } from './events'
-import { conditionalResource, isManagedKey, keys, keysForSessionsEvent, resourceFamily } from './resources'
+import {
+  type Fetched,
+  type GetOptions,
+  type PlainResourceSpec,
+  conditionalResource,
+  getJson,
+  isManagedKey,
+  keys,
+  keysForSessionsEvent,
+  plainResource,
+  plainSpecs,
+  resourceFamily,
+} from './resources'
 import { type Resource, ResourceStore } from './store'
 
 export interface VisibilitySource {
@@ -62,9 +80,19 @@ export class FleetClient {
     readonly managed: (managedId: string) => Resource<ManagedDetail>
     /** An external session's transcript, keyed by engine and transcript id. */
     readonly history: (engine: Engine, transcriptId: string) => Resource<History>
+    readonly projects: Resource<Project[]>
+    readonly archivedProjects: Resource<Project[]>
+    readonly progress: Resource<Fetched<ProgressReport>>
+    readonly worktrees: Resource<Fetched<WorktreeReport>>
+    /**
+     * A plain JSON route as a store resource (dedupe, epochs, last good data). The
+     * first spec seen for a key wins: later calls with the same key get that object.
+     */
+    readonly plain: <T>(spec: PlainResourceSpec<T>) => Resource<T>
   }
 
   private readonly fetch: FetchLike
+  private readonly plainMade = new Map<string, Resource<unknown>>
   private readonly stream: EventStream | null
   private readonly visibility: VisibilitySource | null
   private readonly listCoalesceMs: number
@@ -85,7 +113,20 @@ export class FleetClient {
     this.listCoalesceMs = options.listCoalesceMs ?? 1000
     this.recoveryPollMs = options.recoveryPollMs ?? 30_000
     this.postTimeoutMs = options.postTimeoutMs ?? 15_000
+    const plain = <T,>(spec: PlainResourceSpec<T>): Resource<T> => {
+      let resource = this.plainMade.get(spec.key) as Resource<T> | undefined
+      if (!resource) {
+        resource = plainResource(this.fetch, spec)
+        this.plainMade.set(spec.key, resource as Resource<unknown>)
+      }
+      return resource
+    }
     this.resources = {
+      plain,
+      projects: plain(plainSpecs.projects),
+      archivedProjects: plain(plainSpecs.archivedProjects),
+      progress: plain(plainSpecs.progress),
+      worktrees: plain(plainSpecs.worktrees),
       control: { key: keys.control, load: ({ signal, current }) => this.loadControl(signal, current) },
       sessions: conditionalResource(this.fetch, {
         key: keys.sessions,
@@ -153,6 +194,16 @@ export class FleetClient {
   subscribeStreamStatus = (listener: Listener): (() => void) => {
     this.streamListeners.add(listener)
     return () => this.streamListeners.delete(listener)
+  }
+
+  /**
+   * GET a route that has no conditional protocol (search jobs, settings, catalogs, PR
+   * status) and validate it with `parse`. No token, no cache. Throws HttpError with
+   * the server's `code` on a non-2xx answer. For something polled or shared between
+   * components, use `resources.plain` instead so the store dedupes it.
+   */
+  getJson<T>(path: string, parse: (raw: unknown) => T, options: GetOptions = {}): Promise<T> {
+    return getJson(this.fetch, path, parse, options)
   }
 
   /**

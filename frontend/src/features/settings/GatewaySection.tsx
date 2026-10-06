@@ -5,7 +5,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type GatewayStatus, parseGatewayResponse } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
-import { errorText, getJson } from './rest'
+import { errorText } from '../../transport/errors'
 
 type Action = 'save' | 'test' | 'remove'
 
@@ -32,10 +32,11 @@ export function GatewaySection() {
   useEffect(() => {
     const abort = new AbortController()
     const mine = ++ticket.current
-    getJson('/api/settings/gateway', { signal: abort.signal })
-      .then(raw => {
+    client
+      .getJson('/api/settings/gateway', parseGatewayResponse, { signal: abort.signal, timeoutMs: 8000 })
+      .then(answer => {
         if (mine !== ticket.current) return
-        setGateway(parseGatewayResponse(raw).gateway)
+        setGateway(answer.gateway)
         setBusy(false)
         input.current?.focus()
       })
@@ -49,7 +50,7 @@ export function GatewaySection() {
       abort.abort()
       setKey('')
     }
-  }, [])
+  }, [client])
 
   const act = async (action: Action) => {
     if (busy) return

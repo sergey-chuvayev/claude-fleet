@@ -2,19 +2,18 @@
 // manager and its conversation. Before a project has a manager the console says what
 // goes there. The manager edits Notion, Linear and GitHub only with per-change
 // approval and never messages people; the header says so, as the legacy console did.
-//
-// TODO(features/approvals, features/composer): the manager's approval cards and the
-// full composer (model, mode, attachments) belong to those features; they plug in
-// below the conversation. Until then a question goes through the project's own ask
-// route, which reuses the manager.
-import { type KeyboardEvent, useState } from 'react'
-import { Icon } from '../../components/Icon'
+// Below the conversation: the manager's pending approvals, then a text composer on
+// the shared draft store that asks through the project's own route (which reuses the
+// manager, or starts one).
 import { useToast } from '../../components/Toast'
-import type { Project } from '../../transport/contracts'
+import { type Project, readControlFields } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
+import { Approvals } from '../approvals'
+import { TextComposer } from '../composer'
 import { Conversation, toolLabel } from '../conversation'
+import '../../styles/console.css'
 import './projects.css'
-import { errorMessage, newRequestId, useProjectPost } from './useProjectPost'
+import { useProjectPost } from './useProjectPost'
 import { useCurrentProject } from './useCurrentProject'
 
 // The conversation needs a flex column with a set height (as the Sessions console).
@@ -58,7 +57,7 @@ function ManagerConsole({ project, managerId }: { project: Project; managerId: s
   const queued = Array.isArray(session?.queue) && session.queue.length ? ` · ${session.queue.length} queued` : ''
   const state = status ? `${tool && status === 'running' ? `Using ${tool}` : (STATUS_LABEL[status] ?? status)}${queued}` : ''
   return (
-    <section id="control-panel" aria-label="Agent controls" style={CONSOLE_STYLE}>
+    <section id="control-panel" className="project-console" aria-label="Agent controls" style={CONSOLE_STYLE}>
       <header className="project-console-head">
         <strong className="project-console-title">Project manager · {project.name}</strong>
         <span className={`subtle${status === 'approval' ? ' stale' : ''}`} aria-live="polite">
@@ -74,51 +73,29 @@ function ManagerConsole({ project, managerId }: { project: Project; managerId: s
         </p>
       ) : null}
       <Conversation sessionKey={`managed:${managerId}`} onNotice={toast} />
-      <AskBox project={project} />
+      <Approvals managedId={managerId} approvals={session ? (readControlFields(session).approvals ?? []) : []} />
+      <AskComposer project={project} />
     </section>
   )
 }
 
-/** Send the manager a message. Enter sends, Shift+Enter breaks the line. */
-function AskBox({ project }: { project: Project }) {
+/**
+ * Ask the manager. A refused send (the agents are busy) keeps the text and its request
+ * id, so sending it again is the same request.
+ */
+function AskComposer({ project }: { project: Project }) {
   const toast = useToast()
   const post = useProjectPost()
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const send = async () => {
-    const message = text.trim()
-    if (!message) return toast('Type your question first.')
-    setSending(true)
-    try {
-      await post(`/api/projects/${project.id}/ask`, { message, requestId: newRequestId() })
-      setText('')
-    } catch (error) {
-      // The text stays, so a refused send (the agents are busy) can be sent again.
-      toast(errorMessage(error))
-    } finally {
-      setSending(false)
-    }
-  }
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
-    event.preventDefault()
-    if (!sending) void send()
-  }
   return (
-    <div className="project-ask">
-      <textarea
-        rows={2}
-        maxLength={8000}
-        placeholder="Ask about this project: status, blockers, are we on track…"
-        aria-label="Message to the project manager"
-        value={text}
-        onChange={event => setText(event.target.value)}
-        onKeyDown={onKeyDown}
-      />
-      <button type="button" className="button resume" disabled={sending} onClick={() => void send()}>
-        Send <Icon name="arrow" />
-      </button>
-    </div>
+    <TextComposer
+      draftKey={`project:${project.id}`}
+      inputId="project-message"
+      label="Message to the project manager"
+      placeholder="Ask about this project: status, blockers, are we on track…"
+      className="project-composer"
+      onEmpty={() => toast('Type your question first.')}
+      send={(message, snapshot) => post(`/api/projects/${encodeURIComponent(project.id)}/ask`, { message, requestId: snapshot.requestId })}
+    />
   )
 }
 
