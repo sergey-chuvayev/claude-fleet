@@ -10,6 +10,10 @@ export const keys = {
   sessions: 'sessions',
   projects: 'projects',
   progress: 'progress',
+  /** The team catalog as the Day board's launch cards read it (`/api/teams`). */
+  dayTeams: 'today:teams',
+  /** Project names for the Day board's tags and picker (`/api/projects`). */
+  dayProjects: 'today:projects',
   managed: (managedId: string) => `managed:${managedId}`,
   history: (engine: string, transcriptId: string) => `history:${engine}:${transcriptId}`,
 } as const
@@ -41,8 +45,10 @@ export const mutationInvalidates = {
   /** close also ends Day threads and moves project membership and Progress */
   sessionClose: (managedId: string) => [keys.managed(managedId), keys.sessions, keys.projects, keys.progress],
   /** a Day action touches the Day session, the list, projects and Progress */
-  day: (daySessionId: string) => [keys.managed(daySessionId), keys.sessions, keys.projects, keys.progress],
-  project: () => [keys.projects, keys.sessions],
+  day: (daySessionId: string) => [keys.managed(daySessionId), keys.sessions, keys.projects, keys.dayProjects, keys.progress],
+  project: () => [keys.projects, keys.dayProjects, keys.sessions],
+  /** a team saved or removed */
+  teams: () => [keys.dayTeams],
   queue: () => [keys.control, keys.sessions],
 } as const
 
@@ -88,4 +94,12 @@ export function resourceFamily<A extends readonly unknown[], T>(
     }
     return resource
   }
+}
+
+/**
+ * A plain JSON GET (no packed arrays, no ETag from the server), validated like the
+ * rest. The conditional adapter treats an answer without an ETag as always fresh.
+ */
+export function jsonResource<T>(fetch: FetchLike, key: string, url: string, parse: (raw: unknown) => T): Resource<T> {
+  return conditionalResource(fetch, { key, url, paths: [], parse })
 }

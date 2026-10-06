@@ -266,3 +266,214 @@ export function parseHistory(raw: unknown): History {
   if (!shell.success) throw new ContractError(route, issues(shell.error))
   return { ...shell.data, messages: validRowsOf(route, 'messages', shell.data.messages, messageSchema, validMessages) }
 }
+
+// ── The Day (/api/managed/:id for kind 'day', and /api/managed/:id/day) ────
+// The board travels inside the Day's managed detail. The fields the Today feature
+// reads are checked here; anything else on an item or a need is kept as it came.
+
+export const dayPrioritySchema = z.enum(['must', 'should', 'could'])
+export type DayPriority = z.infer<typeof dayPrioritySchema>
+export const dayModeSchema = z.enum(['me', 'draft', 'agent', 'ask'])
+export type DayMode = z.infer<typeof dayModeSchema>
+export const dayStatusSchema = z.enum(['proposed', 'today', 'in_progress', 'waiting_on_you', 'done', 'later', 'dropped'])
+export type DayStatus = z.infer<typeof dayStatusSchema>
+
+const dayNeedSchema = z.looseObject({
+  id: z.string().min(1),
+  /** approve, choose, info or launch; a kind this client does not know is answered in words. */
+  kind: z.string(),
+  question: z.string(),
+  at: z.number().optional(),
+  options: z.array(z.string()).optional(),
+  /** The exact text an approval sends, or the brief a launch starts from. */
+  draft: z.string().optional(),
+  launch: z
+    .looseObject({ cwd: nullableString.optional(), teamId: nullableString.optional(), name: nullableString.optional() })
+    .optional(),
+  answer: z.string().optional(),
+  decision: z.string().optional(),
+  answeredAt: z.number().optional(),
+  /** Set on the question an agent launched from the item asks when it reports back. */
+  report: z.string().optional(),
+})
+export type DayNeed = z.infer<typeof dayNeedSchema>
+
+const dayThreadSchema = z.looseObject({
+  sessionId: z.string().min(1),
+  at: z.number().optional(),
+  summary: nullableString.optional(),
+  closed: z.boolean().optional(),
+})
+
+const dayItemSchema = z.looseObject({
+  id: z.string().min(1),
+  title: z.string(),
+  source: z.string(),
+  priority: dayPrioritySchema,
+  status: dayStatusSchema,
+  mode: dayModeSchema,
+  estimateMin: z.number().nullable().optional(),
+  links: z.array(z.string()),
+  context: nullableString.optional(),
+  needs: z.array(dayNeedSchema),
+  log: z.array(z.looseObject({ at: z.number(), text: z.string() })),
+  createdAt: z.number(),
+  by: z.string().optional(),
+  carriedFrom: nullableString.optional(),
+  projectId: nullableString.optional(),
+  deliverableId: nullableString.optional(),
+  launched: z.array(z.string()).optional(),
+  thread: dayThreadSchema.nullable().optional(),
+  previousThread: dayThreadSchema.extend({ summary: z.string() }).nullable().optional(),
+})
+export type DayItem = z.infer<typeof dayItemSchema>
+
+export const dayBoardSchema = z.looseObject({
+  date: z.string(),
+  items: z.array(dayItemSchema),
+  cursors: z.record(z.string(), z.unknown()).optional(),
+  capacity: z.looseObject({ freeMinutes: z.number().nullable().optional(), at: z.number().optional() }).nullable().optional(),
+  focus: z.looseObject({ itemId: nullableString.optional(), at: z.number() }).nullable().optional(),
+})
+export type DayBoard = z.infer<typeof dayBoardSchema>
+
+const dayChecksSchema = z.looseObject({
+  lastAt: z.number().nullable().optional(),
+  everyMin: z.number(),
+  hours: z.tuple([z.number(), z.number()]).optional(),
+})
+export type DayChecks = z.infer<typeof dayChecksSchema>
+
+const dayStepSchema = z.looseObject({
+  id: z.string().min(1),
+  tool: z.string(),
+  target: nullableString.optional(),
+  status: z.string(),
+  input: z.unknown().optional(),
+  result: nullableString.optional(),
+  ms: z.number().nullable().optional(),
+  truncated: z.boolean().optional(),
+})
+
+/** One of the Day's subagents: a scout, or a worker on an item. */
+const daySubagentSchema = z.looseObject({
+  id: z.string().min(1),
+  role: z.string(),
+  status: z.string(),
+  itemId: nullableString.optional(),
+  description: nullableString.optional(),
+  prompt: nullableString.optional(),
+  model: nullableString.optional(),
+  startedAt: z.number().nullable().optional(),
+  finishedAt: z.number().nullable().optional(),
+  output: nullableString.optional(),
+  report: nullableString.optional(),
+  steps: z.array(dayStepSchema).optional(),
+})
+export type DaySubagent = z.infer<typeof daySubagentSchema>
+
+const tokenUsageSchema = z.looseObject({ input: z.number(), output: z.number(), cacheRead: z.number(), cacheCreation: z.number() })
+export type TokenUsage = z.infer<typeof tokenUsageSchema>
+
+/** What the Today feature reads from a Day's (or an item thread's) managed detail. */
+const dayDetailSchema = z.looseObject({
+  dayBoard: dayBoardSchema.nullable().optional(),
+  dayChecks: dayChecksSchema.nullable().optional(),
+  subagents: z.array(daySubagentSchema).optional(),
+  tokenUsage: tokenUsageSchema.nullable().optional(),
+  contextTokens: z.number().nullable().optional(),
+  contextLimit: z.number().nullable().optional(),
+  currentTool: nullableString.optional(),
+  queue: z.array(z.unknown()).optional(),
+})
+export type DayDetail = z.infer<typeof dayDetailSchema>
+
+const dayDetails = new WeakMap<object, DayDetail>()
+
+/**
+ * The Day's own fields of a managed detail, validated once per detail object (the
+ * store hands back the same object until the session changes).
+ */
+export function parseDayDetail(session: ManagedDetail['session']): DayDetail {
+  const held = dayDetails.get(session)
+  if (held) return held
+  const result = dayDetailSchema.safeParse(session)
+  if (!result.success) throw new ContractError('/api/managed/:id (Day)', issues(result.error))
+  dayDetails.set(session, result.data)
+  return result.data
+}
+
+/** The browser-facing Day actions (plan section 5); not the agent tool's protocol. */
+export type DayAction =
+  | {
+      readonly op: 'add'
+      readonly item: {
+        readonly title: string
+        readonly source: 'me'
+        readonly context?: string
+        readonly links?: readonly string[]
+        readonly priority?: DayPriority
+        readonly mode?: DayMode
+        readonly estimateMin?: number
+        readonly projectId?: string
+      }
+    }
+  | {
+      readonly op: 'triage'
+      readonly itemId: string
+      readonly status?: 'today' | 'later' | 'dropped' | 'proposed' | 'done'
+      readonly priority?: DayPriority
+      readonly mode?: DayMode
+      readonly projectId?: string | null
+    }
+  | {
+      readonly op: 'answer'
+      readonly itemId: string
+      readonly needId: string
+      readonly answer: string
+      readonly decision?: 'reply' | 'approve' | 'reject' | 'edit' | 'choose' | 'info'
+      readonly cwd?: string
+      readonly teamId?: string
+    }
+  | { readonly op: 'sweep' }
+  | { readonly op: 'thread'; readonly itemId: string; readonly message: string; readonly requestId: string }
+
+const dayActionResponseSchema = z.looseObject({ result: z.unknown(), session: z.looseObject({ id: z.string().min(1) }) })
+
+/** `{result, session}` from /api/managed/:id/day; `session` is the Day's whole detail. */
+export function parseDayActionResponse(raw: unknown): { result: unknown; detail: ManagedDetail } {
+  const shell = dayActionResponseSchema.safeParse(raw)
+  if (!shell.success) throw new ContractError('/api/managed/:id/day', issues(shell.error))
+  return { result: shell.data.result, detail: parseManagedDetail({ session: shell.data.session }) }
+}
+
+const threadResultSchema = z.looseObject({ threadId: z.string().min(1) })
+
+/** The thread op's result: the item thread's managed id. */
+export function parseDayThreadResult(raw: unknown): string {
+  const result = threadResultSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/managed/:id/day (thread)', issues(result.error))
+  return result.data.threadId
+}
+
+// ── /api/teams and /api/projects, as far as the Day board reads them ───────
+
+const teamListSchema = z.looseObject({ teams: z.array(z.looseObject({ id: z.string().min(1), name: z.string() })) })
+export type TeamList = z.infer<typeof teamListSchema>
+
+export function parseTeamList(raw: unknown): TeamList {
+  const result = teamListSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/teams', issues(result.error))
+  return result.data
+}
+
+const projectListSchema = z.looseObject({
+  projects: z.array(z.looseObject({ id: z.string().min(1), name: z.string(), archived: z.boolean().optional() })),
+})
+export type ProjectList = z.infer<typeof projectListSchema>
+
+export function parseProjectList(raw: unknown): ProjectList {
+  const result = projectListSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/projects', issues(result.error))
+  return result.data
+}
