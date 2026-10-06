@@ -50,6 +50,8 @@ const DAY_MAX_FAILURES = 3
 // accepts, and sniffed by magic bytes because the client's declared type is a claim.
 const MAX_IMAGES = 6
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+// Codex flattens animations and takes stills only, so GIF stays a Claude-only format.
+const CODEX_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const IMAGE_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
 function sniffImage(buffer) {
   if (buffer.length < 12) return null
@@ -721,7 +723,7 @@ class ManagedSessions extends EventEmitter {
     // leaves no request id and no image files, so retrying it tries again rather than
     // reading as already sent.
     if (!this.runs.has(id) && !holder) this.checkCapacity()
-    const attachments = hasImages ? this.saveImages(body.images) : []
+    const attachments = hasImages ? this.saveImages(body.images, s.engine) : []
     s.requestIds = [...s.requestIds,rid].slice(-200)
     const queued = {message,attachments,references,...(['day','thread','project'].includes(s.kind) && typeof body.runPrompt === 'string' ? {runPrompt:body.runPrompt.slice(0,32000),background:!!body.background} : {})}
     // Mid-turn, the SDK session can't take a second prompt yet: hold this one and let
@@ -773,7 +775,7 @@ class ManagedSessions extends EventEmitter {
   }
   // Validate, sniff and persist pasted images. Files are owner-only and named by a
   // fresh id, so a request can never choose where on disk its bytes land.
-  saveImages(images) {
+  saveImages(images, engine = 'claude') {
     if (!Array.isArray(images) || images.length > MAX_IMAGES) fail(`Attach up to ${MAX_IMAGES} images per message.`)
     const saved = []
     // A bad image further down the list must not leave the earlier ones on disk.
@@ -785,6 +787,7 @@ class ManagedSessions extends EventEmitter {
         if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) fail(`Each image must be under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
         const mediaType = sniffImage(buffer)
         if (!mediaType) fail('Only PNG, JPEG, GIF and WebP images can be attached.')
+        if (engine === 'codex' && !CODEX_IMAGE_TYPES.has(mediaType)) fail('Codex agents take PNG, JPEG and WebP images. Convert the GIF first.')
         const id = `${randomUUID()}.${IMAGE_TYPES[mediaType]}`
         fs.writeFileSync(path.join(this.attachmentsDir, id), buffer, { mode: 0o600 })
         saved.push({ id, mediaType, bytes: buffer.length })
@@ -803,8 +806,11 @@ class ManagedSessions extends EventEmitter {
   }
   // A message with images has to travel as content blocks, which the SDK accepts
   // only in streaming-input form: an iterable that yields the one message and ends.
-  promptFor(entry) {
+  // Codex is the exception: it reads plain text on stdin and takes the images as file
+  // arguments (see codexQuery), so it never gets the iterable.
+  promptFor(entry, engine = 'claude') {
     const promptText = referencePrompt(entry.runPrompt ?? entry.text, entry.references)
+    if (engine === 'codex') return promptText || (entry.attachments?.length ? (entry.attachments.length === 1 ? 'See the attached image.' : 'See the attached images.') : promptText)
     if (!entry.attachments?.length) return promptText
     const dir = this.attachmentsDir
     return (async function* () {
@@ -969,7 +975,7 @@ class ManagedSessions extends EventEmitter {
     return this.queryFactory({prompt,options})
   }
   async run(s,run,entry) {
-    const prompt = typeof entry === 'string' ? entry : this.promptFor(entry)
+    const prompt = typeof entry === 'string' ? entry : this.promptFor(entry, s.engine)
     try {
       run.query = s.engine === 'codex' ? this.codexQuery(s,run,entry,prompt) : await this.claudeQuery(s,run,entry,prompt)
       if (!run.query) return

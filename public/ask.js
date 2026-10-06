@@ -1,7 +1,7 @@
 'use strict'
 // An isolated scope, matching teams.js and blocks.js.
 ;(() => {
-const { $, esc, key, age, update, status, render, toast, modalIsOpen, openModal, closeModal } = window.Fleet
+const { $, esc, key, age, update, status, toast, modalIsOpen, openModal, closeModal } = window.Fleet
 const api = (...args) => window.FleetControl.api(...args)
 // Ask panel: one question, searched across every transcript on this machine.
 // Keyword matches render the moment the server has them; the written answer
@@ -115,12 +115,13 @@ $('ask-results')?.addEventListener('click', async event => {
   const button = event.target.closest('button')
   if (!button) return
   if (button.dataset.openSession) {
-    selected = button.dataset.openSession
-    filter = 'all'
+    // Selection and filter live in app.js; go through its published actions.
+    const sessionKey = button.dataset.openSession
     closeModal()
-    render()
+    window.Fleet.setFilter('all')
+    window.Fleet.select(sessionKey)
     if (matchMedia('(max-width:720px)').matches) $('detail').scrollIntoView({ behavior: 'instant', block: 'start' })
-    else document.querySelector(`.session[data-session="${CSS.escape(selected)}"]`)?.scrollIntoView({ block: 'nearest' })
+    else document.querySelector(`.session[data-session="${CSS.escape(sessionKey)}"]`)?.scrollIntoView({ block: 'nearest' })
   }
   if (button.dataset.copyResume) {
     try { await navigator.clipboard.writeText(button.dataset.copyResume); toast('Resume command copied') }
