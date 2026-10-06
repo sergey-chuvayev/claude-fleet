@@ -9,9 +9,9 @@ import { age, elapsed } from '../domain/format'
 type Listener = () => void
 
 export interface ClockOptions {
-  readonly now?: () => number
-  readonly intervalMs?: number
-  readonly visibility?: Pick<Document, 'hidden' | 'addEventListener' | 'removeEventListener'> | null
+  readonly now?: (() => number) | undefined
+  readonly intervalMs?: number | undefined
+  readonly visibility?: Pick<Document, 'hidden' | 'addEventListener' | 'removeEventListener'> | null | undefined
 }
 
 export class Clock {
@@ -87,8 +87,8 @@ const toMs = (at: number | string): number => (typeof at === 'number' ? at : new
 export interface RelativeTimeProps {
   readonly at: number | string | null | undefined
   /** Appended after the age, e.g. " ago". */
-  readonly suffix?: string
-  readonly className?: string
+  readonly suffix?: string | undefined
+  readonly className?: string | undefined
 }
 
 /** "5m ago": the legacy age() format, live, with the exact time on hover. */

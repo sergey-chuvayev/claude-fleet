@@ -25,7 +25,10 @@ export function SessionsPane() {
         </div>
       </header>
       {shown ? (
-        <SessionNameList sessions={shown} />
+        // The list scrolls inside the pane, as .session-list does once it is ported.
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <SessionNameList sessions={shown} />
+        </div>
       ) : (
         <div className="empty">{sessions.status === 'error' ? 'Waiting for the local server…' : 'Loading your sessions…'}</div>
       )}

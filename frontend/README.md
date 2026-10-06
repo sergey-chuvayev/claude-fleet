@@ -42,3 +42,41 @@ npm run build:frontend         # dist/ with .vite/manifest.json
   (the Markdown boundary lives here). `src/features/<area>/`: feature code.
 - `src/styles/tokens.css`: design tokens ported from `public/styles.css`.
 - `src/test/`: fakes (the server's real `sync.js` behind a fake fetch) and fixtures.
+
+## Plugging a feature into the shell
+
+The shell (`app/AppShell.tsx`) draws everything from two registries. A feature
+replaces its own placeholder file; it does not edit the shell.
+
+- **Views** (`app/views.tsx`): each tab is a `Pane` and, for split views, a
+  `Detail` rendered in `aside#detail`, with the divider between them. The shell
+  owns the containers (legacy ids and classes) and the divider. Placeholders:
+  `features/sessions/SessionsPane`, `features/inspector/SessionDetail`,
+  `features/today/TodayPane` + `DayConsole`, `features/projects/ProjectsPane` +
+  `ProjectConsole`, `features/progress/ProgressPage`, `features/worktrees/WorktreesPage`.
+- **Modals** (`app/modals.tsx`): modal kind to component, receiving
+  `{ modal, onClose }`. Render a `<Dialog id={MODAL_IDS[kind]}>`. Placeholders:
+  `features/launch/LaunchDialog`, `features/search/SearchDialog`,
+  `features/connections/ConnectionsDialog`, `features/settings/SettingsDialog`,
+  `features/worktrees/ClearWorktreeDialog`. Status bar and top bar slots:
+  `features/status/UsageStatus`, `features/status/UpdateStatus`.
+- **State** (`app/state.ts`, `app/AppStore.tsx`): `useView()`, `useSelection(slot)`,
+  `useModal()`, `useActions()` (`navigate`, `select(selection, { reveal })`,
+  `openModal`, `closeModal`, `setInspector`), `useReconcileSelection(slot, rows)`
+  from the component that owns the visible rows, `usePreference(key)`,
+  `useInspector()`. A selection is a tagged union (`managed`, `external`,
+  `delegation`, `day-thread`, `project-manager`); `selectionKey()` equals
+  `sessionKey(row)` for session rows.
+- **Primitives** (`components/`): `Dialog`/`DialogHead`/`DialogFoot`, `Select`,
+  `SplitPane`/`PanelSplitter`, `Disclosure`/`Fold`, `useToast`/`useAnnounce`,
+  `CopyButton`/`copyToClipboard`, `Icon`, `Avatar`, `PixelRun`, `EmptyState`,
+  `RelativeTime`/`Elapsed`/`useNow`, `useSeen`. Formatters: `domain/format.ts`.
+- **Styles**: `styles/shell.css` and `styles/components.css` are the legacy rules
+  whose selectors name only shell or primitive classes, ported in legacy order.
+  A feature ports its own rules from `public/styles.css` into a stylesheet it
+  imports from its component (as `styles/conversation.css` is); those load after
+  the shell's, so a legacy rule that sat earlier than a shell rule of equal
+  specificity needs a look.
+- `test/shell.tsx` renders anything inside the real providers with an in-memory
+  `localStorage`; `e2e/compare/shell/capture.mjs` takes side-by-side screenshots
+  against the legacy baseline.

@@ -90,10 +90,10 @@ export interface AvatarProps {
   /** The legacy session key (managedId, else sessionId, else session:<pid>): seed and tone. */
   readonly seed: string
   /** The title or name the initial is taken from. */
-  readonly title?: string | null
-  readonly working?: boolean
+  readonly title?: string | null | undefined
+  readonly working?: boolean | undefined
   /** The status dot's class: busy, idle, stale (needs approval) or dead. */
-  readonly status?: string
+  readonly status?: string | undefined
 }
 
 export const Avatar = memo(function Avatar({ seed, title, working = false, status }: AvatarProps) {

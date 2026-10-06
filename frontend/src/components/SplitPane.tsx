@@ -39,7 +39,7 @@ export interface SplitPaneProps {
   /** Allowed range in percent for a container width in pixels. */
   readonly bounds: (width: number) => readonly [number, number]
   readonly label: string
-  readonly id?: string
+  readonly id?: string | undefined
 }
 
 export function SplitPane({ containerRef, preference, cssVar, defaultValue, bounds, label, id }: SplitPaneProps) {
@@ -180,11 +180,11 @@ export interface PanelSplitterProps {
   /** The largest height allowed right now (it depends on the space around the panel). */
   readonly max: () => number
   /** The divider sits above the panel: dragging up grows it. */
-  readonly before?: boolean
+  readonly before?: boolean | undefined
   /** The height is a floor (min-height), so the panel can still grow to fit its content. */
-  readonly grow?: boolean
+  readonly grow?: boolean | undefined
   /** Collapsed (a closed <details>): no divider, no height. */
-  readonly collapsed?: boolean
+  readonly collapsed?: boolean | undefined
 }
 
 const PANEL_STEPS: Record<string, number> = { ArrowUp: -10, ArrowDown: 10 }

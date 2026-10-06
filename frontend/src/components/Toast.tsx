@@ -109,6 +109,9 @@ function useNotifier(): Notifier {
   return notifier
 }
 
+/** The toast where a NotificationsProvider exists, else null (isolated component tests). */
+export const useOptionalToast = (): ((message: string) => void) | null => useContext(NotifierContext)?.toast ?? null
+
 /** Show a short message in the toast box. */
 export const useToast = (): ((message: string) => void) => useNotifier().toast
 /** Say something to screen readers only. */

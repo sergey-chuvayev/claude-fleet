@@ -27,15 +27,15 @@ export interface DialogProps {
   readonly onClose: () => void
   /** Id of the element that names the dialog (its h2). */
   readonly labelledBy: string
-  readonly describedBy?: string
+  readonly describedBy?: string | undefined
   /** Classes of the section, e.g. "modal modal-ask". Defaults to "modal". */
-  readonly className?: string
+  readonly className?: string | undefined
   /** Id of the backdrop, which the opener's aria-controls names (e.g. "ask-backdrop"). */
-  readonly id?: string
+  readonly id?: string | undefined
   /** CSS selector of the element to focus on open; else the first focusable, else the dialog. */
-  readonly initialFocus?: string
+  readonly initialFocus?: string | undefined
   /** False for a dialog that must not close on a stray backdrop click. */
-  readonly closeOnBackdrop?: boolean
+  readonly closeOnBackdrop?: boolean | undefined
   readonly children: ReactNode
 }
 
@@ -175,10 +175,10 @@ export interface DialogHeadProps {
   readonly titleId: string
   readonly title: ReactNode
   /** The small uppercase line above the title. */
-  readonly eyebrow?: ReactNode
+  readonly eyebrow?: ReactNode | undefined
   /** The glyph in the round tile on the left (✳, ⌘, ⚙). */
-  readonly spark?: ReactNode
-  readonly lead?: ReactNode
+  readonly spark?: ReactNode | undefined
+  readonly lead?: ReactNode | undefined
   /** Accessible name of the close button, e.g. "Close search". */
   readonly closeLabel: string
 }

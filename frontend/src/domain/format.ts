@@ -7,7 +7,7 @@ const toMs = (at: number | string | Date): number => (at instanceof Date ? at.ge
 
 /** How long ago: 42s, 5m, 3h, 2d. An absent timestamp is an em dash, as before. */
 export function age(at: number | string | null | undefined, now: number): string {
-  if (!at) return '—'
+  if (!at) return '\u2014'
   const secs = Math.max(0, Math.floor((now - toMs(at)) / 1000))
   return secs < 60
     ? `${secs}s`

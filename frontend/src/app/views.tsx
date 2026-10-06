@@ -22,7 +22,7 @@ export interface ViewDefinition {
   /** The tab's text, and the workspace's accessible name. */
   readonly label: string
   /** The tab's tooltip. */
-  readonly title?: string
+  readonly title?: string | undefined
   /** The pane container the shell renders around `Pane`. */
   readonly pane: { readonly id: string; readonly className: string; readonly element: 'div' | 'section' }
   readonly Pane: LazyExoticComponent<ComponentType>

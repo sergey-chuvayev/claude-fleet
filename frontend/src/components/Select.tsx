@@ -26,10 +26,10 @@ export interface SelectOption<V extends string = string> {
   readonly value: V
   readonly label: string
   /** A second line under the label in the menu (legacy data-description). */
-  readonly description?: string
-  readonly disabled?: boolean
+  readonly description?: string | undefined
+  readonly disabled?: boolean | undefined
   /** Options sharing a group name are drawn under one heading (an optgroup). */
-  readonly group?: string
+  readonly group?: string | undefined
 }
 
 export interface SelectProps<V extends string = string> {
@@ -39,16 +39,16 @@ export interface SelectProps<V extends string = string> {
   /** What the control is for ("Model", "Approvals"). Names both the trigger and the menu. */
   readonly label: string
   /** Id of the native select, so a <label for> reaches it. */
-  readonly id?: string
-  readonly name?: string
+  readonly id?: string | undefined
+  readonly name?: string | undefined
   /** Applied to the native select and the trigger alike, as legacy did. */
-  readonly className?: string
-  readonly disabled?: boolean
-  readonly title?: string
+  readonly className?: string | undefined
+  readonly disabled?: boolean | undefined
+  readonly title?: string | undefined
   /** Full-width trigger. Undefined measures it the legacy way (90% of the parent or more). */
-  readonly block?: boolean
+  readonly block?: boolean | undefined
   /** Always the native select (legacy data-native). */
-  readonly native?: boolean
+  readonly native?: boolean | undefined
   readonly 'aria-describedby'?: string
 }
 
