@@ -266,3 +266,190 @@ export function parseHistory(raw: unknown): History {
   if (!shell.success) throw new ContractError(route, issues(shell.error))
   return { ...shell.data, messages: validRowsOf(route, 'messages', shell.data.messages, messageSchema, validMessages) }
 }
+
+// ── The control panel: fields of a managed detail, and its side routes ──────
+// A managed detail is a loose clone of the server's session (plan section 6). The
+// console reads these fields from it; each one falls back on its own when it has an
+// unexpected shape, so one odd field costs that one control, not the conversation.
+
+export const approvalSchema = z.looseObject({
+  id: z.string().min(1),
+  tool: z.string().min(1),
+  input: z.record(z.string(), z.unknown()).nullable().optional(),
+  at: z.number().nullable().optional(),
+  reason: nullableString.optional(),
+  description: nullableString.optional(),
+  /** Inside an initiative, the role that asked. */
+  role: nullableString.optional(),
+})
+export type Approval = z.infer<typeof approvalSchema>
+
+/** AskUserQuestion's input: answers are keyed by the question text in the request. */
+export const askQuestionSchema = z.looseObject({
+  question: z.string().min(1),
+  header: nullableString.optional(),
+  multiSelect: z.boolean().optional(),
+  options: z.array(z.looseObject({ label: z.string(), description: nullableString.optional() })).optional(),
+})
+export type AskQuestion = z.infer<typeof askQuestionSchema>
+
+export const queuedMessageSchema = z.looseObject({
+  id: z.string().optional(),
+  message: nullableString.optional(),
+  attachments: z.array(z.unknown()).optional(),
+  references: z.array(z.unknown()).optional(),
+})
+export type QueuedMessage = z.infer<typeof queuedMessageSchema>
+
+/** Another program (a terminal) holding this managed session; messages wait for it. */
+export const holderSchema = z.looseObject({
+  pid: z.number().nullable().optional(),
+  name: nullableString.optional(),
+  entrypoint: nullableString.optional(),
+  state: nullableString.optional(),
+  startedAt: z.number().nullable().optional(),
+})
+export type Holder = z.infer<typeof holderSchema>
+
+export const modelRoutingSchema = z.looseObject({
+  model: z.string(),
+  description: nullableString.optional(),
+  signals: z.looseObject({ complexity: z.unknown().optional(), probability: z.number().optional() }).nullable().optional(),
+})
+export type ModelRouting = z.infer<typeof modelRoutingSchema>
+
+export const teamRoleSchema = z.looseObject({
+  model: nullableString.optional(),
+  description: nullableString.optional(),
+})
+export const teamSnapshotSchema = z.looseObject({
+  manager: z.string(),
+  roles: z.record(z.string(), teamRoleSchema),
+  workflow: z
+    .looseObject({ mode: z.string().optional(), reviewers: z.array(z.string()).optional(), maxAttempts: z.number().optional() })
+    .nullable()
+    .optional(),
+})
+export type TeamSnapshot = z.infer<typeof teamSnapshotSchema>
+
+export const boardTaskSchema = z.looseObject({
+  id: z.string().min(1),
+  title: z.string(),
+  owner: z.string().optional(),
+  status: z.string(),
+  attempt: z.number().optional(),
+  criteria: z.array(z.string()).optional(),
+  dependencies: z.array(z.string()).optional(),
+  blocker: nullableString.optional(),
+  snapshot: z.looseObject({ commit: z.string() }).nullable().optional(),
+  reviewErrors: z.number().optional(),
+  evidence: nullableString.optional(),
+})
+export type BoardTask = z.infer<typeof boardTaskSchema>
+
+export const boardDelegationSchema = z.looseObject({
+  id: z.string().min(1),
+  taskId: nullableString.optional(),
+  role: z.string(),
+  status: z.string(),
+  model: nullableString.optional(),
+  activity: nullableString.optional(),
+  prompt: nullableString.optional(),
+  report: nullableString.optional(),
+})
+export type BoardDelegation = z.infer<typeof boardDelegationSchema>
+
+export const taskBoardSchema = z.looseObject({
+  tasks: z.array(boardTaskSchema),
+  delegations: z.array(boardDelegationSchema),
+})
+export type TaskBoard = z.infer<typeof taskBoardSchema>
+
+const lenient = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined)
+
+const controlFieldsSchema = z.object({
+  kind: lenient(z.string()),
+  name: lenient(nullableString),
+  aiTitle: lenient(nullableString),
+  renamed: lenient(z.boolean()),
+  cwd: lenient(nullableString),
+  projectId: lenient(nullableString),
+  approvalMode: lenient(approvalModeSchema),
+  selectedModel: lenient(nullableString),
+  modelRouting: lenient(modelRoutingSchema.nullable()),
+  contextTokens: lenient(z.number().nullable()),
+  contextLimit: lenient(z.number().nullable()),
+  currentTool: lenient(nullableString),
+  approvals: lenient(z.array(approvalSchema)),
+  queue: lenient(z.array(queuedMessageSchema)),
+  openElsewhere: lenient(holderSchema.nullable()),
+  teamName: lenient(nullableString),
+  teamSnapshot: lenient(teamSnapshotSchema.nullable()),
+  taskBoard: lenient(taskBoardSchema.nullable()),
+  limits: lenient(z.looseObject({ maxAttempts: z.number().optional() }).nullable()),
+})
+export type ControlFields = z.infer<typeof controlFieldsSchema>
+
+const controlFieldsSeen = new WeakMap<object, ControlFields>()
+
+/** The control panel's view of a managed session. Never throws; computed once per session object. */
+export function readControlFields(session: ManagedDetail['session']): ControlFields {
+  const seen = controlFieldsSeen.get(session)
+  if (seen) return seen
+  const fields = controlFieldsSchema.parse(session)
+  controlFieldsSeen.set(session, fields)
+  return fields
+}
+
+/** The `{session}` answer of a managed mutation (message, stop, mode, model, approval, name, project). */
+export function parseSessionAnswer(raw: unknown): ManagedDetail | null {
+  try {
+    return parseManagedDetail(raw)
+  } catch {
+    return null
+  }
+}
+
+// ── /api/managed/:id/commands, /api/models, /api/projects (as choices) ─────
+
+export const commandSchema = z.looseObject({
+  name: z.string().min(1),
+  kind: z.string().optional(),
+  scope: z.string().optional(),
+  description: nullableString.optional(),
+  hint: nullableString.optional(),
+})
+export type Command = z.infer<typeof commandSchema>
+
+export function parseCommands(raw: unknown): readonly Command[] {
+  const result = z.looseObject({ commands: z.array(z.unknown()) }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/managed/:id/commands', issues(result.error))
+  // One malformed entry is skipped, not fatal: the picker only inserts text.
+  return result.data.commands.flatMap(entry => {
+    const parsed = commandSchema.safeParse(entry)
+    return parsed.success ? [parsed.data] : []
+  })
+}
+
+export const modelOptionSchema = z.looseObject({
+  value: z.string(),
+  displayName: nullableString.optional(),
+  description: nullableString.optional(),
+})
+export type ModelOption = z.infer<typeof modelOptionSchema>
+
+export function parseModels(raw: unknown): { models: ModelOption[] } {
+  const result = z.looseObject({ models: z.array(modelOptionSchema).min(1) }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/models', issues(result.error))
+  return result.data
+}
+
+export const projectChoiceSchema = z.looseObject({ id: z.string().min(1), name: z.string(), archived: z.boolean().optional() })
+export type ProjectChoice = z.infer<typeof projectChoiceSchema>
+
+/** /api/projects, read loosely: the console needs only each project's id and name. */
+export function parseProjectChoices(raw: unknown): { projects: ProjectChoice[] } {
+  const result = z.looseObject({ projects: z.array(projectChoiceSchema) }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/projects', issues(result.error))
+  return result.data
+}
