@@ -456,7 +456,7 @@ export function parseDayThreadResult(raw: unknown): string {
   return result.data.threadId
 }
 
-// ── /api/teams and /api/projects, as far as the Day board reads them ───────
+// ── /api/teams, as far as the Day board reads it ───────────────────────────
 
 const teamListSchema = z.looseObject({ teams: z.array(z.looseObject({ id: z.string().min(1), name: z.string() })) })
 export type TeamList = z.infer<typeof teamListSchema>
@@ -467,13 +467,272 @@ export function parseTeamList(raw: unknown): TeamList {
   return result.data
 }
 
-const projectListSchema = z.looseObject({
-  projects: z.array(z.looseObject({ id: z.string().min(1), name: z.string(), archived: z.boolean().optional() })),
-})
-export type ProjectList = z.infer<typeof projectListSchema>
 
-export function parseProjectList(raw: unknown): ProjectList {
-  const result = projectListSchema.safeParse(raw)
+// ── /api/projects, /api/progress, /api/worktrees ───────────────────────────
+// Plain JSON routes (no ETag, no packed arrays). Loose about fields the client does
+// not read, defaulted where the server may omit a field (a project just created or
+// archived has no progress or members yet).
+
+export const DELIVERABLE_STATES = ['todo', 'doing', 'review', 'done'] as const
+export type DeliverableState = (typeof DELIVERABLE_STATES)[number]
+
+const deliverableSchema = z.looseObject({
+  /** Stable and persisted since B04: scope is project plus deliverable, never title or index. */
+  id: z.string().min(1),
+  title: z.string(),
+  state: z.string(),
+  note: z.string().default(''),
+  brief: z.string().default(''),
+  links: z.array(z.string()).default([]),
+})
+export type Deliverable = z.infer<typeof deliverableSchema>
+
+const projectSchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string(),
+  deadline: nullableString.optional(),
+  archived: z.boolean().default(false),
+  repos: z.array(z.string()).default([]),
+  links: z.array(z.string()).default([]),
+  brief: z.string().default(''),
+  deliverables: z.array(deliverableSchema).default([]),
+  sections: z.array(z.looseObject({ heading: z.string(), body: z.string().default('') })).default([]),
+  log: z.array(z.looseObject({ at: z.number(), text: z.string() })).default([]),
+  file: z.string().default(''),
+  updatedAt: z.number().optional(),
+  /** Only on the answer to a create: false when the manager could not start. */
+  setup: z.looseObject({ started: z.boolean(), error: z.string().optional() }).optional(),
+  progress: z.looseObject({ total: z.number(), done: z.number(), doing: z.number().optional() }).default({ total: 0, done: 0 }),
+  sessions: z.number().default(0),
+  onToday: z.record(z.string(), z.looseObject({ itemId: z.string(), status: z.string() })).default({}),
+  managerId: nullableString.default(null),
+})
+export type Project = z.infer<typeof projectSchema>
+
+export function parseProjects(raw: unknown): Project[] {
+  const result = z.looseObject({ projects: z.array(projectSchema) }).safeParse(raw)
   if (!result.success) throw new ContractError('/api/projects', issues(result.error))
+  return result.data.projects
+}
+
+/** The answer to a create or an archive: one project. */
+export function parseProject(raw: unknown): Project {
+  const result = z.looseObject({ project: projectSchema }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/projects', issues(result.error))
+  return result.data.project
+}
+
+const progressSchema = z.looseObject({
+  since: z.number(),
+  days: z.number(),
+  staleDays: z.number(),
+  shipped: z.looseObject({
+    items: z.array(z.looseObject({ id: z.string(), title: z.string(), date: z.string(), prs: z.array(z.string()).default([]) })),
+    count: z.number(),
+    prs: z.number(),
+  }),
+  stalled: z.looseObject({
+    items: z.array(z.looseObject({ id: z.string(), title: z.string(), kind: z.string(), status: z.string(), lastMoved: z.number() })),
+    count: z.number(),
+  }),
+  ran: z.looseObject({
+    count: z.number(),
+    outcomes: z.record(z.string(), z.number()),
+    sessions: z.array(z.looseObject({ id: z.string(), name: z.string(), outcome: z.string(), at: z.number(), teamName: nullableString.optional() })),
+  }),
+})
+export type ProgressReport = z.infer<typeof progressSchema>
+
+export function parseProgress(raw: unknown): ProgressReport {
+  const result = progressSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/progress', issues(result.error))
   return result.data
 }
+
+const checkoutSchema = z.looseObject({
+  path: z.string().min(1),
+  pathShort: z.string(),
+  repo: z.looseObject({ name: z.string(), root: z.string() }),
+  branch: nullableString,
+  tip: nullableString.optional(),
+  trunk: nullableString.optional(),
+  isMain: z.boolean(),
+  merged: z.boolean(),
+  mergedBy: nullableString.optional(),
+  empty: z.boolean().optional(),
+  dirty: z.number(),
+  unpushed: z.number(),
+  locked: z.boolean().optional(),
+  running: z.boolean().optional(),
+  pr: z.looseObject({ number: z.number(), url: z.string().optional(), state: z.string() }).nullable().optional(),
+  clearable: z.boolean(),
+  blockers: z.array(z.looseObject({ text: z.string() })).default([]),
+  sessions: z
+    .array(z.looseObject({ name: nullableString.optional(), engine: z.string().optional(), alive: z.boolean().optional(), cwd: z.string() }))
+    .default([]),
+})
+export type Checkout = z.infer<typeof checkoutSchema>
+
+const worktreesSchema = z.looseObject({
+  generatedAt: z.number().optional(),
+  checkouts: z.array(checkoutSchema),
+  outside: z.number().default(0),
+})
+export type WorktreeReport = z.infer<typeof worktreesSchema>
+
+export function parseWorktrees(raw: unknown): WorktreeReport {
+  const result = worktreesSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/worktrees', issues(result.error))
+  return result.data
+}
+
+// ── /api/search ─────────────────────────────────────────────────────────────
+
+const searchHitSchema = z.looseObject({
+  sessionId: z.string().min(1),
+  title: nullableString.optional(),
+  cwd: nullableString.optional(),
+  project: nullableString.optional(),
+  firstAt: z.number().nullable().optional(),
+  lastAt: z.number().nullable().optional(),
+  matches: z.number().optional(),
+  snippets: z
+    .array(z.looseObject({ role: z.string(), text: z.string(), at: z.number().nullable().optional() }))
+    .optional(),
+})
+export type SearchHit = z.infer<typeof searchHitSchema>
+
+const searchMatchSchema = z.looseObject({
+  sessionId: z.string().min(1),
+  relevance: z.string().optional(),
+  context: nullableString.optional(),
+  quote: nullableString.optional(),
+})
+export type SearchMatch = z.infer<typeof searchMatchSchema>
+
+export const searchJobSchema = z.looseObject({
+  id: z.string().min(1),
+  question: z.string(),
+  model: z.string().optional(),
+  status: z.enum(['thinking', 'done', 'error', 'stopped']),
+  hits: z.array(searchHitSchema),
+  sessions: z.number().optional(),
+  passages: z.number().optional(),
+  searchMs: z.number().optional(),
+  ai: z.looseObject({ answer: z.string(), matches: z.array(searchMatchSchema) }).nullable().optional(),
+  error: nullableString.optional(),
+  aiMs: z.number().nullable().optional(),
+})
+export type SearchJob = z.infer<typeof searchJobSchema>
+
+/** `{key: value}` answers: validate the value under `key` and hand it back. */
+const envelope = <T extends z.ZodType>(route: string, key: string, schema: T) => {
+  const wrapper = z.looseObject({ [key]: schema })
+  return (raw: unknown): z.infer<T> => {
+    const result = wrapper.safeParse(raw)
+    if (!result.success) throw new ContractError(route, issues(result.error))
+    return (result.data as Record<string, z.infer<T>>)[key] as z.infer<T>
+  }
+}
+
+/** `{job}` from POST /api/search and GET /api/search/:id. */
+export const parseSearchJob = envelope('/api/search', 'job', searchJobSchema)
+
+// ── /api/connections ────────────────────────────────────────────────────────
+
+export const connectionStatusSchema = z.enum(['connected', 'failed', 'needs-auth', 'pending', 'disabled'])
+export type ConnectionStatus = z.infer<typeof connectionStatusSchema>
+
+// A plain object, not a loose one: unknown keys are dropped here, so a server row
+// that carried a command line, environment or headers can never reach the page.
+const connectionServerSchema = z.object({
+  name: z.string().min(1),
+  status: z.string(),
+  scope: z.string().optional(),
+  internal: z.boolean().optional(),
+  tools: z.array(z.string()).default([]),
+  canToggle: z.boolean().optional(),
+  canAuthenticate: z.boolean().optional(),
+  error: nullableString.optional(),
+})
+export type ConnectionServer = z.infer<typeof connectionServerSchema>
+
+const connectionResultSchema = z.object({
+  cwd: z.string(),
+  source: z.enum(['session', 'project']),
+  connectionId: z.string().optional(),
+  checkedAt: z.number(),
+  servers: z.array(connectionServerSchema),
+  auth: z
+    .object({
+      name: z.string().optional(),
+      url: nullableString.optional(),
+      opened: z.boolean().optional(),
+      needsAction: z.boolean().optional(),
+    })
+    .nullable()
+    .optional(),
+})
+export type ConnectionResult = z.infer<typeof connectionResultSchema>
+
+export const parseConnections = envelope('/api/connections', 'connections', connectionResultSchema)
+
+// ── /api/queue, /api/service, /api/settings/*, /api/update ──────────────────
+
+export const parseQueueResponse = envelope('/api/queue', 'queue', queueStateSchema)
+
+const gatewaySchema = z.object({
+  configured: z.boolean(),
+  source: z.enum(['saved', 'environment']).nullable().optional(),
+})
+export type GatewayStatus = z.infer<typeof gatewaySchema>
+
+const gatewayResponseSchema = z.looseObject({
+  gateway: gatewaySchema,
+  test: z.looseObject({ message: nullableString.optional(), ok: z.boolean().optional() }).nullable().optional(),
+})
+export interface GatewayResponse {
+  readonly gateway: GatewayStatus
+  readonly testMessage: string | null
+}
+export function parseGatewayResponse(raw: unknown): GatewayResponse {
+  const result = gatewayResponseSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/settings/gateway', issues(result.error))
+  return { gateway: result.data.gateway, testMessage: result.data.test?.message ?? null }
+}
+
+const serviceSchema = z.object({
+  supported: z.boolean(),
+  enabled: z.boolean(),
+  loaded: z.boolean().optional(),
+  managed: z.boolean().optional(),
+})
+export type ServiceStatus = z.infer<typeof serviceSchema>
+export const parseService = envelope('/api/service', 'service', serviceSchema)
+export function parseServiceChange(raw: unknown): { service: ServiceStatus; restarting: boolean } {
+  const result = z.looseObject({ service: serviceSchema, restarting: z.boolean().optional() }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/service', issues(result.error))
+  return { service: result.data.service, restarting: result.data.restarting === true }
+}
+
+export function parseApprovalModeResponse(raw: unknown): ApprovalMode {
+  const result = z.looseObject({ defaultApprovalMode: approvalModeSchema }).safeParse(raw)
+  if (!result.success) throw new ContractError('/api/settings/approval-mode', issues(result.error))
+  return result.data.defaultApprovalMode
+}
+
+const updateSchema = z.looseObject({
+  name: z.string().optional(),
+  current: z.string().optional(),
+  latest: nullableString.optional(),
+  available: z.boolean(),
+  canInstall: z.boolean(),
+  channel: nullableString.optional(),
+  checkedAt: z.number().nullable().optional(),
+  state: z.string().optional(),
+  error: nullableString.optional(),
+  installed: nullableString.optional(),
+  restarting: z.boolean().optional(),
+})
+export type UpdateStatus = z.infer<typeof updateSchema>
+export const parseUpdate = envelope('/api/update', 'update', updateSchema)

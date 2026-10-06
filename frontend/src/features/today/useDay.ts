@@ -3,24 +3,18 @@
 // and the one way the board writes (POST /api/managed/:id/day).
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useNow } from '../../components/clock'
-import type { FleetClient } from '../../transport/client'
 import {
   type DayAction,
   type DayDetail,
   type DayItem,
   type ManagedDetail,
-  type ProjectList,
   type SessionSummary,
-  type TeamList,
   parseDayActionResponse,
   parseDayDetail,
-  parseProjectList,
-  parseTeamList,
 } from '../../transport/contracts'
 import { HttpError } from '../../transport/errors'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { jsonResource, keys, mutationInvalidates } from '../../transport/resources'
-import type { Resource } from '../../transport/store'
+import { mutationInvalidates, projectsResource, teamsResource } from '../../transport/resources'
 import { isWorking, localDate, type RowInfo, rowInfo } from './day'
 
 // ── Today's Day, from the session list ─────────────────────────────────────
@@ -121,23 +115,6 @@ export function useDayDetail(dayId: string, { poll = false }: { poll?: boolean }
 }
 
 // ── Teams and projects ─────────────────────────────────────────────────────
-// TODO(transport): these read the page's fetch, not the client's, because FleetClient
-// does not expose its fetch to feature resources. Move them to client.resources (with
-// the same keys) once the transport offers teams and projects; tests stub fetch.
-const pageFetch = (input: string, init?: RequestInit) => globalThis.fetch(input, init)
-const listResources = new WeakMap<FleetClient, { teams: Resource<TeamList>; projects: Resource<ProjectList> }>()
-
-function lists(client: FleetClient) {
-  let held = listResources.get(client)
-  if (!held) {
-    held = {
-      teams: jsonResource(pageFetch, keys.dayTeams, '/api/teams', parseTeamList),
-      projects: jsonResource(pageFetch, keys.dayProjects, '/api/projects', parseProjectList),
-    }
-    listResources.set(client, held)
-  }
-  return held
-}
 
 export interface Named {
   readonly id: string
@@ -147,14 +124,13 @@ const NONE: readonly Named[] = []
 
 /** The team catalog for launch cards; empty (Single agent only) until it arrives or when it fails. */
 export function useTeams(): readonly Named[] {
-  const state = useResource(lists(useFleetClient()).teams)
+  const state = useResource(teamsResource)
   return state.data?.teams ?? NONE
 }
 
 /** Active projects, for item tags and the project picker. */
 export function useProjects(): readonly Named[] {
-  const state = useResource(lists(useFleetClient()).projects)
-  const projects = state.data?.projects
+  const projects = useResource(projectsResource).data
   return useMemo(() => (projects ? projects.filter(p => !p.archived) : NONE), [projects])
 }
 

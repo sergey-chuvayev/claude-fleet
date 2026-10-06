@@ -1,0 +1,54 @@
+/* ── Projects ─────────────────────────────────────────────────────────────── */
+.projects-pane { display:flex; flex-direction:column }
+/* A project's Markdown, as the console renders replies. */
+.project-md { color:var(--text); font-size:var(--text-md); line-height:1.7 }
+.project-md > :first-child { margin-top:0 }
+.project-md ul, .project-md ol { padding-left:20px }
+/* Markdown in a project reads flush with the rest of the pane. */
+.project-md .block-prose { padding:0; font:inherit; line-height:1.7 }
+/* The project's links, under its brief. */
+.day-links { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px }
+.day-links a { color:var(--idle); font-size:var(--text-xs); text-decoration:none }
+.day-links a:hover { text-decoration:underline }
+/* "Setting up": the manager's first run is under way. */
+.day-spinner { display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:day-spin .8s linear infinite }
+@keyframes day-spin { to { transform:rotate(360deg) } }
+@media(prefers-reduced-motion:reduce) { .day-spinner { animation:none } }
+/* A task already on today's Day says so and leads there. */
+.button.ghost.is-on-today { color:var(--busy); border-color:color-mix(in oklab,var(--busy) 35%,var(--line)) }
+
+/* A task's brief, opened under its row. */
+.task-detail { display:grid; gap:10px; padding:2px 0 6px }
+.task-detail .project-md { color:var(--muted); font-size:var(--text-md) }
+.task-detail .project-md>:first-child { margin-top:0 }
+.task-detail .project-md>:last-child { margin-bottom:0 }
+.task-sources { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+.task-sources-label { color:var(--faint); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.06em }
+/* A comment on a task, under its brief. */
+.task-comment { margin-top:2px }
+.task-comment { align-items:flex-start }
+.task-comment textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
+.task-comment textarea:focus { outline:0; border-color:var(--faint) }
+.task-comment .button { flex:none; min-height:var(--control-md) }
+
+/* The console: the manager's title, state and the approval gate, then its conversation. */
+.console-empty { display:grid; place-content:center; gap:var(--space-2); min-height:240px; padding:var(--space-8); text-align:center; color:var(--faint); font-size:var(--text-md); line-height:1.7 }
+.console-empty strong { color:var(--muted); font-weight:500 }
+@media(max-width:720px) {
+  .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
+}
+#control-panel .project-console-head { flex:none; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:14px 28px 10px; min-width:0 }
+.project-console-title { color:var(--text); font-size:var(--text-lg); font-weight:600; overflow-wrap:anywhere }
+.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
+#control-panel > .form-error { flex:none; margin:0 28px 8px }
+#control-panel > .conversation-frame { padding:0 28px }
+/* The question box under the manager's conversation. */
+.project-ask { flex:none; display:flex; gap:6px; align-items:flex-end; padding:12px 28px 16px }
+.project-ask textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
+.project-ask textarea:focus { outline:0; border-color:var(--faint) }
+.project-ask .button { flex:none; min-height:var(--control-md) }
+@media(max-width:720px) {
+  #control-panel .project-console-head, .project-ask { padding-inline:16px }
+  #control-panel > .form-error { margin-inline:16px }
+  #control-panel > .conversation-frame { padding:0 16px }
+}
