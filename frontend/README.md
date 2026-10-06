@@ -19,10 +19,13 @@ legacy `public/` app was removed at cutover (work package 6).
   A rebuild or reinstall under a running server can remove a chunk it never served;
   that request 404s until the server restarts (the page's build check covers it).
 - Without a build, `node bin/claude-fleet.js` exits at startup and tells you to run
-  `npm run build:frontend`.
+  `npm run build:frontend`. In a checkout (frontend/ present), it also warns at startup
+  when a file under `frontend/src`, `frontend/index.html` or `package-lock.json` is
+  newer than `dist/.vite/manifest.json` (`staleBuild` in `server.js`).
 - The CSP stays `script-src 'self'` with no `unsafe-eval`; the built `index.html` has a
-  single module script and no inline script. `package.test.js` (A29) checks all of this
-  against the packed, installed release.
+  single module script and no inline script. `package.test.js` (A29, opt-in with
+  `FLEET_PACKAGE_TEST=1`, run in CI) checks all of this against the packed, installed
+  release, packed from a temporary copy so the checkout's `dist/` is never rebuilt.
 - A new file in `frontend/public/` is served only if the server gets an exact route for
   it; hashed assets need nothing beyond being imported.
 

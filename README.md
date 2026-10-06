@@ -801,14 +801,22 @@ preference.
 npm run build:frontend  # the web app, into dist/ (also run by prepack and start.sh)
 npm run typecheck       # tsc over frontend/
 npm run test:frontend   # Vitest and Testing Library
-npm test                # node --test across *.test.js, including the packed-release test
+npm test                # node --test across *.test.js
+FLEET_PACKAGE_TEST=1 node --require ./test-setup.js --test package.test.js  # the packed release (A29)
 npm run dev:frontend    # Vite with hot reload against a running Fleet (frontend/README.md)
 ```
 
 Tests run against a throwaway `CLAUDE_FLEET_HOME` (see `test-setup.js`), so a test
-run never touches your real state. `package.test.js` packs the release (which builds
-the web app), installs it without devDependencies into a temporary prefix, starts it
-and checks every asset it serves; it skips itself when `npm` is not on the PATH.
+run never touches your real state. The packed-release test in `package.test.js` is
+opt-in (`FLEET_PACKAGE_TEST=1`; CI and the release workflow set it): it copies the
+tracked files to a temporary directory, packs that copy (which builds the web app
+there, never in your `dist/`), installs it without devDependencies into a temporary
+prefix, starts it and checks every asset it serves. It skips itself when `npm` is not
+on the PATH.
+
+A Fleet started from a checkout warns at startup when anything under `frontend/src`,
+`frontend/index.html` or `package-lock.json` is newer than the build, and says to run
+`npm run build:frontend`.
 
 `dist/` is generated and ignored by version control. The tarball ships it, built by
 `prepack`, and not the `frontend/` sources. The server reads the build's Vite manifest
