@@ -3,8 +3,8 @@
 //
 // The control panel (#control-panel) for a managed session, top to bottom, as legacy
 // control.js drew it: header, Jev routing line, team overview with its divider, the
-// conversation, the now-line, queued follow-ups, the error line, approvals, the
-// composer's divider and the composer. An external session gets its own console
+// conversation, then the shared SessionTail: the now-line, queued follow-ups, the
+// error line, approvals, the composer's divider and the composer. An external session gets its own console
 // (features/external). A delegation is read only: no control panel, only its detail
 // (features/agents/DelegationDetail).
 import { type RefObject, useEffect, useRef, useState } from 'react'
@@ -18,16 +18,11 @@ import { useToast } from '../../components/Toast'
 import { type ManagedDetail, readControlFields } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { DelegationDetail } from '../agents/DelegationDetail'
-import { Approvals } from '../approvals/Approvals'
-import { Composer } from '../composer/Composer'
 import { Conversation } from '../conversation'
 import { isWorking } from '../conversation/format'
 import { ExternalConsole } from '../external/ExternalConsole'
-import { AgentError, QueuedMessages } from '../session-header/ConsoleStatus'
-import { NowLine } from '../session-header/NowLine'
 import { SessionHeader } from '../session-header/SessionHeader'
-import { StopButton } from '../session-header/StopButton'
-import { managedNow } from '../session-header/status'
+import { SessionTail } from '../session-header/SessionTail'
 import { TeamOverview, overviewOf } from '../teams/TeamOverview'
 import { SessionInspector } from './SessionInspector'
 import '../../styles/console.css'
@@ -142,7 +137,6 @@ function LoadedConsole({
   const toast = useToast()
   const fields = readControlFields(session)
   const working = isWorking(session.status)
-  const holder = fields.openElsewhere ?? null
   const team = overviewOf(fields)
   const placeholder =
     fields.kind === 'project'
@@ -173,30 +167,24 @@ function LoadedConsole({
         </>
       ) : null}
       <Conversation sessionKey={sessionKey} onNotice={toast} />
-      <NowLine now={managedNow(session.status, session.messages, !!holder)} />
-      <QueuedMessages queue={fields.queue ?? []} />
-      <AgentError text={session.error || refreshError} />
-      <Approvals managedId={session.id} approvals={fields.approvals ?? []} />
-      <PanelSplitter
-        panelRef={composer}
-        preference="composerHeight"
-        label="Resize message composer"
-        min={COMPOSER_MIN}
-        initial={COMPOSER_INITIAL}
-        max={panelMax(composer, COMPOSER_MIN)}
-        before
-        grow
-      />
-      <Composer
-        managedId={session.id}
+      <SessionTail
+        session={session}
         draftKey={sessionKey}
-        transcriptId={session.sessionId ?? null}
-        engine={session.engine === 'codex' ? 'codex' : 'claude'}
-        working={working}
-        holder={holder}
         placeholder={placeholder}
-        stop={<StopButton managedId={session.id} status={session.status} />}
+        refreshError={refreshError}
         formRef={composer}
+        divider={
+          <PanelSplitter
+            panelRef={composer}
+            preference="composerHeight"
+            label="Resize message composer"
+            min={COMPOSER_MIN}
+            initial={COMPOSER_INITIAL}
+            max={panelMax(composer, COMPOSER_MIN)}
+            before
+            grow
+          />
+        }
       />
     </>
   )

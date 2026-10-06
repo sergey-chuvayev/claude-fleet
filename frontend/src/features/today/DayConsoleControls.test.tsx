@@ -1,7 +1,8 @@
 // The Day console's session controls, as the legacy console drew them for a Day: the
 // model picker, Close and tool approvals from features/session-header and
-// features/approvals, Stop while it works, and a composer on the shared draft store
-// that keeps its request id for a retry.
+// features/approvals, Stop or Cancel queued task, queued follow-ups, and the full
+// composer (features/composer: images, @ references, / commands) that keeps its
+// request id for a retry.
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deferred } from '../../test/fakes'
@@ -13,7 +14,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const composer = () => document.querySelector('.day-composer textarea') as HTMLTextAreaElement
+const composer = () => document.querySelector('.day-console #composer textarea') as HTMLTextAreaElement
 const MESSAGES = '/api/managed/day-today/messages'
 
 async function open(fleet = fakeDayFleet()) {
@@ -65,5 +66,29 @@ describe('The Day console controls', () => {
     expect(first).toMatchObject({ message: 'What is left today?' })
     await act(async () => answer.resolve({ body: { session: fleet.day().session } }))
     await waitFor(() => expect(composer().value).toBe(''))
+  })
+
+  it('is the full composer for the Day and for a thread, with queued follow-ups and Cancel queued task', async () => {
+    const { fleet, harness } = await open()
+    // The full composer: the combobox text box with its pickers and trays.
+    expect(composer().id).toBe('message-input')
+    expect(composer().getAttribute('role')).toBe('combobox')
+    expect(document.getElementById('slash-picker')).toBeTruthy()
+    expect(document.getElementById('attach-tray')).toBeTruthy()
+    expect(document.getElementById('reference-tray')).toBeTruthy()
+
+    const day: Json = copy(fleet.day())
+    day.session.status = 'queued'
+    day.session.queue = [{ id: 'q1', message: 'Then check the calendar' }]
+    fleet.setDay(day)
+    await act(async () => harness.client.store.invalidate(keys.managed('day-today')))
+    expect(await screen.findByText('Then check the calendar')).toBeTruthy()
+    expect(document.getElementById('stop-agent')?.textContent).toBe('Cancel queued task')
+
+    // An item thread gets the same composer, keyed by its own session.
+    fireEvent.click(screen.getByRole('button', { name: /Reply to Thomas/ }))
+    await waitFor(() => expect(document.getElementById('control-panel')?.dataset.session).toBe('thr-today'))
+    await waitFor(() => expect(composer()?.placeholder).toBe('Ask about this item…'))
+    expect(composer().id).toBe('message-input')
   })
 })

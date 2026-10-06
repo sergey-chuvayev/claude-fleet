@@ -15,7 +15,7 @@ afterEach(() => {
 const THOMAS = '00000004-f1e1-4000-8000-000000000000'
 const strip = () => screen.getByRole('navigation', { name: 'Day agent, item threads and subagents' })
 const tab = (name: RegExp | string) => within(strip()).getByRole('button', { name })
-const composer = () => document.querySelector('.day-composer textarea') as HTMLTextAreaElement | null
+const composer = () => document.querySelector('.day-console #composer textarea') as HTMLTextAreaElement | null
 
 async function open(fleet = fakeDayFleet()) {
   const mounted = mountToday(fleet)
