@@ -143,3 +143,126 @@ export function parseSessionSnapshot(raw: unknown): SessionSnapshot {
   })
   return { ...shell.data, sessions }
 }
+
+// ── /api/managed/:id and /api/sessions/history ─────────────────────────────
+// A conversation is a list of records. The roles the UI knows are user, assistant,
+// tool and event; any other role is kept and shown as a plain system record instead of
+// failing the whole conversation.
+
+const attachmentSchema = z.looseObject({
+  id: z.string().min(1),
+  mediaType: z.string().optional(),
+  bytes: z.number().optional(),
+})
+export type Attachment = z.infer<typeof attachmentSchema>
+
+const messageReferenceSchema = z.looseObject({
+  id: z.string().optional(),
+  sessionId: nullableString.optional(),
+  title: nullableString.optional(),
+  project: nullableString.optional(),
+  state: nullableString.optional(),
+  context: nullableString.optional(),
+  capturedAt: z.number().optional(),
+})
+export type MessageReference = z.infer<typeof messageReferenceSchema>
+
+export const messageSchema = z.looseObject({
+  /** Stable for the life of the record, also while a streaming reply grows. */
+  id: z.string().min(1),
+  role: z.string().min(1),
+  at: z.number().nullable().optional(),
+  text: nullableString.optional(),
+  tool: nullableString.optional(),
+  /** A derived view model's own heading (the Day's grouped board calls). */
+  label: z.string().optional(),
+  input: z.record(z.string(), z.unknown()).nullable().optional(),
+  target: nullableString.optional(),
+  status: nullableString.optional(),
+  result: nullableString.optional(),
+  ms: z.number().nullable().optional(),
+  truncated: z.boolean().optional(),
+  approval: nullableString.optional(),
+  attachments: z.array(attachmentSchema).optional(),
+  references: z.array(messageReferenceSchema).optional(),
+  lines: z.array(z.looseObject({ text: z.string(), error: z.boolean().optional() })).optional(),
+  h: z.string().optional(),
+})
+export type Message = z.infer<typeof messageSchema>
+
+const subagentSchema = z.looseObject({ id: z.string().min(1) })
+export type Subagent = z.infer<typeof subagentSchema>
+
+const managedSessionShape = {
+  /** Fleet's managed id. */
+  id: z.string().min(1),
+  /** Runtime transcript id, null until the runtime assigns one. */
+  sessionId: nullableString.optional(),
+  engine: engineSchema.optional(),
+  kind: z.string().optional(),
+  name: nullableString.optional(),
+  status: z.string(),
+  error: nullableString.optional(),
+  approvals: z.array(z.unknown()).optional(),
+}
+const managedDetailShellSchema = z.looseObject({
+  session: z.looseObject({
+    ...managedSessionShape,
+    messages: z.array(z.unknown()),
+    subagents: z.array(z.unknown()).optional(),
+  }),
+})
+// Type only: the shell with its rows typed. Parsing goes row by row (below).
+const managedDetailSchema = z.looseObject({
+  session: z.looseObject({
+    ...managedSessionShape,
+    messages: z.array(messageSchema),
+    subagents: z.array(subagentSchema).optional(),
+  }),
+})
+export type ManagedDetail = z.infer<typeof managedDetailSchema>
+
+const historyShellSchema = z.looseObject({
+  messages: z.array(z.unknown()),
+  truncated: z.boolean().optional(),
+  alive: z.boolean().optional(),
+})
+const historySchema = historyShellSchema.extend({ messages: z.array(messageSchema) })
+export type History = z.infer<typeof historySchema>
+
+const validMessages = new WeakSet<object>()
+const validSubagents = new WeakSet<object>()
+
+// Each row is checked once and handed back as the very object that came in, so an
+// unchanged message keeps its identity through reconstruction and React skips it.
+function validRowsOf<T>(route: string, path: string, list: readonly unknown[], schema: z.ZodType<T>, seen: WeakSet<object>): T[] {
+  return list.map((row, index) => {
+    if (typeof row === 'object' && row !== null && seen.has(row)) return row as T
+    const result = schema.safeParse(row)
+    if (!result.success) throw new ContractError(route, `${path}[${index}]: ${issues(result.error)}`)
+    if (typeof row === 'object' && row !== null) seen.add(row)
+    return row as T
+  })
+}
+
+export function parseManagedDetail(raw: unknown): ManagedDetail {
+  const route = '/api/managed/:id'
+  const shell = managedDetailShellSchema.safeParse(raw)
+  if (!shell.success) throw new ContractError(route, issues(shell.error))
+  const { messages, subagents, ...session } = shell.data.session
+  return {
+    ...shell.data,
+    session: {
+      ...session,
+      messages: validRowsOf(route, 'session.messages', messages, messageSchema, validMessages),
+      ...(subagents ? { subagents: validRowsOf(route, 'session.subagents', subagents, subagentSchema, validSubagents) } : {}),
+    },
+  }
+}
+
+export function parseHistory(raw: unknown): History {
+  const route = '/api/sessions/history'
+  const shell = historyShellSchema.safeParse(raw)
+  if (!shell.success) throw new ContractError(route, issues(shell.error))
+  return { ...shell.data, messages: validRowsOf(route, 'messages', shell.data.messages, messageSchema, validMessages) }
+}
