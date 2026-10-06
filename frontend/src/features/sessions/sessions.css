@@ -1,0 +1,245 @@
+/* The session list: filters, list head, rows, turn line (F02, F03).
+   Ported from public/styles.css (0.54.0) by selector ownership, in legacy source
+   order, so the later "minimal" overrides still win over the earlier base rules.
+   Delegation rows are in features/agents/agents.css, the archive bar in
+   features/archive/archive.css. */
+
+.filter {
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  border-radius:var(--radius-md);
+  padding:6px 9px;
+  font-size:var(--text-sm);
+}
+.filter[aria-pressed=true] { color:var(--text); border-color:var(--line); background:var(--raised) }
+.filter span { opacity:.65; margin-left:6px }
+.filter:hover { color:var(--text) }
+.session {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 83px;
+  gap:20px;
+  width:100%;
+  text-align:left;
+  border:0;
+  border-bottom:1px solid var(--divider);
+  background:transparent;
+  padding:19px 23px;
+  position:relative;
+}
+.session:hover { background:var(--hover) }
+.session[aria-pressed=true] { background:var(--selected); box-shadow:inset 2px 0 var(--busy) }
+.session-name {
+  font-size:var(--text-xs);
+  color:var(--muted);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.session-title {
+  font-size:var(--text-lg);
+  font-weight:550;
+  display:block;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+  margin-bottom:8px;
+}
+.session-title-row { display:flex; align-items:baseline; gap:8px; min-width:0 }
+.session-title-row .session-title { flex:1; min-width:0 }
+.session-meta { display:flex; gap:9px; color:var(--faint); font-size:var(--text-xs); min-width:0 }
+.branch { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.session-context { text-align:right; align-self:center; font-size:var(--text-md); font-variant-numeric:tabular-nums }
+.session-context small { color:var(--faint); font-size:var(--text-xs) }
+@media(max-width:1000px) { .session { gap:10px; padding-inline:16px } }
+@media(max-width:720px) { .session-title { font-size:var(--text-md) } }
+@media(prefers-reduced-motion:no-preference) { .session { transition:background .15s,border-color .15s } }
+
+.filter-menu { position:relative; flex:none }
+.filter-trigger {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line);
+  background:var(--raised);
+  color:var(--text);
+  border-radius:var(--radius-md);
+  padding:6px 10px;
+  font-size:var(--text-sm);
+}
+.filter-trigger:hover { background:color-mix(in oklab,var(--raised) 85%,var(--text)) }
+.filter-trigger[aria-expanded="true"] .filter-chevron { transform:rotate(180deg) }
+.filter-panel {
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  z-index:5;
+  min-width:210px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  box-shadow:0 12px 34px #0009;
+}
+.filter-group + .filter-group { margin-top:6px; padding-top:6px; border-top:1px solid var(--line) }
+.filter-group-heading {
+  display:block;
+  font-size:var(--text-2xs);
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--faint);
+  padding:4px 9px 2px;
+}
+.filter-panel .filter { display:flex; justify-content:space-between; width:100%; text-align:left }
+.list-head {
+  display:flex;
+  justify-content:space-between;
+  padding:7px 18px;
+  border-block:1px solid var(--line);
+  color:var(--faint);
+  font-size:var(--text-2xs);
+  letter-spacing:1px;
+  flex:none;
+}
+.session-list { max-height:none; overflow:auto; scrollbar-color:var(--line) transparent; flex:1; min-height:0 }
+.session { padding:13px 18px }
+.session-top { display:flex; gap:9px; align-items:center; margin-bottom:5px }
+.session-title { margin-bottom:5px }
+@media(max-width:720px) { .session-list { max-height:420px } }
+
+.spawn-badge {
+  font-size:var(--text-2xs);
+  color:var(--faint);
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:1px 4px;
+  white-space:nowrap;
+}
+.spawn-owner { font-size:var(--text-2xs); color:var(--faint); letter-spacing:.4px; white-space:nowrap }
+.session:has(.spawn-owner) { opacity:.72 }
+.session:has(.spawn-owner):hover, .session:has(.spawn-owner)[aria-pressed=true] { opacity:1 }
+.session:has(.spawn-owner) .session-title { font-weight:400; color:var(--muted) }
+.filter[data-filter="background"] { color:var(--faint) }
+.unseen {
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:var(--term-accent);
+  flex:none;
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--term-accent) 18%,transparent);
+}
+
+.turn {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+  min-width:0;
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--muted);
+}
+.steps {
+  display:inline-flex;
+  gap:2px;
+  flex:none;
+  height:6px;
+  max-width:132px;
+  overflow:hidden;
+  border-radius:var(--radius-sm);
+}
+.steps:empty { display:none }
+.steps i {
+  display:block;
+  flex:0 0 auto;
+  width:5px;
+  height:100%;
+  border-radius:var(--radius-xs);
+  background:var(--faint);
+  opacity:.85;
+}
+.steps i.k-inspect { background:color-mix(in oklab,var(--term-fg) 42%,var(--term-bg)) }
+.steps i.k-change { background:var(--term-accent) }
+.steps i.k-run { background:color-mix(in oklab,var(--term-cyan) 72%,var(--term-fg)) }
+.steps i.k-delegate { background:color-mix(in oklab,var(--term-magenta) 45%,var(--term-fg)) }
+.steps i.k-ask { background:var(--term-yellow) }
+.steps i.k-other { background:var(--faint) }
+.steps i.k-failed { background:color-mix(in oklab,var(--term-red) 78%,var(--term-fg)); opacity:1 }
+.step-now {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  flex:1 1 auto;
+  overflow:hidden;
+  white-space:nowrap;
+  color:var(--muted);
+}
+.step-now .step-icon { flex:none; color:var(--faint); width:10px; text-align:center }
+.step-now.is-live { color:var(--text) }
+.step-now.is-live .step-icon { color:var(--term-accent) }
+.step-target { overflow:hidden; text-overflow:ellipsis; color:var(--faint) }
+.step-now.is-live .step-target { color:var(--muted) }
+.step-when { flex:none; margin-left:auto; color:var(--faint); font-variant-numeric:tabular-nums }
+.turn:has(.is-live) .step-when { color:var(--term-accent) }
+@keyframes fleet-live { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)} }
+.step-now.is-live::before {
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:var(--term-accent);
+  flex:none;
+  animation:fleet-live 1.4s ease-in-out infinite;
+}
+@media(prefers-reduced-motion:reduce) { .step-now.is-live::before { animation:none; opacity:1 } }
+.session[aria-pressed=true] .turn { color:var(--text) }
+@media(max-width:1100px) { .steps { max-width:80px } }
+
+.badge.elsewhere { color:var(--stale) }
+.badge.elsewhere.busy { color:var(--busy) }
+
+.initiative-tag {
+  display:inline-block;
+  flex:none;
+  max-width:50%;
+  padding:2px 6px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  color:var(--muted);
+  font-size:var(--text-xs);
+  overflow-wrap:anywhere;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* The minimal list (legacy "minimal" layer). */
+.filter-trigger { display:inline-flex; align-items:center; min-height:var(--control-sm); border:0; background:transparent; font-size:var(--text-sm); color:var(--muted); padding:0 0 0 var(--space-2) }
+.list-head { display:none }
+.session-list { border:0; padding:0; overflow:auto }
+.session { grid-template-columns:38px minmax(0,1fr); gap:12px; padding:14px 10px; margin-bottom:4px; border:0; border-radius:var(--radius-xl) }
+.session[aria-pressed=true] { box-shadow:none; background:var(--selected) }
+.session-summary { min-width:0 }
+.session-title { font-size:var(--text-lg); line-height:1.5; font-weight:600; margin:0; color:var(--text) }
+.session-preview { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:var(--text-md); line-height:1.6; margin-top:2px }
+.session-top { margin:6px 0 0; gap:6px }
+.session-top .badge { padding:0; background:none; font-size:var(--text-xs); color:var(--faint) }
+.session-top .badge.stale, .session-top .badge.hot { color:var(--stale) }
+.session-top .badge.hot { color:var(--hot) }
+.session-top .badge .dot { display:none }
+.session-name { font-size:var(--text-xs); color:var(--faint) }
+.session-context, .session-meta, .session .turn { display:none }
+.session>.session-summary .unseen { position:absolute; left:4px; top:26px }
+.session .initiative-tag { display:block; margin-top:5px; width:fit-content; max-width:100%; white-space:normal; font-size:var(--text-xs) }
+@media(max-width:720px) { .session { padding:10px; margin-bottom:0 } }
+.day-tag { color:var(--accent) }
+@media(max-width:720px) { .filter-trigger { min-height:var(--touch) } }
+
+.sessions-pane>.list-pane-head { margin:0 calc(-1 * var(--space-3)) var(--space-2); padding:var(--space-3) var(--space-5) }
+.list-pane-head .page-title h2 { font-size:var(--text-xl); line-height:32px; color:var(--text) }
+
+.engine-tag { display:inline-flex; align-items:center; padding:0 7px; border-radius:999px; border:1px solid color-mix(in oklab,var(--idle) 45%,var(--line)); color:var(--idle); font-size:var(--text-xs); font-weight:600; letter-spacing:.02em; line-height:16px; white-space:nowrap }

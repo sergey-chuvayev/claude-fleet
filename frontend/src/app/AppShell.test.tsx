@@ -56,10 +56,14 @@ describe('AppShell', () => {
       expect(screen.getByRole('button', { name })).toBeTruthy()
     }
 
-    const live = snapshot.sessions.filter(row => !row.archived)
-    const list = await screen.findByRole('list', { name: 'Sessions' })
-    expect(list.querySelectorAll('li')).toHaveLength(live.length)
-    expect(screen.getByText('Agents').querySelector('.ui-count')?.textContent).toBe(String(live.length))
+    // The list shows foreground agents: no archived, background, Day or project rows.
+    const foreground = snapshot.sessions.filter(
+      row => !row.archived && !('background' in row && row.background) && row.kind !== 'day' && row.kind !== 'project',
+    )
+    await screen.findByText('Clean up stale branches', { selector: '.session-title' })
+    const list = document.getElementById('session-list')!
+    expect(list.querySelectorAll('button.session:not(.session-child)')).toHaveLength(foreground.length)
+    expect(screen.getByText('Agents').querySelector('.ui-count')?.textContent).toBe(String(foreground.length))
 
     const status = document.getElementById('statusbar')!
     expect(within(status).getByText('6 working')).toBeTruthy()
@@ -160,7 +164,7 @@ describe('AppShell', () => {
           </Providers>
         </StrictMode>,
       )
-      await screen.findByRole('list', { name: 'Sessions' })
+      await screen.findByText('Clean up stale branches', { selector: '.session-title' })
       // Exactly one shortcut listener while mounted.
       expect(counts.get('document:keydown')).toBe(1)
       view.unmount()
