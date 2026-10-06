@@ -5,3 +5,4 @@ node_modules
 Claude Fleet.app/
 .DS_Store
 .claude/settings.local.json
+dist/
