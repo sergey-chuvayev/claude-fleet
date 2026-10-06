@@ -39,6 +39,12 @@ export class ContractError extends Error {
 export const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError'
 
+/** The text to show for a failed request. */
+export const errorText = (error: unknown, fallback = 'The request failed.'): string =>
+  error instanceof Error && error.message ? error.message : fallback
+
+export const isNotFound = (error: unknown): boolean => error instanceof HttpError && error.status === 404
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 

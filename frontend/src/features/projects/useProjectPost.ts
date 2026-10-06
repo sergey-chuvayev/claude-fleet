@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import type { Project } from '../../transport/contracts'
 import type { FleetClient } from '../../transport/client'
 import { useFleetClient } from '../../transport/hooks'
-import { projectMutationInvalidates, projectsResource } from '../../transport/resources'
+import { projectMutationInvalidates } from '../../transport/resources'
 
 /** A request id for a mutation, so a repeated send of the same click is deduplicated server side. */
 export const newRequestId = (): string =>
@@ -24,12 +24,12 @@ export const errorMessage = (error: unknown): string => (error instanceof Error 
  * (progress, members, manager) and puts it in the server's order.
  */
 export function adoptProject(client: FleetClient, project: Project): void {
-  const held = client.store.get(projectsResource).data ?? []
-  client.store.set(projectsResource, held.some(p => p.id === project.id) ? held.map(p => (p.id === project.id ? { ...p, ...project } : p)) : [...held, project])
+  const held = client.store.get(client.resources.projects).data ?? []
+  client.store.set(client.resources.projects, held.some(p => p.id === project.id) ? held.map(p => (p.id === project.id ? { ...p, ...project } : p)) : [...held, project])
 }
 
 /** Drop an archived project from the list at once, for the same reason. */
 export function dropProject(client: FleetClient, id: string): void {
-  const held = client.store.get(projectsResource).data
-  if (held) client.store.set(projectsResource, held.filter(p => p.id !== id))
+  const held = client.store.get(client.resources.projects).data
+  if (held) client.store.set(client.resources.projects, held.filter(p => p.id !== id))
 }

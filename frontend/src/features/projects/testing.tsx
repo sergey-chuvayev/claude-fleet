@@ -80,7 +80,6 @@ export function mounted(): Mounted {
 
 /** Mount UI in the real providers over a fake Fleet. Call `unmount()` (afterEach) to clean up. */
 export function mount(ui: ReactNode, fleet: FakeFleet, preferences: Record<string, string> = {}): Mounted {
-  vi.stubGlobal('fetch', fleet.fetch)
   const storage = new MemoryStorage(preferences)
   const harness = makeHarness(fleet.fetch, storage)
   current = harness

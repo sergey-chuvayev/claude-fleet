@@ -36,7 +36,10 @@ npm run build:frontend         # dist/ with .vite/manifest.json
 - `src/transport/`: conditional GET (`conditional.ts`), the keyed store
   (`store.ts`), boundary validation (`contracts.ts`), the event stream
   (`events.ts`), keys and invalidation (`resources.ts`), `FleetClient`
-  (`client.ts`) and React hooks (`hooks.tsx`).
+  (`client.ts`) and React hooks (`hooks.tsx`). Every read goes through the
+  client's fetch: conditional routes as `client.resources.*`, plain JSON routes
+  as `client.getJson(path, parse)` for one-off reads or
+  `client.resources.plain({ key, url, parse })` for polled, shared ones.
 - `src/app/`: the shell and the `fleet:*` preferences adapter.
 - `src/domain/`: ids and pure helpers. `src/components/`: shared primitives
   (the Markdown boundary lives here). `src/features/<area>/`: feature code.

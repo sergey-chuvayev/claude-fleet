@@ -8,7 +8,7 @@ import { Select, type SelectOption } from '../../components/Select'
 import { useToast } from '../../components/Toast'
 import type { ManagedId } from '../../domain/ids'
 import type { ControlFields, ManagedDetail } from '../../transport/contracts'
-import { keys, mutationInvalidates, projectMutationInvalidates, projectsResource } from '../../transport/resources'
+import { keys, mutationInvalidates, projectMutationInvalidates } from '../../transport/resources'
 import { useFleetClient, useResource } from '../../transport/hooks'
 import { isWorking } from '../conversation/format'
 import { failureText, sessionCommand } from './mutations'
@@ -221,7 +221,7 @@ function ModePicker({ managedId, mode, codex }: { managedId: string; mode: strin
 function ProjectPicker({ managedId, projectId }: { managedId: string; projectId: string | null }) {
   const client = useFleetClient()
   const toast = useToast()
-  const projects = useResource(projectsResource)
+  const projects = useResource(client.resources.projects)
   const [value, setPending] = usePending(projectId ?? '')
   const choices = projectChoices(projects.data)
   if (!choices.length && !projectId) return null

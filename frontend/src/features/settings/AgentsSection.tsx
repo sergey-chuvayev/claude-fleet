@@ -11,7 +11,7 @@ import { Select } from '../../components/Select'
 import { type ApprovalMode, type QueueState, parseApprovalModeResponse, parseQueueResponse } from '../../transport/contracts'
 import { keys, mutationInvalidates } from '../../transport/resources'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { errorText, getJson } from './rest'
+import { errorText } from '../../transport/errors'
 
 const LIMITS = Array.from({ length: 8 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))
 const MODES: ReadonlyArray<{ value: ApprovalMode; label: string }> = [
@@ -53,11 +53,12 @@ export function AgentsSection() {
   const shownMode = mode ?? control?.defaultApprovalMode ?? 'all'
   useEffect(() => {
     const abort = new AbortController()
-    getJson('/api/settings/approval-mode', { signal: abort.signal })
-      .then(raw => setMode(parseApprovalModeResponse(raw)))
+    client
+      .getJson('/api/settings/approval-mode', parseApprovalModeResponse, { signal: abort.signal, timeoutMs: 8000 })
+      .then(setMode)
       .catch(() => {})
     return () => abort.abort()
-  }, [])
+  }, [client])
   const saveMode = async (next: ApprovalMode) => {
     setModeError(null)
     try {

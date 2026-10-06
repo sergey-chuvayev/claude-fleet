@@ -7,7 +7,6 @@ import { EmptyState } from '../../components/EmptyState'
 import { useAnnounce } from '../../components/Toast'
 import type { ProgressReport } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { progressResource } from '../../transport/resources'
 import { Callout, List, PageHead, Pill, Row, Section, Stat, isWebLink } from '../projects/pageKit'
 import { useRefreshWhileVisible } from '../projects/useRefreshWhileVisible'
 import './progress.css'
@@ -41,12 +40,12 @@ const prLabel = (url: string): string => {
 export function ProgressPage() {
   const client = useFleetClient()
   const announce = useAnnounce()
-  const state = useResource(progressResource)
+  const state = useResource(client.resources.progress)
   const report = state.data?.value
-  useRefreshWhileVisible(progressResource.key, FRESH_MS, state.data?.fetchedAt)
+  useRefreshWhileVisible(client.resources.progress.key, FRESH_MS, state.data?.fetchedAt)
 
   const refresh = () => {
-    void client.store.refresh(progressResource).then(() => announce('Progress refreshed'))
+    void client.store.refresh(client.resources.progress).then(() => announce('Progress refreshed'))
   }
   const refreshButton = (
     <button type="button" className="button ghost" data-refresh-progress title="Read this week again" onClick={refresh}>

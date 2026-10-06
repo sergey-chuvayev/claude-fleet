@@ -10,7 +10,6 @@ import { Fold } from '../../components/Disclosure'
 import { useToast } from '../../components/Toast'
 import { parseProject } from '../../transport/contracts'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { archivedProjectsResource } from '../../transport/resources'
 import { List, Row } from './pageKit'
 import { adoptProject, errorMessage, useProjectPost } from './useProjectPost'
 
@@ -29,7 +28,7 @@ function ArchivedList() {
   const toast = useToast()
   const post = useProjectPost()
   const { select } = useActions()
-  const state = useResource(archivedProjectsResource)
+  const state = useResource(client.resources.archivedProjects)
   const [restoring, setRestoring] = useState<string | null>(null)
   // Opening the fold reads the list again: it may have changed since it was last open.
   const archived = state.data?.filter(p => p.archived)

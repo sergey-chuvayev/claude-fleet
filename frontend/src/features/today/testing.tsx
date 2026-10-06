@@ -1,7 +1,6 @@
 // Test support for the Today view: a fake Fleet answering from the day-full fixture
 // pack with the server's real sync protocol, POSTs recorded and answered by the test,
 // and a mount of the board beside its console inside the real providers.
-import { vi } from 'vitest'
 import { Clock } from '../../components/clock'
 import controlFixture from '../../test/fixtures/day-full/get-control.json'
 import sessionsFixture from '../../test/fixtures/day-full/get-sessions.json'
@@ -94,7 +93,6 @@ export type FakeDayFleet = ReturnType<typeof fakeDayFleet>
 /** Board and console side by side, inside the real providers, at the fixture clock. */
 export function mountToday(fleet: FakeDayFleet, { now = T0 }: { now?: number } = {}) {
   clearDrafts()
-  vi.stubGlobal('fetch', fleet.fetch)
   const harness = { ...makeHarness(fleet.fetch), clock: new Clock({ now: () => now, visibility: null }) }
   harness.store.dispatch({ type: 'navigate', view: 'today' })
   const view = renderWith(

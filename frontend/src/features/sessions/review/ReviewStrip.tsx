@@ -8,12 +8,10 @@ import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Icon } from '../../../components/Icon'
 import { Select } from '../../../components/Select'
 import { type SessionKey, sessionKey } from '../../../domain/ids'
-import type { FetchLike } from '../../../transport/conditional'
 import type { FleetClient } from '../../../transport/client'
 import { type PrStatus, type SessionLink, type SessionRow, parsePrStatus } from '../../../transport/contracts'
-import { withTimeout } from '../../../transport/errors'
 import { useFleetClient, useResource } from '../../../transport/hooks'
-import { mutationInvalidates, resourceFamily } from '../../../transport/resources'
+import { mutationInvalidates, perClient, resourceFamily } from '../../../transport/resources'
 import type { Resource } from '../../../transport/store'
 import { Pill } from '../page'
 import { CI_LABEL, STATE, ciFeedback, names, prLinks, problem } from './review'
@@ -25,43 +23,29 @@ const CI = 'ci'
 /** What was typed per session, kept while another session is open. */
 const drafts = new Map<SessionKey, string>()
 
-// TODO(transport): FleetClient has no public GET for unconditional JSON routes. The
-// PR status route needs no token and no conditional state, so this reads the client's
-// own fetch (the one tests fake) rather than the global one. Replace with a client
-// method once transport/ offers it.
-const fetchOf = (client: FleetClient): FetchLike => client['fetch']
-
-async function loadStatus(fetch: FetchLike, url: string, signal: AbortSignal): Promise<PrStatus> {
-  const timed = withTimeout(signal, 15_000)
+// The PR status route needs no token and no conditional state. A PR that cannot be
+// read is a line saying so, not a failed strip.
+async function loadStatus(client: FleetClient, url: string, signal: AbortSignal): Promise<PrStatus> {
   try {
-    const response = await fetch(`/api/pr-status?url=${encodeURIComponent(url)}`, { cache: 'no-store', signal: timed.signal })
-    if (!response.ok) return { ok: false, reason: 'failed' }
-    return parsePrStatus(await response.json())
+    return await client.getJson(`/api/pr-status?url=${encodeURIComponent(url)}`, parsePrStatus, { signal })
   } catch (error) {
     if (signal.aborted) throw error
     return { ok: false, reason: 'failed' }
-  } finally {
-    timed.done()
   }
 }
 
 // One resource per client and set of links, so the store dedupes and invalidates it.
-const families = new WeakMap<FleetClient, (urls: string) => Resource<PrStatus[]>>()
-function prStatusResource(client: FleetClient, links: readonly SessionLink[]): Resource<PrStatus[]> {
-  let family = families.get(client)
-  if (!family) {
-    const fetch = fetchOf(client)
-    family = resourceFamily(
-      (urls: string) => `pr-status:${urls}`,
-      (key, urls: string) => ({
-        key,
-        load: async ({ signal }) => ({ data: await Promise.all(urls.split(' ').map(url => loadStatus(fetch, url, signal))) }),
-      }),
-    )
-    families.set(client, family)
-  }
-  return family(links.map(link => link.url).join(' '))
-}
+const families = perClient((client: FleetClient) =>
+  resourceFamily(
+    (urls: string) => `pr-status:${urls}`,
+    (key, urls: string): Resource<PrStatus[]> => ({
+      key,
+      load: async ({ signal }) => ({ data: await Promise.all(urls.split(' ').map(url => loadStatus(client, url, signal))) }),
+    }),
+  ),
+)
+const prStatusResource = (client: FleetClient, links: readonly SessionLink[]): Resource<PrStatus[]> =>
+  families(client)(links.map(link => link.url).join(' '))
 
 function PrLine({ link, status }: { link: SessionLink; status: PrStatus | undefined }) {
   const head = (
