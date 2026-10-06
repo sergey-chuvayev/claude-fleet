@@ -606,10 +606,13 @@ conversation header. New agents start in **Approve everything** unless you pick
 another mode at launch or change **Default approval mode for new agents** in
 Settings. Agents that already exist keep the mode they have.
 
-- **Auto** answers ordinary requests for you and still stops for
-  anything that destroys data (`rm`, `shred`, `dd`), reaches another host
-  (`curl`, `wget`, `ssh`, `rsync`), runs an unreviewable script (`sh -c`, `eval`),
-  escalates (`sudo`, `doas`), or publishes (`git push`, `npm publish`).
+- **Auto** answers ordinary requests for you and still stops for shell
+  commands that destroy data (`rm`, `shred`, `dd`, `find -delete`), reach another host
+  (`curl`, `wget`, `ssh`, `rsync`), run an unreviewable script (`sh -c`, `eval`),
+  escalate (`sudo`, `doas`), or publish (`git push`, `npm publish`). It looks through
+  wrappers such as `env`, `nohup`, `xargs` and `git -C`, checks every part of a chain,
+  and asks when it cannot read a command. It is a safety net against accidents, not a
+  sandbox: a script or an interpreter such as `node -e` can still do any of these.
 - **Ask every time** runs nothing unreviewed.
 - **Approve everything** never stops.
 
