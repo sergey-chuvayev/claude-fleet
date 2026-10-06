@@ -77,6 +77,26 @@ test('projects from 0.28.0 move into their own files once',()=>{
   assert.equal(new ProjectStore(directory).list().length,1,'and only once')
 })
 
+test('only active projects count against the cap: archiving frees a place, restoring needs one',()=>{
+  const directory=tmp(),store=new ProjectStore(directory)
+  const made=Array.from({length:30},(_,i)=>store.create({name:`Project ${i}`}))
+  assert.throws(()=>store.create({name:'One too many'}),/up to 30 active projects\. Archive one first/)
+  store.archive(made[0].id)
+  const extra=store.create({name:'Fits after archiving'})
+  assert.equal(store.list().length,30)
+  const err=(()=>{try{store.archive(made[0].id,false)}catch(e){return e}})()
+  assert.ok(err,'restoring at the cap fails')
+  assert.equal(err.status,409)
+  assert.match(err.message,/Archive one before restoring/)
+  const still=store.get(made[0].id)
+  assert.equal(still.archived,true,'and the project stays archived')
+  assert.equal(still.name,'Project 0','with nothing discarded')
+  assert.equal(new ProjectStore(directory).all().length,31,'every file is still there')
+  store.archive(extra.id)
+  assert.equal(store.archive(made[0].id,false).archived,false,'restoring works once a place is free')
+  assert.equal(store.list().length,30)
+})
+
 test('sessions belong to a project, and a launch from the Day carries the item\'s project',async()=>{
   const {directory,manager}=setup()
   try{

@@ -38,7 +38,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 
-const bad = message => { throw Object.assign(new Error(message), {status:400}) }
+const bad = (message, status = 400) => { throw Object.assign(new Error(message), {status}) }
 const STATES = ['todo','doing','review','done']
 const MARK = {todo:' ', doing:'~', review:'?', done:'x'}
 const FROM_MARK = {' ':'todo', '~':'doing', '?':'review', x:'done', X:'done'}
@@ -188,7 +188,7 @@ class ProjectStore {
   }
   // A project starts from a title; its manager fills in the rest.
   create({ name } = {}) {
-    if (this.all().length >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} projects. Archive one first.`)
+    if (this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one first.`)
     return this.write({id:randomUUID(), name:string(name,'Project name',100), deadline:null, archived:false, repos:[], links:[], brief:'', deliverables:[], sections:[], log:[{at:Date.now(), text:'Project created.'}]})
   }
   // The manager's way of setting the project up or changing what it is. Any field left
@@ -228,7 +228,15 @@ class ProjectStore {
     else p.sections.push({heading:h, body:text})
     return this.write(p)
   }
-  archive(id, archived = true) { const p = this.require(id); p.archived = !!archived; return this.write(p) }
+  // Only active projects count against the cap: archiving one frees its place, and
+  // bringing one back needs a free place, or it stays archived.
+  active() { return this.all().filter(p => !p.archived).length }
+  archive(id, archived = true) {
+    const p = this.require(id)
+    if (!archived && p.archived && this.active() >= MAX_PROJECTS) bad(`Fleet keeps up to ${MAX_PROJECTS} active projects. Archive one before restoring this one.`, 409)
+    p.archived = !!archived
+    return this.write(p)
+  }
   // One deliverable: its state and note, its brief, and its links. `links` replaces the
   // list; `addLinks` adds to it (what an agent's pull request does).
   deliverable(id, deliverableId, { state, note, brief, links, addLinks } = {}) {
