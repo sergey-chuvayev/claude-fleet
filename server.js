@@ -80,6 +80,27 @@ function loadFrontend(dir = DIST) {
     return {built:false, error:`Fleet's web app in ${dir} could not be read (${error.message}). In a source checkout, run \`npm run build:frontend\`, then start Fleet again.`, buildId:VERSION, files:new Map()}
   }
 }
+// A source checkout (frontend/ next to this file) whose sources changed after its last
+// build serves an old page. One stat walk at startup; an npm install has no frontend/ and
+// returns at once. Returns the warning to print, or null.
+function staleBuild(root = __dirname) {
+  if (!fs.existsSync(path.join(root,'frontend'))) return null
+  let built
+  try { built = fs.statSync(path.join(root,'dist','.vite','manifest.json')).mtimeMs } catch { return null }
+  const newer = file => { try { return fs.statSync(file).mtimeMs > built } catch { return false } }
+  const walk = dir => {
+    let entries
+    try { entries = fs.readdirSync(dir,{withFileTypes:true}) } catch { return null }
+    for (const entry of entries) {
+      const full = path.join(dir,entry.name)
+      const found = entry.isDirectory() ? walk(full) : newer(full) ? full : null
+      if (found) return found
+    }
+    return null
+  }
+  const changed = [path.join(root,'frontend','index.html'),path.join(root,'package-lock.json')].find(newer) || walk(path.join(root,'frontend','src'))
+  return changed ? `Fleet's web app in dist/ is older than ${path.relative(root,changed)}, so this page may be out of date. Run \`npm run build:frontend\`, then restart Fleet.` : null
+}
 function readBuild(dir, raw) {
   const manifest = JSON.parse(raw.toString('utf8'))
   const files = new Map()
@@ -436,6 +457,8 @@ function main(){
   // starting a server whose every page load fails.
   const frontend=loadFrontend()
   if(!frontend.built){console.error(`\n  ${frontend.error}\n`);process.exit(1)}
+  const stale=staleBuild()
+  if(stale) console.warn(`\n  ${stale}\n`)
   let app
   const service=new Service()
   // Hand the port to the version that was just installed. argv[1] is the entry npm
@@ -501,4 +524,4 @@ function main(){
   return app
 }
 if(require.main===module) main()
-module.exports={createApp,main,relaunch,buildId,loadFrontend,errorBody,API_VERSION}
+module.exports={createApp,main,relaunch,buildId,loadFrontend,staleBuild,errorBody,API_VERSION}

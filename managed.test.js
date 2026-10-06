@@ -7,7 +7,7 @@ const path=require('node:path')
 const {randomUUID}=require('node:crypto')
 const {ManagedSessions}=require('./managed')
 const http=require('node:http')
-const {createApp,loadFrontend}=require('./server')
+const {createApp,loadFrontend,staleBuild}=require('./server')
 const delay=ms=>new Promise(r=>setTimeout(r,ms))
 async function until(fn){for(let i=0;i<100;i++){if(fn())return;await delay(5)}throw Error('Condition timed out')}
 function setup(queryFactory,externalSessions){const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-managed-'));return {directory,manager:new ManagedSessions({directory,queryFactory,externalSessions})}}
@@ -351,6 +351,29 @@ test('only the built web app is served: its page, the hashed files its manifest 
     assert.equal((await fetch(base + '/assets/index-Ab12Cd34.js')).status, 200)
     assert.equal((await fetch(base + '/')).status, 200)
   } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(dist, { recursive: true, force: true }) }
+})
+
+test('a checkout whose frontend sources changed after the build is warned; an npm install is not', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-stale-'))
+  const at = (file, seconds) => { fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); if (!fs.existsSync(path.join(root, file))) fs.writeFileSync(path.join(root, file), 'x'); fs.utimesSync(path.join(root, file), seconds, seconds) }
+  try {
+    at('dist/.vite/manifest.json', 2000)
+    at('package-lock.json', 1000)
+    assert.equal(staleBuild(root), null, 'no frontend/: an npm install is never checked')
+    at('frontend/index.html', 1000)
+    at('frontend/src/app/deep/View.tsx', 1000)
+    assert.equal(staleBuild(root), null, 'everything older than the build')
+    at('frontend/src/app/deep/View.tsx', 3000)
+    assert.match(staleBuild(root), /frontend[/\\]src[/\\]app[/\\]deep[/\\]View\.tsx.*npm run build:frontend/)
+    at('frontend/src/app/deep/View.tsx', 1000)
+    at('frontend/index.html', 3000)
+    assert.match(staleBuild(root), /frontend[/\\]index\.html/)
+    at('frontend/index.html', 1000)
+    at('package-lock.json', 3000)
+    assert.match(staleBuild(root), /package-lock\.json/)
+    fs.rmSync(path.join(root, 'dist'), { recursive: true })
+    assert.equal(staleBuild(root), null, 'no build is the startup error, not this warning')
+  } finally { fs.rmSync(root, { recursive: true, force: true }) }
 })
 
 test('without a build, the page explains how to make one and no asset is served', async () => {
