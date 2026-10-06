@@ -69,8 +69,11 @@ export class ResourceStore {
   /** Subscribe to a key. The first subscriber triggers a load when the key has no data or is stale. */
   subscribe<T>(resource: Resource<T>, listener: () => void): () => void {
     const entry = this.entry(resource)
+    // Shown again after its last load failed (a session chosen again): try again rather
+    // than keep showing that failure until some event happens to name it.
+    const retry = entry.listeners.size === 0 && entry.state.status === 'error'
     entry.listeners.add(listener)
-    if (entry.state.status === 'idle' || entry.stale) void this.refresh(resource)
+    if (entry.state.status === 'idle' || entry.stale || retry) void this.refresh(resource)
     return () => {
       entry.listeners.delete(listener)
     }
