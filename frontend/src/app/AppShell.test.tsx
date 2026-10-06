@@ -1,72 +1,173 @@
-// Smoke: the shell boots against fixture responses, through the real transport.
-import { act, render, screen } from '@testing-library/react'
+// The shell against the fleet-mixed fixture pack, through the real transport:
+// top bar, navigation and its persistence, banner, status bar, the modal layer and
+// the shortcuts, and StrictMode leaving no duplicate listeners behind (A28).
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { StrictMode } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
-import controlFixture from '../test/fixtures/control.json'
-import sessionsFixture from '../test/fixtures/sessions.json'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import controlFixture from '../test/fixtures/fleet-mixed/get-control.json'
+import sessionsFixture from '../test/fixtures/fleet-mixed/get-sessions.json'
 import { FakeEventSource, jsonResponse, syncRoute } from '../test/fakes'
-import { FleetClient } from '../transport/client'
+import { type Harness, MemoryStorage, Providers, makeHarness, renderWith } from '../test/shell'
 import type { FetchLike } from '../transport/conditional'
-import { FleetClientProvider } from '../transport/hooks'
 import { AppShell } from './AppShell'
 
-function boot(fetch: FetchLike) {
-  FakeEventSource.instances = []
-  const client = new FleetClient({ fetch, eventSource: url => new FakeEventSource(url), visibility: null })
-  client.start()
-  render(
-    <StrictMode>
-      <FleetClientProvider client={client}>
-        <AppShell />
-      </FleetClientProvider>
-    </StrictMode>,
-  )
-  return client
+const control = controlFixture.response.body
+const snapshot = sessionsFixture.response.body
+
+function fixtureFetch(requests: string[] = []): FetchLike {
+  const sessions = syncRoute(['sessions'], ['generatedAt'])
+  sessions.set(snapshot)
+  return async (url, init) => {
+    requests.push(url)
+    if (url === '/api/control') return jsonResponse(control)
+    if (url === '/api/sessions') return sessions.fetch(url, init)
+    return jsonResponse({ error: 'Not found.' }, 404)
+  }
 }
 
-let client: FleetClient | null = null
+let harness: Harness | null = null
+function boot(fetch: FetchLike, storage?: MemoryStorage) {
+  harness = makeHarness(fetch, storage)
+  harness.client.start()
+  return { harness, ...renderWith(harness, <AppShell />) }
+}
+
 afterEach(() => {
-  client?.stop()
-  client = null
+  harness?.client.stop()
+  harness = null
 })
 
 describe('AppShell', () => {
-  it('loads control and the session snapshot and lists every session by name', async () => {
-    const sessions = syncRoute(['sessions'], ['generatedAt'])
-    sessions.set(sessionsFixture)
+  it('draws the legacy top bar, the session pane and the status bar from the fixtures', async () => {
     const requests: string[] = []
-    client = boot(async (url, init) => {
-      requests.push(url)
-      if (url === '/api/control') return jsonResponse(controlFixture)
-      if (url === '/api/sessions') return sessions.fetch(url, init)
-      return jsonResponse({ error: 'Not found.' }, 404)
-    })
+    boot(fixtureFetch(requests))
 
-    expect(screen.getByText('Loading your sessions…')).toBeTruthy()
-    const list = await screen.findByRole('list', { name: 'Sessions' })
-    const names = [...list.querySelectorAll('li')].map(li => li.textContent)
-    expect(names).toEqual([
-      'Fix the flaky upload test',
-      'Draft the release notes',
-      'Terminal session in the desktop app',
-      '0dec0de0',
-      'An archived conversation',
+    const nav = screen.getByRole('navigation', { name: 'Fleet view' })
+    expect(within(nav).getAllByRole('button').map(b => b.textContent?.trim())).toEqual([
+      'Today',
+      'Projects',
+      'Sessions',
+      'Progress',
+      'Worktrees',
     ])
-    expect(await screen.findByText(`v${controlFixture.version}`)).toBeTruthy()
-    // StrictMode mounts twice; the store still asked once per resource, on one stream.
+    expect(within(nav).getByRole('button', { name: 'Sessions' }).getAttribute('aria-pressed')).toBe('true')
+    expect(await screen.findByText(`v${control.version}`)).toBeTruthy()
+    for (const name of ['Settings', 'Connections', 'Refresh sessions', /Search/, 'New agent']) {
+      expect(screen.getByRole('button', { name })).toBeTruthy()
+    }
+
+    const live = snapshot.sessions.filter(row => !row.archived)
+    const list = await screen.findByRole('list', { name: 'Sessions' })
+    expect(list.querySelectorAll('li')).toHaveLength(live.length)
+    expect(screen.getByText('Agents').querySelector('.ui-count')?.textContent).toBe(String(live.length))
+
+    const status = document.getElementById('statusbar')!
+    expect(within(status).getByText('6 working')).toBeTruthy()
+    expect(within(status).getByText('1 needs you')).toBeTruthy()
+    expect(within(status).getByRole('meter', { name: 'five-hour usage' }).getAttribute('aria-valuenow')).toBe('81')
+    expect(within(status).getByText('week')).toBeTruthy()
+
+    // StrictMode mounts twice; still one request per resource, on one stream.
     expect(requests.filter(url => url === '/api/sessions')).toHaveLength(1)
     expect(requests.filter(url => url === '/api/control')).toHaveLength(1)
     expect(FakeEventSource.instances).toHaveLength(1)
-
-    expect(screen.getByRole('status').textContent).toContain('Connecting')
+    expect(document.getElementById('connection')?.textContent).toBe('Connecting')
     act(() => FakeEventSource.instances[0]?.open())
-    expect(screen.getByRole('status').textContent).toContain('Live')
+    expect(document.getElementById('connection')?.textContent).toBe('Live connection')
+    // The inspector toggle shows once a managed session is selected (the first row).
+    expect(document.getElementById('details-toggle')?.hidden).toBe(false)
   })
 
-  it('shows a readable failure instead of a blank page when the list cannot load', async () => {
-    client = boot(async url =>
-      url === '/api/control' ? jsonResponse(controlFixture) : jsonResponse({ error: 'Fleet is restarting.' }, 503),
-    )
-    expect((await screen.findByRole('alert')).textContent).toContain('Fleet is restarting.')
+  it('says the server is unreachable instead of showing a blank page', async () => {
+    boot(async url => (url === '/api/control' ? jsonResponse(control) : jsonResponse({ error: 'Fleet is restarting.' }, 503)))
+    const banner = document.getElementById('error')!
+    await vi.waitFor(() => expect(banner.hidden).toBe(false))
+    expect(banner.textContent).toBe('Unable to connect to the local server. Retrying automatically.')
+    expect(document.getElementById('connection')?.textContent).toBe('Disconnected')
+  })
+
+  it('switches views, remembers the choice in fleet:view and gives each view its own layout', async () => {
+    const storage = new MemoryStorage({ 'fleet:view': 'work' })
+    boot(fixtureFetch(), storage)
+    const workspace = document.querySelector('.workspace')!
+    // A removed view falls back to Sessions.
+    expect(workspace.getAttribute('data-view')).toBe('sessions')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }))
+    expect(storage.getItem('fleet:view')).toBe('today')
+    expect(workspace.getAttribute('data-view')).toBe('today')
+    expect(workspace.getAttribute('aria-label')).toBe('Today')
+    expect(await screen.findByText('Good morning.')).toBeTruthy()
+    expect(document.getElementById('today-pane')?.className).toBe('sessions-pane today-pane')
+    expect(screen.getByRole('separator')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Worktrees' }))
+    expect(await screen.findByText('Your worktrees.')).toBeTruthy()
+    expect(screen.queryByRole('separator')).toBeNull()
+    expect(document.getElementById('detail')).toBeNull()
+    expect(document.getElementById('details-toggle')?.hidden).toBe(true)
+  })
+
+  it('opens Search with Cmd+K and New agent with Ctrl+N, one layer at a time, and returns focus on close', async () => {
+    boot(fixtureFetch())
+    const search = screen.getByRole('button', { name: /Search/ })
+    search.focus()
+
+    fireEvent.keyDown(document, { key: 'k', metaKey: true })
+    const dialog = await screen.findByRole('dialog', { name: 'Find the thread.' })
+    expect(search.getAttribute('aria-expanded')).toBe('true')
+    expect(document.body.hasAttribute('data-modal')).toBe(true)
+    expect(dialog.contains(document.activeElement)).toBe(true)
+
+    fireEvent.keyDown(document, { key: 'N', ctrlKey: true })
+    expect(await screen.findByRole('dialog', { name: 'What are we working on?' })).toBeTruthy()
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.body.hasAttribute('data-modal')).toBe(false)
+    expect(document.activeElement).toBe(search)
+
+    // Shift and Alt variants belong to the browser.
+    fireEvent.keyDown(document, { key: 'k', metaKey: true, shiftKey: true })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('mounts and unmounts in StrictMode without leaving a listener, timer subscription or second stream', async () => {
+    const counts = new Map<string, number>()
+    const track = (target: EventTarget, label: string) => {
+      const add = target.addEventListener.bind(target)
+      const remove = target.removeEventListener.bind(target)
+      vi.spyOn(target, 'addEventListener').mockImplementation((type, listener, options) => {
+        counts.set(`${label}:${type}`, (counts.get(`${label}:${type}`) ?? 0) + 1)
+        add(type, listener, options)
+      })
+      vi.spyOn(target, 'removeEventListener').mockImplementation((type, listener, options) => {
+        counts.set(`${label}:${type}`, (counts.get(`${label}:${type}`) ?? 0) - 1)
+        remove(type, listener, options)
+      })
+    }
+    track(document, 'document')
+    track(window, 'window')
+
+    harness = makeHarness(fixtureFetch())
+    harness.client.start()
+    for (let i = 0; i < 20; i++) {
+      const view = render(
+        <StrictMode>
+          <Providers harness={harness}>
+            <AppShell />
+          </Providers>
+        </StrictMode>,
+      )
+      await screen.findByRole('list', { name: 'Sessions' })
+      // Exactly one shortcut listener while mounted.
+      expect(counts.get('document:keydown')).toBe(1)
+      view.unmount()
+    }
+    const leaked = [...counts].filter(([, n]) => n !== 0)
+    expect(leaked).toEqual([])
+    expect(harness.clock.size).toBe(0)
+    expect(FakeEventSource.instances).toHaveLength(1)
   })
 })
