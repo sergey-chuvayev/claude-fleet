@@ -38,7 +38,9 @@ function Workspace() {
     <section ref={workspace} className="workspace" data-view={view} aria-label={definition.label}>
       {createElement(
         pane.element,
-        { id: pane.id, className: pane.className, ...(pane.element === 'section' ? { 'aria-label': definition.label } : {}) },
+        // Unnamed: the workspace around it is already the region named after the view,
+        // and two landmarks with one name read as a duplicate (axe landmark-unique).
+        { id: pane.id, className: pane.className },
         <Boundary key={view} name={definition.label}>
           <Suspense fallback={null}>
             <Pane />
