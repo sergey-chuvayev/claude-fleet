@@ -7,7 +7,10 @@ import { Markdown } from '../../components/markdown/Markdown'
 import type { Attachment, Message, MessageReference } from '../../transport/contracts'
 import { ICONS, clock, copyText, duration, isDelegation, startsCollapsed, toolLabel, toolState } from './format'
 import { useRenderProbe } from './probe'
-import { CopyButton, Disclosure, PixelRun, useSeen } from './primitives'
+import { CopyButton } from '../../components/CopyButton'
+import { Disclosure } from '../../components/Disclosure'
+import { PixelRun } from '../../components/PixelRun'
+import { useSeen } from '../../components/useSeen'
 import { ToolBody, ToolResult } from './ToolBody'
 
 export interface MessageBlockProps {
@@ -50,6 +53,7 @@ function Attachments({ attachments }: { attachments: readonly Attachment[] }) {
 function Reference({ reference }: { reference: MessageReference }) {
   return (
     <Disclosure
+      lazy
       className="block-reference"
       summary={
         <>
@@ -73,7 +77,20 @@ function Actions({ message, collapsed, onCollapse, onNotice }: {
 }) {
   return (
     <span className="block-actions">
-      <CopyButton value={() => copyText(message)} onNotice={onNotice} />
+      <CopyButton
+        text={() => copyText(message)}
+        onNotice={onNotice}
+        className="block-button"
+        data-copy=""
+        title="Copy block"
+        aria-label="Copy block"
+        copiedMessage="Block copied"
+        copiedTitle="Copied"
+        failedMessage="Copying needs clipboard permission"
+        fallback={false}
+      >
+        ⧉
+      </CopyButton>
       <button
         type="button"
         className="block-button"

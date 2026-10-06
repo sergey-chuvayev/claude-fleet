@@ -397,24 +397,7 @@
   .conversation .block-button { min-width:var(--touch); min-height:var(--touch) }
 }
 
-/* The running mark (public/ui.js running()): pixels light in a loop around the edge,
-   the centre steady. Shared with the session list once that is ported. */
-.pixel-run { display:inline-grid; grid-template-columns:repeat(3,3px); grid-auto-rows:3px; gap:1px; flex:none; vertical-align:middle; color:var(--busy) }
-.pixel-run i { border-radius:.5px; background:currentColor; opacity:.25; animation:pixel-run 1.2s ease-in-out infinite }
-.pixel-run i:nth-child(1) { animation-delay:0s }
-.pixel-run i:nth-child(2) { animation-delay:.15s }
-.pixel-run i:nth-child(3) { animation-delay:.3s }
-.pixel-run i:nth-child(6) { animation-delay:.45s }
-.pixel-run i:nth-child(9) { animation-delay:.6s }
-.pixel-run i:nth-child(8) { animation-delay:.75s }
-.pixel-run i:nth-child(7) { animation-delay:.9s }
-.pixel-run i:nth-child(4) { animation-delay:1.05s }
-.pixel-run i:nth-child(5) { animation:none; opacity:.85 }
-@keyframes pixel-run { 0%, 100% { opacity:.2 } 20% { opacity:1 } 50% { opacity:.35 } }
-@media(prefers-reduced-motion:reduce) {
-  .pixel-run i { animation:none }
-  .pixel-run i { opacity:.7 }
-}
+/* The running mark (.pixel-run) is a shared primitive: components/PixelRun.tsx, styled in components.css. */
 
 .block-icon.is-live { display:inline-grid; place-items:center }
 .block-state.is-live { display:inline-flex; align-items:center; gap:6px }

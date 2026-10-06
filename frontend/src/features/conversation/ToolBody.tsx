@@ -8,7 +8,8 @@ import { cachedHighlight } from '../../components/markdown/cache'
 import { Markdown } from '../../components/markdown/Markdown'
 import type { Message } from '../../transport/contracts'
 import { TARGET_KEYS, isDelegation, languageFor, text } from './format'
-import { Disclosure, useSeen } from './primitives'
+import { Disclosure } from '../../components/Disclosure'
+import { useSeen } from '../../components/useSeen'
 
 /** A code panel: highlighted once it is near the screen, plain escaped text before that. */
 export const CodeBlock = memo(function CodeBlock({
@@ -97,7 +98,7 @@ export function ToolBody({ message }: { message: Message }) {
   if (name === 'TodoWrite') return <TodoList todos={Array.isArray(input.todos) ? (input.todos as Todo[]) : []} />
   if (isDelegation(name)) {
     return (
-      <Disclosure className="delegation-mandate" name="mandate" summary="Mandate">
+      <Disclosure className="delegation-mandate" data-delegation="mandate" lazy summary="Mandate">
         <Markdown source={text(input.prompt) || text(input.description) || 'No mandate recorded.'} />
       </Disclosure>
     )
@@ -129,7 +130,7 @@ export function ToolResult({ message }: { message: Message }) {
     }
     const long = report.length > LONG_REPORT_CHARS || report.split('\n').length > LONG_REPORT_LINES
     return (
-      <Disclosure className="delegation-report" name="report" defaultOpen={!long} summary={`Returned report${long ? ' · long' : ''}`}>
+      <Disclosure className="delegation-report" data-delegation="report" lazy defaultOpen={!long} summary={`Returned report${long ? ' · long' : ''}`}>
         <Markdown source={report} />
         {message.truncated ? <p className="block-note">Report truncated by Fleet.</p> : null}
       </Disclosure>
