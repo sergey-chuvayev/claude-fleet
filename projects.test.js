@@ -35,7 +35,7 @@ test('a project is one Markdown file, readable by a person and kept on every cha
   const md=fs.readFileSync(p.file,'utf8')
   assert.match(md,/^---\nid: [\w-]+\nname: Queue in the ring node\ndeadline: 2026-10-30\nrepos:\n  - ~\/projects\/api-allo/)
   assert.match(md,/## Brief\n\nCustomers rebuild a queue by hand/)
-  assert.match(md,/## Deliverables\n\n- \[~\] Queue as a ring option · #3796 rebasing\n- \[ \] Waiting music and announcements/)
+  assert.match(md,/## Deliverables\n\n- \[~\] Queue as a ring option · #3796 rebasing <!-- id:\w{12} -->\n- \[ \] Waiting music and announcements <!-- id:\w{12} -->/,'each deliverable carries its id')
   assert.match(md,/## Sources\n\n- Roadmap section, 2 Oct/)
   assert.match(md,/## Log\n\n- \d{4}-\d\d-\d\d \d\d:\d\d Project created\.\n- \d{4}-\d\d-\d\d \d\d:\d\d Agreed scope with Franco\./)
   assert.doesNotMatch(md,/\u2014/,'no long dashes in the file')
@@ -58,11 +58,12 @@ test('a project is one Markdown file, readable by a person and kept on every cha
 test('an edit made by hand to the file is what Fleet reads next',async()=>{
   const directory=tmp(),store=new ProjectStore(directory),p=make(store)
   await delay(20)
-  const md=fs.readFileSync(p.file,'utf8').replace('- [ ] Waiting music and announcements','- [x] Waiting music and announcements · shipped in #2090').replace('deadline: 2026-10-30','deadline: 2026-11-06')+'\n## Decisions\n\nQueue lives in the ring node, not a separate node.\n'
+  const id=p.deliverables[1].id
+  const md=fs.readFileSync(p.file,'utf8').replace(`- [ ] Waiting music and announcements <!-- id:${id} -->`,`- [x] Waiting music and announcements · shipped in #2090 <!-- id:${id} -->`).replace('deadline: 2026-10-30','deadline: 2026-11-06')+'\n## Decisions\n\nQueue lives in the ring node, not a separate node.\n'
   fs.writeFileSync(p.file,md)
   const read=store.get(p.id)
   assert.equal(read.deadline,'2026-11-06')
-  assert.deepEqual(read.deliverables[1],{id:'waiting-music-and-announcements',title:'Waiting music and announcements',state:'done',note:'shipped in #2090',brief:'',links:[]})
+  assert.deepEqual(read.deliverables[1],{id,title:'Waiting music and announcements',state:'done',note:'shipped in #2090',brief:'',links:[]})
   assert.deepEqual(read.sections,[{heading:'Decisions',body:'Queue lives in the ring node, not a separate node.'}])
   store.note(p.id,'Checked.')
   assert.match(fs.readFileSync(p.file,'utf8'),/## Decisions\n\nQueue lives in the ring node/,'a hand-written section survives Fleet writing the file')
@@ -202,7 +203,7 @@ test('each deliverable keeps its brief and source links in the file, by define o
   assert.equal(read.deliverables[0].brief,'Move the queue into the ring node.\nDone when: a queued call rings the next free agent.','blank lines go, so the brief stays under its task')
   assert.deepEqual(read.deliverables[0].links,['https://github.com/acme/api-allo/pull/3796','https://linear.app/acme/issue/TECH-12/queue'])
   const md=fs.readFileSync(read.file,'utf8')
-  assert.match(md,/- \[ \] Queue as a ring option\n {2}Move the queue into the ring node\.\n {2}Done when: .*\n {2}- https:\/\/github\.com\/acme\/api-allo\/pull\/3796\n/)
+  assert.match(md,/- \[ \] Queue as a ring option <!-- id:\w{12} -->\n {2}Move the queue into the ring node\.\n {2}Done when: .*\n {2}- https:\/\/github\.com\/acme\/api-allo\/pull\/3796\n/)
   // Titles alone keep what a task already has.
   store.define(p.id,{deliverables:['Queue as a ring option','Waiting music and announcements']})
   assert.equal(store.get(p.id).deliverables[0].links.length,2)
@@ -214,7 +215,7 @@ test('each deliverable keeps its brief and source links in the file, by define o
   assert.throws(()=>store.deliverable(p.id,id,{brief:'x'.repeat(5000)}),/at most 4000/)
   // A brief written by hand, indented under its task, is read back the same way.
   await delay(20)
-  fs.writeFileSync(read.file,fs.readFileSync(read.file,'utf8').replace('- [ ] Waiting music and announcements','- [ ] Waiting music and announcements\n  Ask Franco which formats.'))
+  fs.writeFileSync(read.file,fs.readFileSync(read.file,'utf8').replace(`- [ ] Waiting music and announcements <!-- id:${id} -->`,`- [ ] Waiting music and announcements <!-- id:${id} -->\n  Ask Franco which formats.`))
   assert.match(store.get(p.id).deliverables[1].brief,/^Ask Franco which formats\.\nUpload music per queue\.$/)
 })
 
@@ -346,4 +347,125 @@ test('a comment on a task is logged, reaches the task on Today, and asks the man
     assert.throws(()=>manager.commentOnTask(p.id,{deliverableId:'nope',message:'x'}),/not in this project/)
     assert.throws(()=>manager.commentOnTask(p.id,{deliverableId:task.id,message:'  '}),/Comment/)
   } finally { await manager.close() }
+})
+
+// Deliverable ids. Up to 0.54.0 a deliverable's id was its title cut to a 60-character
+// slug, so these pairs were one deliverable, and a title edited by hand was another.
+const LONG='Make the queue ring every free agent in turn, then the overflow group, then voicemail'
+const alike=['Fix #1','Fix #1!','Café menu','Cafè menu',`${LONG} first`,`${LONG} second`]
+const legacyFile=(id,name,rows)=>`---\nid: ${id}\nname: ${name}\n---\n\n## Brief\n\nKept as written.\n\n## Deliverables\n\n${rows}\n\n## Decisions\n\n- Queue lives in the ring node.\n  Not a node of its own.\n\n## Log\n\n- 2026-10-01 10:00 Project created.\n`
+const LEGACY_ROWS=['- [~] Fix #1 · in review','  Reproduce on staging first.','  - https://github.com/acme/api-allo/pull/1','- [ ] Fix #1!','* [x] Café menu · shipped','- [?] Cafè menu',`- [ ] ${LONG} first`,`- [ ] ${LONG} second`,'- [ ] Ship the thing   '].join('\n')
+const {assignIds,stripIds,parse,render}=require('./projects')
+const quiet=directory=>new ManagedSessions({directory,queryFactory:async()=>({close(){},async *[Symbol.asyncIterator](){}})})
+
+test('deliverables with titles alike, in one project or two, are still distinct',()=>{
+  const directory=tmp(),store=new ProjectStore(directory)
+  const a=store.define(store.create({name:'A'}).id,{deliverables:alike}),b=store.define(store.create({name:'B'}).id,{deliverables:alike})
+  const ids=[...a.deliverables,...b.deliverables].map(d=>d.id)
+  assert.equal(new Set(ids).size,alike.length*2,'every deliverable has its own id, across projects too')
+  assert.deepEqual(a.deliverables.map(d=>d.title),alike)
+  store.deliverable(a.id,a.deliverables[1].id,{state:'done'})
+  assert.deepEqual(store.get(a.id).deliverables.map(d=>d.state),['todo','done','todo','todo','todo','todo'],'one changes, not its look-alike')
+  assert.deepEqual(new ProjectStore(directory).get(a.id).deliverables.map(d=>d.id),a.deliverables.map(d=>d.id),'the ids survive a restart')
+  assert.deepEqual(store.define(a.id,{deliverables:[...alike].reverse()}).deliverables.map(d=>d.id),a.deliverables.map(d=>d.id).reverse(),'and a redefine')
+})
+
+test('a title edited by hand keeps its id, and a line copied by hand gets its own',async()=>{
+  const directory=tmp(),store=new ProjectStore(directory),p=make(store),[first,second]=p.deliverables
+  await delay(20)
+  const md=fs.readFileSync(p.file,'utf8')
+  fs.writeFileSync(p.file,md.replace(`- [ ] Waiting music and announcements <!-- id:${second.id} -->`,`- [ ] Hold music, per queue · asked Franco <!-- id:${second.id} -->\n- [ ] Queue as a ring option, again <!-- id:${first.id} -->`))
+  const read=store.get(p.id)
+  assert.deepEqual(read.deliverables[1],{id:second.id,title:'Hold music, per queue',state:'todo',note:'asked Franco',brief:'',links:[]},'the comment is not part of the title or note')
+  assert.equal(read.deliverables[0].id,first.id,'the first holder of an id keeps it')
+  assert.notEqual(read.deliverables[2].id,first.id,'the copy gets a new one')
+  assert.equal(new Set(read.deliverables.map(d=>d.id)).size,4)
+  assert.equal(store.deliverable(p.id,second.id,{state:'doing'}).title,'Hold music, per queue')
+  // A manager that copies a line from the file renames that deliverable rather than adding one.
+  const renamed=store.define(p.id,{deliverables:[`Queue in the ring node <!-- id:${first.id} -->`,`Hold music, per queue <!-- id:${second.id} -->`]}).deliverables
+  assert.deepEqual(renamed.map(d=>[d.id,d.title,d.state]),[[first.id,'Queue in the ring node','todo'],[second.id,'Hold music, per queue','doing']])
+})
+
+test('a file without ids gets them once, changing nothing else, and stripping them gives it back byte for byte',async()=>{
+  const directory=tmp(),dir=path.join(directory,'projects')
+  fs.mkdirSync(dir,{recursive:true})
+  const original=legacyFile('p-old','Old project',LEGACY_ROWS),file=path.join(dir,'old-project.md')
+  fs.writeFileSync(file,original)
+  const store=new ProjectStore(directory),p=store.get('p-old')
+  const migrated=fs.readFileSync(file,'utf8'),before=original.split('\n')
+  assert.equal(stripIds(migrated),original,'the way back is lossless')
+  assert.equal(migrated.split('\n').length,before.length,'no line added or removed')
+  migrated.split('\n').forEach((l,i)=>{if(l!==before[i])assert.ok(/ <!-- id:\w{12} -->$/.test(l) && l.startsWith(before[i]),'only deliverable lines change, by a comment at the end')})
+  assert.equal(migrated.match(/<!-- id:/g).length,7)
+  assert.deepEqual(p.deliverables.map(d=>[d.title,d.state,d.note]),[['Fix #1','doing','in review'],['Fix #1!','todo',''],['Café menu','done','shipped'],['Cafè menu','review',''],[`${LONG} first`,'todo',''],[`${LONG} second`,'todo',''],['Ship the thing','todo','']])
+  assert.equal(p.deliverables[0].brief,'Reproduce on staging first.')
+  assert.deepEqual(p.deliverables[0].links,['https://github.com/acme/api-allo/pull/1'])
+  assert.equal(new Set(p.deliverables.map(d=>d.id)).size,7)
+  assert.deepEqual(p.sections,[{heading:'Decisions',body:'- Queue lives in the ring node.\n  Not a node of its own.'}])
+  await delay(20)
+  assert.deepEqual(new ProjectStore(directory).get('p-old').deliverables.map(d=>d.id),p.deliverables.map(d=>d.id),'read again, nothing more to do')
+  assert.equal(fs.readFileSync(file,'utf8'),migrated,'the ids are given once')
+  assert.deepEqual(parse(stripIds(migrated),file),parse(original,file))
+})
+
+test('a file Fleet wrote strips to what a version without ids would have written, line endings and all',()=>{
+  const directory=tmp(),store=new ProjectStore(directory),p=make(store)
+  store.deliverable(p.id,p.deliverables[0].id,{note:'#3796 rebasing',brief:'Move it.',links:['https://github.com/acme/api-allo/pull/3796']})
+  const {file:_,updatedAt:__,...clean}=store.get(p.id)
+  assert.equal(stripIds(fs.readFileSync(p.file,'utf8')),render({...clean,deliverables:clean.deliverables.map(d=>({...d,id:null}))}))
+  const crlf=legacyFile('p-crlf','CRLF',LEGACY_ROWS).replace(/\n/g,'\r\n'),fixed=assignIds(crlf)
+  assert.equal(stripIds(fixed.text),crlf)
+  assert.equal(parse(fixed.text,'x.md').deliverables.filter(d=>d.id).length,7)
+  assert.equal(assignIds('no header at all').text,'no header at all')
+})
+
+test('Day items tied to a deliverable by its old slug follow it to its id, unless two deliverables shared that slug',async()=>{
+  const {directory,manager}=setup(),dir=path.join(directory,'projects'),ids={}
+  let d
+  try{
+    d=manager.create({kind:'day',cwd:directory,requestId:randomUUID()})
+    await until(()=>d.status==='idle')
+    const add=(key,title,projectId,deliverableId)=>{ids[key]=day.act(d,{action:'add',title,mode:'agent',source:'me',projectId,deliverableId},'operator').item.id}
+    add('ship','Ship the thing','p-old','ship-the-thing');add('fix','Fix #1','p-old','fix-1');add('other','Ship the thing','p-two','ship-the-thing');add('gone','Removed','p-old','removed-task');add('plain','No project')
+    manager.changed(d,true)
+  } finally { await manager.close() }
+  // As 0.54.0 left them: files without ids, and the Day pointing at title slugs.
+  fs.writeFileSync(path.join(dir,'old-project.md'),legacyFile('p-old','Old project',LEGACY_ROWS))
+  fs.writeFileSync(path.join(dir,'two.md'),legacyFile('p-two','Two','- [ ] Ship the thing\n- [ ] Something else'))
+  const next=quiet(directory)
+  try{
+    const by=key=>next.sessions.get(d.id).dayBoard.items.find(i=>i.id===ids[key])
+    const old=next.projects.get('p-old'),two=next.projects.get('p-two')
+    assert.equal(by('ship').deliverableId,old.deliverables.find(x=>x.title==='Ship the thing').id,'an unambiguous slug follows its deliverable')
+    assert.equal(by('other').deliverableId,two.deliverables.find(x=>x.title==='Ship the thing').id,'within its own project')
+    assert.equal(by('fix').deliverableId,undefined,'two deliverables had the slug fix-1: not guessed')
+    assert.equal(by('fix').unlinkedDeliverable,'fix-1')
+    assert.match(by('fix').log.at(-1).text,/No longer tied to a project task/)
+    assert.equal(by('gone').deliverableId,'removed-task','a link to nothing is left as it was')
+    assert.equal(by('plain').deliverableId,undefined)
+    assert.deepEqual(Object.keys(next.deliverablesOnToday('p-old')).sort(),[by('ship').deliverableId,'removed-task'].sort(),'the project sees the relinked item on Today, and no look-alike')
+    const saved=JSON.parse(fs.readFileSync(path.join(directory,'sessions.json'),'utf8')).sessions.find(s=>s.id===d.id).dayBoard.items
+    assert.equal(saved.find(i=>i.id===ids.ship).deliverableId,by('ship').deliverableId,'and the relink is saved')
+    const fixes=old.deliverables.filter(x=>x.title.startsWith('Fix #1'))
+    assert.equal(next.planDeliverable('p-old',fixes[1].id).existing,false,'the untied item claims neither look-alike')
+  } finally { await next.close() }
+  const again=quiet(directory)
+  try{
+    assert.equal(again.sessions.get(d.id).dayBoard.items.find(i=>i.id===ids.ship).deliverableId,again.projects.get('p-old').deliverables.find(x=>x.title==='Ship the thing').id,'stable across restarts')
+  } finally { await again.close() }
+  // The way back to 0.54.0: files as they were, Day items naming deliverables by slug.
+  const {rollback}=require('./projects')
+  assert.deepEqual(rollback(directory),{files:2,items:3},'the two relinked, and the one put on Today since')
+  assert.equal(fs.readFileSync(path.join(dir,'two.md'),'utf8'),legacyFile('p-two','Two','- [ ] Ship the thing\n- [ ] Something else'),'a file only given ids comes back as it was')
+  const rewritten=fs.readFileSync(path.join(dir,'old-project.md'),'utf8')
+  assert.doesNotMatch(rewritten,/<!--/,'one Fleet wrote since loses its ids too')
+  assert.deepEqual(parse(rewritten,'x.md').deliverables.map(x=>[x.id,x.title]),parse(legacyFile('p-old','Old project',LEGACY_ROWS),'x.md').deliverables.map(x=>[x.id,x.title]))
+  const back=JSON.parse(fs.readFileSync(path.join(directory,'sessions.json'),'utf8')).sessions.find(s=>s.id===d.id).dayBoard.items
+  assert.deepEqual([ids.ship,ids.other,ids.gone].map(id=>back.find(i=>i.id===id).deliverableId),['ship-the-thing','ship-the-thing','removed-task'])
+  // And forward again: a fresh set of ids, and the Day follows them once more.
+  const forward=quiet(directory)
+  try{
+    assert.equal(forward.sessions.get(d.id).dayBoard.items.find(i=>i.id===ids.ship).deliverableId,forward.projects.get('p-old').deliverables.find(x=>x.title==='Ship the thing').id)
+    assert.throws(()=>rollback(directory),/Fleet is running/,'never under a running Fleet')
+  } finally { await forward.close() }
 })

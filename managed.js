@@ -138,6 +138,8 @@ class ManagedSessions extends EventEmitter {
           s.approvalMode = normaliseMode(s.approvalMode)
           this.sessions.set(s.id, s)
         }
+        // Day items saved when deliverables were known by title follow them to their ids.
+        if ([...this.sessions.values()].reduce((n, s) => n + (s.dayBoard ? this.projects.relinkDay(s.dayBoard.items) : 0), 0)) this.save()
       }
     } catch (error) { this.releaseLock(); throw new Error(`Cannot read Fleet session store: ${error.message}`) }
   }
