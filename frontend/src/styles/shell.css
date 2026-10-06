@@ -1,0 +1,12 @@
+/* The page frame only, so the foundation shell is readable on the charcoal surface.
+   The real shell, list and pane styles are ported with their components. */
+:root {
+  color-scheme: dark;
+  font: var(--ui);
+}
+* { box-sizing: border-box }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
