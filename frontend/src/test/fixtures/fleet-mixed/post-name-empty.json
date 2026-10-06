@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "POST",
-    "path": "/api/managed/00000002-f1e1-4000-8000-000000000000/name",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/name",
     "body": {
       "name": ""
     }
@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Name must contain 1–100 characters."
+      "error": "Name must contain 1–100 characters.",
+      "code": "VALIDATION"
     }
   }
 }

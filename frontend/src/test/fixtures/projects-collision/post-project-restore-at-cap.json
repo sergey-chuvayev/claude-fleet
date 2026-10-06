@@ -11,7 +11,9 @@
     "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet keeps up to 30 active projects. Archive one before restoring this one."
+      "error": "Fleet keeps up to 30 active projects. Archive one before restoring this one.",
+      "code": "CAPACITY",
+      "retryable": true
     }
   }
 }

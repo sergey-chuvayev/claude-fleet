@@ -13,7 +13,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "That team does not exist."
+      "error": "That team does not exist.",
+      "code": "VALIDATION"
     }
   }
 }

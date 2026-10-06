@@ -37,7 +37,7 @@ exports.capture = async ctx => {
   ctx.secrets.push(control2.token)
   const stale = await fetch(nextBase + '/api/queue', { method: 'POST', headers: { 'content-type': 'application/json', 'x-fleet-token': staleToken, origin: nextBase }, body: '{"enabled":true}' })
   ctx.write('token-2-stale-token-rejected', { request: { method: 'POST', path: '/api/queue', note: 'token from the previous process' }, response: { status: stale.status, contentType: 'application/json', body: await stale.json() } })
-  ctx.write('token-3-control-after-restart', { request: { method: 'GET', path: '/api/control', note: 'new process, new token (no instanceId yet: added by work package 2)' }, response: { status: 200, contentType: 'application/json', body: { ...control2 } } })
+  ctx.write('token-3-control-after-restart', { request: { method: 'GET', path: '/api/control', note: 'new process, new token and a new instanceId' }, response: { status: 200, contentType: 'application/json', body: { ...control2 } } })
   const retried = await fetch(nextBase + '/api/queue', { method: 'POST', headers: { 'content-type': 'application/json', 'x-fleet-token': control2.token, origin: nextBase }, body: '{"enabled":true}' })
   ctx.write('token-4-retry-with-new-token', { request: { method: 'POST', path: '/api/queue' }, response: { status: retried.status, contentType: 'application/json', body: await retried.json() } })
   await second.close(); second.server.closeAllConnections()
@@ -109,7 +109,7 @@ exports.capture = async ctx => {
       { id: 'disk-full-and-recovery', covers: 'A27', real: ['storage-1-control-latched', 'storage-2-post-refused', 'storage-4-control-still-latched-after-read', 'storage-7-control-recovered'], expect: 'banner appears with the latch, survives reads, clears after a write lands; stop and update stay allowed' },
       { id: 'server-restart', covers: 'A26', real: ['token-1-control', 'token-2-stale-token-rejected', 'token-3-control-after-restart', 'token-4-retry-with-new-token'], steps: [
         { at: 0, sse: 'drop' },
-        { at: 800, send: 'GET /api/control', respond: { tokenChanged: true, instanceId: '<new, after work package 2>' } },
+        { at: 800, send: 'GET /api/control', respond: { tokenChanged: true, instanceId: '<new>' } },
       ], expect: 'new token fetched once, ETags and fingerprint maps cleared when instanceId changes, drafts and selection kept' },
       { id: 'sse-drop-duplicate-burst', covers: 'A25', real: ['sse-2-burst-and-duplicates'], steps: [
         { at: 0, sse: ['sessions:[f-one]', 'sessions:[f-one]', 'list:{}'] },
@@ -120,9 +120,9 @@ exports.capture = async ctx => {
         { at: 0, send: 'GET /api/sessions', respond: { fixture: 'fleet-mixed/get-sessions-packed', note: 'the client holds none of these hashes' } },
         { at: 10, send: 'GET /api/sessions (no conditional headers)', respond: { fixture: 'fleet-mixed/get-sessions' } },
       ], expect: 'exactly one full retry, never a partly reconstructed list' },
-      { id: 'incompatible-build', covers: 'A22, WP2', futureContract: true, steps: [
+      { id: 'incompatible-build', covers: 'A22, WP2', steps: [
         { at: 0, send: 'GET /api/control', respond: { apiVersion: 99, buildId: 'zzz', instanceId: 'i-2' } },
-      ], expect: 'a readable reload state instead of errors; the current server has no apiVersion/buildId yet' },
+      ], expect: 'a readable reload state instead of errors; the server now sends apiVersion and buildId (#103), but no client rejects a mismatch yet' },
       { id: 'missing-hashed-asset-after-update', covers: 'A22, A29', steps: [
         { at: 0, send: 'GET /assets/index-OLD.js', respond: { status: 404, body: { error: 'Not found.' }, contentType: 'application/json' } },
       ], expect: 'a 404 JSON (see asset-2-unknown-script), never the index HTML' },

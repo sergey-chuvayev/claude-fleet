@@ -7,7 +7,9 @@
     "status": 429,
     "contentType": "application/json",
     "body": {
-      "error": "Too many dashboard connections."
+      "error": "Too many dashboard connections.",
+      "code": "CAPACITY",
+      "retryable": true
     }
   }
 }

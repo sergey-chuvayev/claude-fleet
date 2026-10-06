@@ -14,7 +14,8 @@
     "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "Today already has a Day. Open it from the list."
+      "error": "Today already has a Day. Open it from the list.",
+      "code": "CONFLICT"
     }
   }
 }

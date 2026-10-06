@@ -13,7 +13,7 @@
     "contentType": "application/json",
     "body": {
       "session": {
-        "id": "00000039-f1e1-4000-8000-000000000000",
+        "id": "0000003a-f1e1-4000-8000-000000000000",
         "projectId": "00000001-f1e1-4000-8000-000000000000",
         "sessionId": null,
         "name": "Alpha launch",
@@ -26,7 +26,7 @@
         "selectedModel": "",
         "messages": [
           {
-            "id": "0000003a-f1e1-4000-8000-000000000000",
+            "id": "0000003b-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "On \"Hand-added deliverable\": Please add the rollback plan to the brief.",
             "at": 1791280800000,

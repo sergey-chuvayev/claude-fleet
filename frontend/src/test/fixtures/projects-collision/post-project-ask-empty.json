@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Message must contain 1–16000 characters."
+      "error": "Message must contain 1–16000 characters.",
+      "code": "VALIDATION"
     }
   }
 }

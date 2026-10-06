@@ -9,7 +9,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Invalid JSON."
+      "error": "Invalid JSON.",
+      "code": "INVALID_JSON"
     }
   }
 }

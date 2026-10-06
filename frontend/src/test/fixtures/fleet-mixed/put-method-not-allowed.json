@@ -7,7 +7,8 @@
     "status": 405,
     "contentType": "application/json",
     "body": {
-      "error": "Method not allowed."
+      "error": "Method not allowed.",
+      "code": "METHOD_NOT_ALLOWED"
     }
   }
 }

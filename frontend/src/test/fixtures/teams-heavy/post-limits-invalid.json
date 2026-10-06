@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Choose 1–10 attempts per task."
+      "error": "Choose 1–10 attempts per task.",
+      "code": "VALIDATION"
     }
   }
 }

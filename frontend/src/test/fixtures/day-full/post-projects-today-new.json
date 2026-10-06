@@ -8,10 +8,12 @@
     "note": "the board already holds 200 items, so this surfaces as a plain 500; projects-collision captures the success path"
   },
   "response": {
-    "status": 500,
+    "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet could not complete the request. Check the server log."
+      "error": "The Day board has reached its 200-item limit.",
+      "code": "CAPACITY",
+      "retryable": true
     }
   }
 }

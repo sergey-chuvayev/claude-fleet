@@ -10,10 +10,11 @@
     }
   },
   "response": {
-    "status": 500,
+    "status": 404,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet could not complete the request. Check the server log."
+      "error": "Question not found.",
+      "code": "NOT_FOUND"
     }
   }
 }

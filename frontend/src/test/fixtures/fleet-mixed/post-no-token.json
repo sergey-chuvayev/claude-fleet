@@ -11,7 +11,9 @@
     "status": 403,
     "contentType": "application/json",
     "body": {
-      "error": "Reload Fleet before sending commands."
+      "error": "Reload Fleet before sending commands.",
+      "code": "TOKEN_INVALID",
+      "retryable": true
     }
   }
 }

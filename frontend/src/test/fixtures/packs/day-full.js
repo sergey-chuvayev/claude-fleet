@@ -73,10 +73,10 @@ exports.capture = async ctx => {
   await ctx.getSessions()
   await ctx.getDetails({ histories: 0 })
   const day = '/api/managed/day-today/day'
-  await ctx.post('post-day-add', day, { op: 'add', item: { title: 'Call the accountant', source: 'me', priority: 'must', mode: 'me', context: 'About the quarter close.', links: ['https://example.com/ledger'], estimateMin: 30 } })
-  await ctx.post('post-day-add-limit', day, { op: 'add', item: { title: 'One too many', source: 'me' } }, { note: 'the board holds 200 items' })
   await ctx.post('post-day-add-invalid', day, { op: 'add', item: { title: '', source: 'me' } })
   await ctx.post('post-day-add-bad-source', day, { op: 'add', item: { title: 'x', source: 'carrier-pigeon' } })
+  await ctx.post('post-day-add', day, { op: 'add', item: { title: 'Call the accountant', source: 'me', priority: 'must', mode: 'me', context: 'About the quarter close.', links: ['https://example.com/ledger'], estimateMin: 30 } })
+  await ctx.post('post-day-add-limit', day, { op: 'add', item: { title: 'One too many', source: 'me' } }, { note: 'the board holds 200 items' })
   await ctx.post('post-day-triage', day, { op: 'triage', itemId: f.plain, status: 'today', priority: 'must', mode: 'agent' })
   await ctx.post('post-day-triage-project', day, { op: 'triage', itemId: f.plain, projectId: f.project })
   await ctx.post('post-day-triage-missing-item', day, { op: 'triage', itemId: 'nope', status: 'today' })

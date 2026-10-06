@@ -16,7 +16,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Only PNG, JPEG, GIF and WebP images can be attached."
+      "error": "Only PNG, JPEG, GIF and WebP images can be attached.",
+      "code": "VALIDATION"
     }
   }
 }

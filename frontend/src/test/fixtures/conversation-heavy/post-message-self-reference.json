@@ -14,7 +14,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Choose another session to reference."
+      "error": "Choose another session to reference.",
+      "code": "VALIDATION"
     }
   }
 }

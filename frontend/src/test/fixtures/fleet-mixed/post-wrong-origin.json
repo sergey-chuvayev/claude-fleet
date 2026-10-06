@@ -11,7 +11,8 @@
     "status": 403,
     "contentType": "application/json",
     "body": {
-      "error": "Cross-origin requests are not allowed."
+      "error": "Cross-origin requests are not allowed.",
+      "code": "FORBIDDEN_ORIGIN"
     }
   }
 }

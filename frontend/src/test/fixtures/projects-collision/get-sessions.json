@@ -79,7 +79,7 @@
           "h": "FIkT99U62czk2UfF"
         },
         {
-          "managedId": "0000002d-f1e1-4000-8000-000000000000",
+          "managedId": "0000002e-f1e1-4000-8000-000000000000",
           "sessionId": "00005e55-0000-4000-8000-000000000001",
           "shortId": "00005e55",
           "engine": "claude",
@@ -125,7 +125,7 @@
           "taskProgress": null,
           "dayProgress": null,
           "dayDate": null,
-          "projectId": "0000002c-f1e1-4000-8000-000000000000",
+          "projectId": "0000002d-f1e1-4000-8000-000000000000",
           "parentDayId": null,
           "itemId": null,
           "threadOpen": null,
@@ -134,10 +134,10 @@
           "costUsd": 0,
           "queuePosition": 0,
           "archived": false,
-          "h": "zCzMOd2b4oGsCWDm"
+          "h": "snwSgbPBhFMQihSQ"
         },
         {
-          "managedId": "00000034-f1e1-4000-8000-000000000000",
+          "managedId": "00000035-f1e1-4000-8000-000000000000",
           "sessionId": "00005e55-0000-4000-8000-000000000002",
           "shortId": "00005e55",
           "engine": "claude",
@@ -192,10 +192,10 @@
           "costUsd": 0,
           "queuePosition": 0,
           "archived": false,
-          "h": "MVCMozgVHSeMmpME"
+          "h": "9lIerlV7K6imDDAz"
         },
         {
-          "managedId": "00000039-f1e1-4000-8000-000000000000",
+          "managedId": "0000003a-f1e1-4000-8000-000000000000",
           "sessionId": "00005e55-0000-4000-8000-000000000003",
           "shortId": "00005e55",
           "engine": "claude",
@@ -250,7 +250,7 @@
           "costUsd": 0,
           "queuePosition": 0,
           "archived": false,
-          "h": "bwz50_s-vBwGMNr4"
+          "h": "Dq0UBPDQoXKFNjOj"
         }
       ],
       "archived": 0,

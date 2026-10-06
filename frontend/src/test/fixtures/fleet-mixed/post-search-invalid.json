@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Ask a question of 1–500 characters."
+      "error": "Ask a question of 1–500 characters.",
+      "code": "VALIDATION"
     }
   }
 }

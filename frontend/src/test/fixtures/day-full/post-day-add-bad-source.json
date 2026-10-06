@@ -11,10 +11,11 @@
     }
   },
   "response": {
-    "status": 500,
+    "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet could not complete the request. Check the server log."
+      "error": "Source must be one of: slack, linear, granola, github, calendar, me.",
+      "code": "VALIDATION"
     }
   }
 }

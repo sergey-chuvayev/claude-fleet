@@ -72,9 +72,9 @@ Not captured, with the reason:
 ## Known quirks (real server behavior, kept on purpose)
 
 - External Claude rows have no `engine` field; Codex rows carry `engine: 'codex'`. Treat a missing engine as `claude`.
-- Day validation failures are plain 500s today (`post-day-add-invalid`, `post-day-triage-missing-item`, ...). Work package 2 gives them 4xx codes; update those fixtures then.
+- Day validation errors now carry codes (`NOT_FOUND`, `CONFLICT`, `CAPACITY`, `VALIDATION`) with 400, 404 and 409; the 200-item limit is a 409 `CAPACITY`, also for `/api/projects/:id/today` on a full board. Errors have `{error, code, retryable?}`.
 - `post-limits-wrong-session` in `teams-heavy` is a 200 because no run is active in the fixture; the active-manager 409 needs a live run.
-- `/api/control` has no `instanceId`, `buildId` or `apiVersion` yet (`failure-lifecycle/token-3-control-after-restart`).
+- `/api/control` has `apiVersion`, `instanceId`, `buildId` and `capabilities`. `instanceId` and `buildId` are scrubbed to `FIXTURE_INSTANCE` and `FIXTURE_BUILD` (a restart shows as `FIXTURE_INSTANCE_2`), like the token, so packs stay byte-identical across runs.
 
 ## Adding to a pack
 

@@ -7,10 +7,12 @@
     }
   },
   "response": {
-    "status": 400,
+    "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet keeps up to 30 active projects. Archive one first."
+      "error": "Fleet keeps up to 30 active projects. Archive one first.",
+      "code": "CAPACITY",
+      "retryable": true
     }
   }
 }

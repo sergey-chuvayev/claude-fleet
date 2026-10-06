@@ -11,7 +11,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Deliverable not found. Read the project first."
+      "error": "Deliverable not found. Read the project first.",
+      "code": "VALIDATION"
     }
   }
 }

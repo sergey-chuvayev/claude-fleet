@@ -34,7 +34,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Attach up to 6 images per message."
+      "error": "Attach up to 6 images per message.",
+      "code": "VALIDATION"
     }
   }
 }

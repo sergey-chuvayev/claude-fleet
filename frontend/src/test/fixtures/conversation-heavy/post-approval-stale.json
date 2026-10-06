@@ -10,7 +10,8 @@
     "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "This approval is no longer pending."
+      "error": "This approval is no longer pending.",
+      "code": "STALE_APPROVAL"
     }
   }
 }

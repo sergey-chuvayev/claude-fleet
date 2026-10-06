@@ -35,20 +35,20 @@
             "h": "wfDPZHfVCRS-aDwN"
           },
           {
-            "id": "000000d8-f1e1-4000-8000-000000000000",
+            "id": "000000db-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Sweep",
             "at": 1791280800000,
             "runPrompt": "Scheduled sweep.\nNow: 2026-10-06T10:00:00Z. Without a cursor, Slack, Linear and GitHub start at 2026-10-05T10:00:00Z and Granola at 2026-10-05T00:00:00Z. Pass each scout its start explicitly and tell it to ignore anything older.\n1. Call day list.\n2. In ONE message, delegate to slack-scout, linear-scout and github-scout as foreground calls (never run_in_background) with their cursors. Add what they return; set the cursors to now.\n3. Then work any \"today\" or \"in_progress\" item that has new answers or that you can advance without the operator, following its mode.\n4. Reply with at most three lines: what is new, and what now waits on the operator. If nothing changed, reply \"No change.\"",
             "background": true,
-            "h": "-Y6LUDL8RRK8sEJy"
+            "h": "zAF-uyXw5sakpFno"
           },
           {
-            "id": "000000d9-f1e1-4000-8000-000000000000",
+            "id": "000000dc-f1e1-4000-8000-000000000000",
             "role": "assistant",
             "text": "Fixture reply to: Scheduled sweep.\nNow: 2026-10-06T10:00:00Z. Without a cursor",
             "at": 1791280800000,
-            "h": "QTw5d5hRFrKw-jTp"
+            "h": "6QtB_vEmB5HVQCZC"
           }
         ],
         "approvals": [],
@@ -57,7 +57,7 @@
         "error": null,
         "currentTool": null,
         "requestIds": [
-          "000000d7-f1e1-4000-8000-000000000000"
+          "000000da-f1e1-4000-8000-000000000000"
         ],
         "queue": [],
         "kind": "day",
@@ -215,10 +215,10 @@
                   "answer": "Implement the totals cache; keep the change small.",
                   "decision": "edit",
                   "answeredAt": 1791280800000,
-                  "launched": "000000d2-f1e1-4000-8000-000000000000"
+                  "launched": "000000d5-f1e1-4000-8000-000000000000"
                 },
                 {
-                  "id": "000000d6-f1e1-4000-8000-000000000000",
+                  "id": "000000d9-f1e1-4000-8000-000000000000",
                   "kind": "choose",
                   "question": "The agent finished: Fixture reply to: Implement the totals cache; keep the change small.",
                   "options": [
@@ -226,7 +226,7 @@
                     "Needs more work"
                   ],
                   "at": 1791280800000,
-                  "report": "000000d2-f1e1-4000-8000-000000000000"
+                  "report": "000000d5-f1e1-4000-8000-000000000000"
                 }
               ],
               "log": [
@@ -243,10 +243,10 @@
               "by": "agent",
               "launched": [
                 "m-launched",
-                "000000d2-f1e1-4000-8000-000000000000"
+                "000000d5-f1e1-4000-8000-000000000000"
               ],
               "reported": {
-                "000000d2-f1e1-4000-8000-000000000000": "000000d5-f1e1-4000-8000-000000000000"
+                "000000d5-f1e1-4000-8000-000000000000": "000000d8-f1e1-4000-8000-000000000000"
               }
             },
             {
@@ -364,7 +364,7 @@
               "by": "agent",
               "projectId": "00000001-f1e1-4000-8000-000000000000",
               "thread": {
-                "sessionId": "000000dc-f1e1-4000-8000-000000000000",
+                "sessionId": "000000df-f1e1-4000-8000-000000000000",
                 "at": 1791280800000,
                 "summary": "Fixture reply to: again"
               }
@@ -3550,7 +3550,7 @@
               "by": "agent"
             },
             {
-              "id": "000000d1-f1e1-4000-8000-000000000000",
+              "id": "000000d4-f1e1-4000-8000-000000000000",
               "title": "Call the accountant",
               "source": "me",
               "links": [

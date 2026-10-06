@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Unknown settings action."
+      "error": "Unknown settings action.",
+      "code": "VALIDATION"
     }
   }
 }

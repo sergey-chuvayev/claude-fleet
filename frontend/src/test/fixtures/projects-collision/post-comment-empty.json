@@ -11,7 +11,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Comment must contain 1–8000 characters."
+      "error": "Comment must contain 1–8000 characters.",
+      "code": "VALIDATION"
     }
   }
 }

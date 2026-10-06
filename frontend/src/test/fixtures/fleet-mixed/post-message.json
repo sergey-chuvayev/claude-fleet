@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "POST",
-    "path": "/api/managed/00000002-f1e1-4000-8000-000000000000/messages",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/messages",
     "body": {
       "requestId": "fixture-msg-1",
       "message": "And a follow-up"
@@ -12,7 +12,7 @@
     "contentType": "application/json",
     "body": {
       "session": {
-        "id": "00000002-f1e1-4000-8000-000000000000",
+        "id": "00000003-f1e1-4000-8000-000000000000",
         "projectId": null,
         "sessionId": "00005e55-0000-4000-8000-000000000001",
         "name": "Start a new fixture agent",
@@ -25,19 +25,19 @@
         "selectedModel": "",
         "messages": [
           {
-            "id": "00000003-f1e1-4000-8000-000000000000",
+            "id": "00000004-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Start a new fixture agent",
             "at": 1791280800000
           },
           {
-            "id": "00000004-f1e1-4000-8000-000000000000",
+            "id": "00000005-f1e1-4000-8000-000000000000",
             "role": "assistant",
             "text": "Created from the fixture launch.",
             "at": 1791280800000
           },
           {
-            "id": "00000005-f1e1-4000-8000-000000000000",
+            "id": "00000006-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "And a follow-up",
             "at": 1791280800000

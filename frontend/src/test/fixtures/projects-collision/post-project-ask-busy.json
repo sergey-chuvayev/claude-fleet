@@ -11,7 +11,9 @@
     "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "8 agents are already running. Stop one or wait for it to finish."
+      "error": "8 agents are already running. Stop one or wait for it to finish.",
+      "code": "CAPACITY",
+      "retryable": true
     }
   }
 }

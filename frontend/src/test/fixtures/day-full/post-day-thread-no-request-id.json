@@ -13,7 +13,7 @@
     "contentType": "application/json",
     "body": {
       "result": {
-        "threadId": "000000dc-f1e1-4000-8000-000000000000"
+        "threadId": "000000df-f1e1-4000-8000-000000000000"
       },
       "session": {
         "id": "day-today",
@@ -41,7 +41,7 @@
             "at": 1791273660000
           },
           {
-            "id": "000000d8-f1e1-4000-8000-000000000000",
+            "id": "000000db-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Sweep",
             "at": 1791280800000,
@@ -49,7 +49,7 @@
             "background": true
           },
           {
-            "id": "000000d9-f1e1-4000-8000-000000000000",
+            "id": "000000dc-f1e1-4000-8000-000000000000",
             "role": "assistant",
             "text": "Fixture reply to: Scheduled sweep.\nNow: 2026-10-06T10:00:00Z. Without a cursor",
             "at": 1791280800000
@@ -61,7 +61,7 @@
         "error": null,
         "currentTool": null,
         "requestIds": [
-          "000000d7-f1e1-4000-8000-000000000000"
+          "000000da-f1e1-4000-8000-000000000000"
         ],
         "queue": [],
         "kind": "day",
@@ -219,10 +219,10 @@
                   "answer": "Implement the totals cache; keep the change small.",
                   "decision": "edit",
                   "answeredAt": 1791280800000,
-                  "launched": "000000d2-f1e1-4000-8000-000000000000"
+                  "launched": "000000d5-f1e1-4000-8000-000000000000"
                 },
                 {
-                  "id": "000000d6-f1e1-4000-8000-000000000000",
+                  "id": "000000d9-f1e1-4000-8000-000000000000",
                   "kind": "choose",
                   "question": "The agent finished: Fixture reply to: Implement the totals cache; keep the change small.",
                   "options": [
@@ -230,7 +230,7 @@
                     "Needs more work"
                   ],
                   "at": 1791280800000,
-                  "report": "000000d2-f1e1-4000-8000-000000000000"
+                  "report": "000000d5-f1e1-4000-8000-000000000000"
                 }
               ],
               "log": [
@@ -247,10 +247,10 @@
               "by": "agent",
               "launched": [
                 "m-launched",
-                "000000d2-f1e1-4000-8000-000000000000"
+                "000000d5-f1e1-4000-8000-000000000000"
               ],
               "reported": {
-                "000000d2-f1e1-4000-8000-000000000000": "000000d5-f1e1-4000-8000-000000000000"
+                "000000d5-f1e1-4000-8000-000000000000": "000000d8-f1e1-4000-8000-000000000000"
               }
             },
             {
@@ -368,7 +368,7 @@
               "by": "agent",
               "projectId": "00000001-f1e1-4000-8000-000000000000",
               "thread": {
-                "sessionId": "000000dc-f1e1-4000-8000-000000000000",
+                "sessionId": "000000df-f1e1-4000-8000-000000000000",
                 "at": 1791280800000,
                 "summary": "Fixture reply to: The item: { \"title\": \"Item 008: Prepare a customer thread\""
               }
@@ -3554,7 +3554,7 @@
               "by": "agent"
             },
             {
-              "id": "000000d1-f1e1-4000-8000-000000000000",
+              "id": "000000d4-f1e1-4000-8000-000000000000",
               "title": "Call the accountant",
               "source": "me",
               "links": [

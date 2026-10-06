@@ -291,6 +291,7 @@ function makeContext(packName, dirs) {
 
   // -- capture ------------------------------------------------------------------------
   ctx.secrets = []
+  const instances = new Map()
   const scrub = text => {
     let out = text.split(dirs.root).join('/fixture')
     out = out.split(token || '\u0000').join('FIXTURE_TOKEN')
@@ -305,6 +306,9 @@ function makeContext(packName, dirs) {
         // A project's updatedAt is its file's mtime on the real disk.
         if (k === 'updatedAt' && 'file' in value) { out[k] = T0; continue }
         if (k === 'port' && typeof v === 'number') out[k] = 4310
+        // Per-process identity, scrubbed like the token; a restart shows as a second value.
+        if (k === 'instanceId' && typeof v === 'string') { if (!instances.has(v)) instances.set(v, instances.size ? `FIXTURE_INSTANCE_${instances.size + 1}` : 'FIXTURE_INSTANCE'); out[k] = instances.get(v); continue }
+        if (k === 'buildId' && typeof v === 'string') { out[k] = 'FIXTURE_BUILD'; continue }
         else if ((k === 'searchMs' || k === 'aiMs' || k === 'ms') && typeof v === 'number' && v < 1000 && ctx.packName !== 'conversation-heavy') out[k] = 0
         else out[k] = normalise(v)
       }

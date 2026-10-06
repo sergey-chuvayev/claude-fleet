@@ -35,7 +35,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "A team needs 3–8 roles, including its manager."
+      "error": "A team needs 3–8 roles, including its manager.",
+      "code": "VALIDATION"
     }
   }
 }

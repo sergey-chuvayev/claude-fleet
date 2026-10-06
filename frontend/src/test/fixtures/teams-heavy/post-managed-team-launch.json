@@ -14,11 +14,11 @@
     "contentType": "application/json",
     "body": {
       "session": {
-        "id": "00000004-f1e1-4000-8000-000000000000",
+        "id": "00000005-f1e1-4000-8000-000000000000",
         "projectId": null,
         "sessionId": null,
         "name": "Start a team initiative",
-        "cwd": "/fixture/home/worktrees/00000004",
+        "cwd": "/fixture/home/worktrees/00000005",
         "createRequestId": "team-launch-1",
         "createdAt": 1791280800000,
         "updatedAt": 1791280800000,
@@ -27,7 +27,7 @@
         "selectedModel": "",
         "messages": [
           {
-            "id": "00000005-f1e1-4000-8000-000000000000",
+            "id": "00000006-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Start a team initiative",
             "at": 1791280800000
@@ -111,7 +111,7 @@
           "delegations": []
         },
         "worktree": {
-          "path": "/fixture/home/worktrees/00000004",
+          "path": "/fixture/home/worktrees/00000005",
           "branch": "initiative/start-a-team-initiative",
           "base": "feat/delivery",
           "repo": "/fixture/repos/delivery-repo"

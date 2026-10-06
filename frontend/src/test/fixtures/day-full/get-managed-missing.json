@@ -7,7 +7,8 @@
     "status": 404,
     "contentType": "application/json",
     "body": {
-      "error": "Session not found."
+      "error": "Session not found.",
+      "code": "NOT_FOUND"
     }
   }
 }

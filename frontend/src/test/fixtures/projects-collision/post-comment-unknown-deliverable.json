@@ -11,7 +11,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "That deliverable is not in this project."
+      "error": "That deliverable is not in this project.",
+      "code": "VALIDATION"
     }
   }
 }

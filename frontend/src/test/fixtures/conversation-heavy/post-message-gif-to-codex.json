@@ -17,7 +17,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Codex agents take PNG, JPEG and WebP images. Convert the GIF first."
+      "error": "Codex agents take PNG, JPEG and WebP images. Convert the GIF first.",
+      "code": "UNSUPPORTED_ENGINE"
     }
   }
 }

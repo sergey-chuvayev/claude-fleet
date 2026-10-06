@@ -6,7 +6,8 @@
   "response": {
     "status": 404,
     "body": {
-      "error": "Not found."
+      "error": "Not found.",
+      "code": "NOT_FOUND"
     }
   }
 }

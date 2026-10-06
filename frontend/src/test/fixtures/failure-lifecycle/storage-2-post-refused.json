@@ -11,7 +11,9 @@
     "status": 503,
     "contentType": "application/json",
     "body": {
-      "error": "Unable to save Fleet conversations. Check disk space and permissions."
+      "error": "Unable to save Fleet conversations. Check disk space and permissions.",
+      "code": "STORAGE_UNAVAILABLE",
+      "retryable": true
     }
   }
 }

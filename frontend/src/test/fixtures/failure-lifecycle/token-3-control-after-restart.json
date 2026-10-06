@@ -2,7 +2,7 @@
   "request": {
     "method": "GET",
     "path": "/api/control",
-    "note": "new process, new token (no instanceId yet: added by work package 2)"
+    "note": "new process, new token and a new instanceId"
   },
   "response": {
     "status": 200,
@@ -10,6 +10,27 @@
     "body": {
       "token": "FIXTURE_TOKEN_2",
       "version": "0.54.0",
+      "apiVersion": 1,
+      "instanceId": "FIXTURE_INSTANCE_2",
+      "buildId": "FIXTURE_BUILD",
+      "capabilities": {
+        "engines": {
+          "claude": true,
+          "codex": true
+        },
+        "sessionReferences": true,
+        "structuredErrors": true,
+        "queue": true,
+        "days": true,
+        "projects": true,
+        "teams": true,
+        "search": true,
+        "worktrees": true,
+        "connections": true,
+        "gateway": true,
+        "service": true,
+        "update": false
+      },
       "codex": {
         "available": true,
         "model": "codex"

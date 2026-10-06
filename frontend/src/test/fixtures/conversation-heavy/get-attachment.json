@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "path": "/api/attachments/00000006-f1e1-4000-8000-000000000000.png"
+    "path": "/api/attachments/00000007-f1e1-4000-8000-000000000000.png"
   },
   "response": {
     "status": 200,

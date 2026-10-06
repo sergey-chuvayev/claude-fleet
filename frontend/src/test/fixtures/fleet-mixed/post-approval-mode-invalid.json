@@ -10,7 +10,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Choose ask, auto, or all."
+      "error": "Choose ask, auto, or all.",
+      "code": "VALIDATION"
     }
   }
 }

@@ -159,7 +159,7 @@ This section records current routes and return envelopes. “200” is the curre
 
 | Path | Input | Current successful response | Domain failure / notes |
 | --- | --- | --- | --- |
-| `/api/control` | none | 200 `{token,version,codex,supportsSessionReferences,defaultCwd,maxConcurrent,defaultApprovalMode,queue,storageError,searchDays,theme}` | `codex={available,model?}`; `theme={name,source}`; no explicit server generation today |
+| `/api/control` | none | 200 `{token,version,apiVersion,instanceId,buildId,capabilities,codex,supportsSessionReferences,defaultCwd,maxConcurrent,defaultApprovalMode,queue,storageError,searchDays,theme}` | `codex={available,model?}`; `theme={name,source}`; `instanceId` is new per server process, `buildId` identifies the build, `capabilities` lists engines and features (merged in #103) |
 | `/api/sessions` | conditional headers | 200 `SessionSnapshot`; 304 no body | Packs `sessions`; ETag excludes top-level `generatedAt` |
 | `/api/managed/:id` | managed ID, conditional headers | 200 `{session:ManagedDetail}`; 304 | 404 absent session; packs `session.messages` and `session.subagents`; currently raw cloned session plus holder |
 | `/api/managed/:id/commands` | managed ID | 200 `{commands:Command[]}` | 404 absent session; cwd-specific catalog |
@@ -199,7 +199,7 @@ This section records current routes and return envelopes. “200” is the curre
 | `/api/managed/:id/model` | `{model:string}` | 200 `{session}` | empty default allowed; validated model choice |
 | `/api/managed/:id/limits` | `{maxAttempts:number}` | 200 `{session}` | initiative workflow only; integer 1 to 10; active manager 409; not a money limit |
 | `/api/managed/:id/approvals/:approvalId` | `{decision:'allow'|'deny',reason?,answers?:Record<question,string>}` | 200 `{session}` | 409 stale/wrong-session approval; question answers required on allow |
-| `/api/managed/:id/day` | discriminated `DayAction` below | 200 `{result,session}` | requires Day session; some domain validation currently plain Error → 500 |
+| `/api/managed/:id/day` | discriminated `DayAction` below | 200 `{result,session}` | requires Day session; domain validation is 400, 404 or 409 with a `code` since #103 |
 | `/api/projects` | `{name,note?,requestId?}` | 200 `{project}` with `project.setup` `{started:true}` or `{started:false,error}` | creates Markdown and starts the setup manager; since B01 a capacity refusal keeps the project, logs "Setup did not start" and reports `setup.started:false` with no storage-error latch (only real write failures latch); archived projects no longer count toward the 30-project cap (B06) |
 | `/api/projects/:id/archive` | `{archived?:boolean}` | 200 `{project}` | defaults true; false restores; 404 unknown project |
 | `/api/projects/:id/deliverable` | `{deliverableId,state?,note?}` | 200 `{deliverable}` | states `todo|doing|review|done`; absent deliverable 400 |
@@ -241,7 +241,7 @@ Generic existing HTTP rules:
 - Host must exactly match `localhost:port` or `127.0.0.1:port`. Origin, when present, must equal the server's HTTP origin. Cross-site Fetch Metadata requests are rejected. Guard failures are 403.
 - POST token is random per process; invalid/missing token produces 403 with “Reload Fleet before sending commands.” Its shape is currently indistinguishable by code from other 403 errors.
 - Body limits: 40 MiB for creation/messages; 256000 bytes for teams; 65536 bytes otherwise. Non-JSON media type 415, excessive body 413, malformed/non-object JSON 400.
-- Error body is currently `{error:string}`. Domain `error.status` is retained; untyped exceptions become generic 500 with details only in server logs. Do not claim consistent 4xx Day validation exists already.
+- Error body is `{error:string, code, retryable?, fieldErrors?}` since #103; `error.status` is retained and untyped exceptions still become a generic 500 with details only in server logs. Day validation is 400, 404 or 409 now (fixtures: `day-full/post-day-*`).
 - Global storage latch currently rejects POST with 503 except update and managed stop. Reads still work. It is not a reliable domain-error classifier and must be corrected.
 - Response security headers are nosniff, no-referrer, frame denial and same-origin CSP. Retain those for API, HTML and generated assets. No permissive CORS is introduced.
 
@@ -298,7 +298,7 @@ The SSE stream emits `event: sessions` with a JSON array of managed IDs or speci
 
 ### Backend additions shipped with the migration
 
-These are the only backend changes in the migration release. Do not write clients as if they exist in today's API:
+These are the only backend changes in the migration release. Both are merged (#103):
 
 1. Add `apiVersion`, `instanceId` (new per server process), `buildId`, and explicit engine/feature capabilities to `/api/control`. Version incompatible clients get a readable reload state. Keep current fields for compatibility.
 2. Add machine-readable errors while retaining `error`: `{error,code,retryable?,fieldErrors?}`. Codes distinguish token expiry, capacity, stale approval, missing entity, persistence failure and unsupported engine capability. Convert domain validation to meaningful 4xx without exposing raw exceptions.

@@ -43,28 +43,28 @@
             "h": "AZGKoXg7Nl8vfTTv"
           },
           {
-            "id": "00000007-f1e1-4000-8000-000000000000",
+            "id": "00000008-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Retry with this screenshot",
             "at": 1791280800000,
             "attachments": [
               {
-                "id": "00000006-f1e1-4000-8000-000000000000.png",
+                "id": "00000007-f1e1-4000-8000-000000000000.png",
                 "mediaType": "image/png",
                 "bytes": 70
               }
             ],
-            "h": "KCwyeZDWjOBuqfJF"
-          },
-          {
-            "id": "00000008-f1e1-4000-8000-000000000000",
-            "role": "assistant",
-            "text": "Fixture reply to: (images)",
-            "at": 1791280800000,
-            "h": "ncJXdheoTc-qpDhs"
+            "h": "h6JBXIj-TtD_wnyb"
           },
           {
             "id": "00000009-f1e1-4000-8000-000000000000",
+            "role": "assistant",
+            "text": "Fixture reply to: (images)",
+            "at": 1791280800000,
+            "h": "GUarmt1FsT6eIZec"
+          },
+          {
+            "id": "0000000a-f1e1-4000-8000-000000000000",
             "role": "user",
             "text": "Compare with that session",
             "at": 1791280800000,
@@ -79,14 +79,14 @@
                 "context": "Recent activity: Write: refund.test.ts\n\nuser: Refactor checkout\n\nassistant: Working.\n\nuser: Add a test for the refund path\n\nassistant: Adding `refund.test.ts`."
               }
             ],
-            "h": "ijV6yO_SOM5cL8aF"
+            "h": "JIRxPH1NLEHkVD6S"
           },
           {
-            "id": "0000000a-f1e1-4000-8000-000000000000",
+            "id": "0000000b-f1e1-4000-8000-000000000000",
             "role": "assistant",
             "text": "Fixture reply to: Compare with that session\n\nReferenced session snapshots (cap",
             "at": 1791280800000,
-            "h": "tb606j4bRqajQcwf"
+            "h": "a84AZ3RcozNLtK8m"
           }
         ],
         "approvals": [],

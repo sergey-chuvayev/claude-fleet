@@ -12,10 +12,11 @@
     "note": "already answered"
   },
   "response": {
-    "status": 500,
+    "status": 409,
     "contentType": "application/json",
     "body": {
-      "error": "Fleet could not complete the request. Check the server log."
+      "error": "This question is already answered.",
+      "code": "CONFLICT"
     }
   }
 }

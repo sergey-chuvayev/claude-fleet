@@ -9,7 +9,8 @@
     "status": 415,
     "contentType": "application/json",
     "body": {
-      "error": "JSON content type is required."
+      "error": "JSON content type is required.",
+      "code": "UNSUPPORTED_MEDIA_TYPE"
     }
   }
 }

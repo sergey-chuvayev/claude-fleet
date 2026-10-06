@@ -11,7 +11,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "This session is not a Day."
+      "error": "This session is not a Day.",
+      "code": "VALIDATION"
     }
   }
 }

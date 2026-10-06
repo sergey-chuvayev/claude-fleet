@@ -59,7 +59,8 @@
     "status": 400,
     "contentType": "application/json",
     "body": {
-      "error": "Built-in teams are read-only. Save a copy with a new ID."
+      "error": "Built-in teams are read-only. Save a copy with a new ID.",
+      "code": "VALIDATION"
     }
   }
 }

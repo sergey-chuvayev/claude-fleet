@@ -120,7 +120,7 @@
           "send": "GET /api/control",
           "respond": {
             "tokenChanged": true,
-            "instanceId": "<new, after work package 2>"
+            "instanceId": "FIXTURE_INSTANCE_3"
           }
         }
       ],
@@ -181,19 +181,18 @@
     {
       "id": "incompatible-build",
       "covers": "A22, WP2",
-      "futureContract": true,
       "steps": [
         {
           "at": 0,
           "send": "GET /api/control",
           "respond": {
             "apiVersion": 99,
-            "buildId": "zzz",
-            "instanceId": "i-2"
+            "buildId": "FIXTURE_BUILD",
+            "instanceId": "FIXTURE_INSTANCE_4"
           }
         }
       ],
-      "expect": "a readable reload state instead of errors; the current server has no apiVersion/buildId yet"
+      "expect": "a readable reload state instead of errors; the server now sends apiVersion and buildId (#103), but no client rejects a mismatch yet"
     },
     {
       "id": "missing-hashed-asset-after-update",
