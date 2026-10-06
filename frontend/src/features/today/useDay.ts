@@ -14,7 +14,8 @@ import {
 } from '../../transport/contracts'
 import { HttpError } from '../../transport/errors'
 import { useFleetClient, useResource } from '../../transport/hooks'
-import { mutationInvalidates, projectsResource, teamsResource } from '../../transport/resources'
+import { mutationInvalidates, projectsResource } from '../../transport/resources'
+import { teamsResource } from '../teams/catalog'
 import { isWorking, localDate, type RowInfo, rowInfo } from './day'
 
 // ── Today's Day, from the session list ─────────────────────────────────────
@@ -124,7 +125,7 @@ const NONE: readonly Named[] = []
 
 /** The team catalog for launch cards; empty (Single agent only) until it arrives or when it fails. */
 export function useTeams(): readonly Named[] {
-  const state = useResource(teamsResource)
+  const state = useResource(teamsResource(useFleetClient()))
   return state.data?.teams ?? NONE
 }
 

@@ -1,0 +1,48 @@
+/* The archive bar and the archived row look (F24), ported from public/styles.css
+   (0.54.0), legacy order. The legacy sheet repeats this block twice; once is enough. */
+
+.archive-bar {
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:9px 18px;
+  border-top:1px solid var(--line);
+  background:color-mix(in oklab,var(--panel) 80%,var(--bg));
+  font-size:var(--text-sm);
+  color:var(--muted);
+}
+.archive-text { min-width:0 }
+.archive-days { max-width:120px; font-size:var(--text-sm) }
+.archive-bar .button { padding:5px 10px; font-size:var(--text-sm) }
+.archive-none { color:var(--faint) }
+.archive-auto {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+  color:var(--faint);
+  white-space:nowrap;
+  cursor:pointer;
+}
+.archive-auto:hover { color:var(--muted) }
+.archive-auto input { accent-color:var(--accent); margin:0 }
+.filter[data-filter="archived"] { color:var(--faint) }
+
+.session:has(.archived-tag) { opacity:.7 }
+.session:has(.archived-tag):hover, .session:has(.archived-tag)[aria-pressed=true] { opacity:1 }
+.archived-tag {
+  font-size:var(--text-2xs);
+  color:var(--faint);
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:1px 4px;
+  white-space:nowrap;
+}
+.archived-note { margin-top:14px }
+
+@media(max-width:720px) {
+  .archive-bar { padding-inline:12px }
+  .archive-auto { margin-left:0 }
+}

@@ -6,9 +6,7 @@ import {
   type Project,
   type WorktreeReport,
   parseProgress,
-  type TeamList,
   parseProjects,
-  parseTeamList,
   parseWorktrees,
 } from './contracts'
 import { ProtocolError, httpErrorFrom, withTimeout } from './errors'
@@ -20,8 +18,6 @@ export const keys = {
   sessions: 'sessions',
   projects: 'projects',
   progress: 'progress',
-  /** The team catalog (`/api/teams`), as the Day board's launch cards read it. */
-  teams: 'teams',
   managed: (managedId: string) => `managed:${managedId}`,
   history: (engine: string, transcriptId: string) => `history:${engine}:${transcriptId}`,
 } as const
@@ -55,8 +51,6 @@ export const mutationInvalidates = {
   /** a Day action touches the Day session, the list, projects and Progress */
   day: (daySessionId: string) => [keys.managed(daySessionId), keys.sessions, keys.projects, keys.progress],
   project: () => [keys.projects, keys.sessions],
-  /** a team saved or removed */
-  teams: () => [keys.teams],
   queue: () => [keys.control, keys.sessions],
 } as const
 
@@ -103,7 +97,6 @@ export function resourceFamily<A extends readonly unknown[], T>(
     return resource
   }
 }
-
 
 // ── Plain JSON resources: projects, progress, worktrees ─────────────────────
 // These routes answer without an ETag, so they are fetched plainly. The transport
@@ -181,14 +174,6 @@ export const worktreesResource: Resource<Fetched<WorktreeReport>> = plainResourc
   key: worktreesKey,
   url: '/api/worktrees',
   parse: stamped(parseWorktrees),
-})
-
-/** The team catalog, for the Day board's launch cards. */
-export const teamsResource: Resource<TeamList> = plainResource(browserFetch, {
-  key: keys.teams,
-  url: '/api/teams',
-  parse: parseTeamList,
-  equal: sameJson,
 })
 
 /** What a project mutation (create, archive, restore, deliverable, ask, comment) makes out of date. */
