@@ -32,6 +32,7 @@
     "get-worktrees.json",
     "markdown/alpha-launch-after-read.md",
     "markdown/alpha-launch-final.md",
+    "markdown/alpha-launch.md",
     "post-comment-empty.json",
     "post-comment-unknown-deliverable.json",
     "post-comment.json",

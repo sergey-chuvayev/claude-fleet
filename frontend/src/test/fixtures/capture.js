@@ -79,6 +79,7 @@ async function runChild(name, { serve, port = 0 }) {
   if (!process.env.FIXTURE_VERBOSE) console.error = () => {}
   const ctx = makeContext(name, dirs)
   const pack = require(`./packs/${name}.js`)
+  if (!serve) ctx.clean() // before prepare, which may write files of its own
   await ctx.start(pack)
   try {
     if (serve) {
@@ -89,7 +90,6 @@ async function runChild(name, { serve, port = 0 }) {
       return
     }
     await ctx.listen(0)
-    ctx.clean()
     await pack.capture(ctx)
     ctx.finish()
     console.log(`${name}: ${ctx.written} files`)
