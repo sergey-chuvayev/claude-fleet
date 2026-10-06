@@ -63,6 +63,9 @@ replaces its own placeholder file; it does not edit the shell.
   `features/connections/ConnectionsDialog`, `features/settings/SettingsDialog`,
   `features/worktrees/ClearWorktreeDialog`. Status bar and top bar slots:
   `features/status/UsageStatus`, `features/status/UpdateStatus`.
+- **Background** (`app/background.tsx`): controllers that render nothing and run
+  on every view, mounted once by the shell (`SoundController`, Today's
+  `ReportBack`). A failing one is logged and dropped.
 - **State** (`app/state.ts`, `app/AppStore.tsx`): `useView()`, `useSelection(slot)`,
   `useModal()`, `useActions()` (`navigate`, `select(selection, { reveal })`,
   `openModal`, `closeModal`, `setInspector`), `useReconcileSelection(slot, rows)`

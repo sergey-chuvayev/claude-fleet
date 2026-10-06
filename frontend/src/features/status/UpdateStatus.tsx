@@ -5,16 +5,12 @@
 // process keeps answering 200 until it exits, so an answer alone proves nothing), then
 // reloads its assets. A deadline turns a server that never returns into a recovery
 // message instead of a spinner.
-//
-// This slot is also where the always-present background controller for sounds is
-// mounted (the shell has no other place for one).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOptionalToast } from '../../components/Toast'
 import { type UpdateStatus as UpdateInfo, parseUpdate } from '../../transport/contracts'
 import { useFleetClient } from '../../transport/hooks'
 import { page, waitForNewServer } from '../settings/handover'
 import { errorText } from '../../transport/errors'
-import { SoundController } from '../sounds/SoundController'
 import { type UpdatePhase, UpdatePill } from './UpdatePill'
 
 export const UPDATE_POLL_MS = 60 * 60 * 1000
@@ -109,9 +105,6 @@ export function useUpdate() {
 export function UpdateStatus() {
   const { update, phase, error, install } = useUpdate()
   return (
-    <>
-      <SoundController />
-      <UpdatePill update={update} phase={phase} error={error} onInstall={() => void install()} />
-    </>
+    <UpdatePill update={update} phase={phase} error={error} onInstall={() => void install()} />
   )
 }

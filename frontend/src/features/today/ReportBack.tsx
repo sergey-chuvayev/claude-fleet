@@ -1,9 +1,9 @@
 // An agent launched from Today reported back (F32): say so once, with a toast, the
 // soft "report" tone and, when switched on, a macOS notification whose click brings
 // Fleet forward on that item. The first snapshot only sets the mark, so opening Fleet
-// does not replay old reports. Renders nothing.
-// TODO(shell): mount once, app-wide, beside the SoundController, so a report is
-// announced in every view; until then TodayPane mounts it.
+// does not replay old reports. Renders nothing. Mounted once by the shell
+// (app/background.tsx), beside the SoundController, so a report is announced on
+// every view.
 import { useEffect, useRef } from 'react'
 import { useActions } from '../../app/AppStore'
 import { useOptionalToast } from '../../components/Toast'

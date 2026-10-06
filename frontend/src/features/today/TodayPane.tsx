@@ -8,20 +8,10 @@ import { useToast } from '../../components/Toast'
 import { useFleetClient } from '../../transport/hooks'
 import { keys } from '../../transport/resources'
 import { DayBoard } from './DayBoard'
-import { ReportBack } from './ReportBack'
 import { dayErrorMessage, setDraft, useDraft, useTodayRows } from './useDay'
 import '../../styles/today.css'
 
 export function TodayPane() {
-  return (
-    <>
-      <ReportBack />
-      <TodayContent />
-    </>
-  )
-}
-
-function TodayContent() {
   const today = useTodayRows()
   if (!today.loaded) {
     return today.error ? <EmptyState className="today-empty" title="Good morning." text={today.error.message} /> : null

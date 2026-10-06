@@ -1,10 +1,12 @@
 // The application shell (F01, F26): top bar, banner, workspace, status bar and the
-// one modal layer. It draws the workspace from the view registry (views.tsx) and the
-// open modal from the modal registry (modals.tsx); features plug into those, so this
-// file rarely changes. Same DOM, ids and classes as the legacy page.
+// one modal layer. It draws the workspace from the view registry (views.tsx), the
+// open modal from the modal registry (modals.tsx) and the controllers that run on
+// every view from the background registry (background.tsx); features plug into
+// those, so this file rarely changes. Same DOM, ids and classes as the legacy page.
 import { type ComponentType, Suspense, createElement, useRef } from 'react'
 import { SplitPane } from '../components/SplitPane'
 import { useActions, useModal, useView } from './AppStore'
+import { Background } from './background'
 import { Banner } from './Banner'
 import { Boundary } from './Boundary'
 import { MODALS, type ModalProps } from './modals'
@@ -25,6 +27,7 @@ export function AppShell() {
       </main>
       <StatusBar />
       <ModalLayer />
+      <Background />
     </>
   )
 }
