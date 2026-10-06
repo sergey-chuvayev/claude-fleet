@@ -4,6 +4,7 @@ import { AppProviders } from './app/AppProviders'
 import { AppShell } from './app/AppShell'
 import { AppStore } from './app/AppStore'
 import { PreferenceStore } from './app/preferences'
+import { preloadView } from './app/views'
 import { Notifier } from './components/Toast'
 import { FleetClient } from './transport/client'
 import './styles/tokens.css'
@@ -23,6 +24,9 @@ const notifier = new Notifier()
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Fleet: #root is missing from index.html.')
+// The first view's code before the first render, so it draws without a Suspense
+// fallback (see views.tsx). A failed chunk is left to the view's own boundary.
+await preloadView(store.getState().view).catch(() => {})
 createRoot(root).render(
   <StrictMode>
     <AppProviders client={client} store={store} notifier={notifier}>
