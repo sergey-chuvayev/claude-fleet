@@ -267,6 +267,86 @@ export function parseHistory(raw: unknown): History {
   return { ...shell.data, messages: validRowsOf(route, 'messages', shell.data.messages, messageSchema, validMessages) }
 }
 
+// ── /api/models, /api/teams, POST /api/managed (the launch dialog) ──────────
+
+const modelOptionSchema = z.looseObject({
+  value: z.string(),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+})
+export type ModelOption = z.infer<typeof modelOptionSchema>
+// An empty list is a broken answer, not "no models": the caller keeps its fallback.
+const modelsSchema = z.looseObject({ models: z.array(modelOptionSchema).min(1) })
+
+export function parseModels(raw: unknown): ModelOption[] {
+  const result = modelsSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/models', issues(result.error))
+  return result.data.models
+}
+
+export const teamModeSchema = z.enum(['team', 'owner-review'])
+export type TeamMode = z.infer<typeof teamModeSchema>
+
+const teamSummarySchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string(),
+  description: z.string().optional(),
+  manager: z.string().optional(),
+  mode: teamModeSchema.optional(),
+  custom: z.boolean().optional(),
+  roles: z.array(z.looseObject({ name: z.string(), description: z.string().optional(), model: nullableString.optional() })),
+})
+export type TeamSummary = z.infer<typeof teamSummarySchema>
+const teamCatalogSchema = z.looseObject({ teams: z.array(teamSummarySchema), tools: z.array(z.string()) })
+export type TeamCatalog = z.infer<typeof teamCatalogSchema>
+
+export function parseTeamCatalog(raw: unknown): TeamCatalog {
+  const result = teamCatalogSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/teams', issues(result.error))
+  return result.data
+}
+
+const teamRoleSchema = z.looseObject({
+  description: z.string(),
+  prompt: z.string(),
+  model: nullableString.optional(),
+  maxTurns: z.number().optional(),
+  effort: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  disallowedTools: z.array(z.string()).optional(),
+})
+export type TeamRole = z.infer<typeof teamRoleSchema>
+const teamDefinitionSchema = z.looseObject({
+  id: z.string().min(1),
+  name: z.string(),
+  description: z.string(),
+  manager: z.string(),
+  roles: z.record(z.string(), teamRoleSchema),
+  workflow: z
+    .looseObject({ mode: teamModeSchema.optional(), reviewers: z.array(z.string()), maxAttempts: z.number().optional() })
+    .optional(),
+})
+export type TeamDefinition = z.infer<typeof teamDefinitionSchema>
+const teamAnswerSchema = z.looseObject({ team: teamDefinitionSchema })
+
+/** GET /api/teams/:id and POST /api/teams both answer `{team}`. */
+export function parseTeamAnswer(raw: unknown): TeamDefinition {
+  const result = teamAnswerSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/teams/:id', issues(result.error))
+  return result.data.team
+}
+
+const launchedSchema = z.looseObject({
+  session: z.looseObject({ ...managedSessionShape, messages: z.array(z.unknown()).optional() }),
+})
+export type LaunchedSession = z.infer<typeof launchedSchema>['session']
+
+/** POST /api/managed: the created (or, for a repeated request id, the existing) session. */
+export function parseLaunched(raw: unknown): LaunchedSession {
+  const result = launchedSchema.safeParse(raw)
+  if (!result.success) throw new ContractError('/api/managed', issues(result.error))
+  return result.data.session
+}
 // ── /api/projects, /api/progress, /api/worktrees ───────────────────────────
 // Plain JSON routes (no ETag, no packed arrays). Loose about fields the client does
 // not read, defaulted where the server may omit a field (a project just created or
