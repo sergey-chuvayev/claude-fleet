@@ -32,11 +32,6 @@
 .task-comment .button { flex:none; min-height:var(--control-md) }
 
 /* The console: the manager's title, state and the approval gate, then its conversation. */
-.console-empty { display:grid; place-content:center; gap:var(--space-2); min-height:240px; padding:var(--space-8); text-align:center; color:var(--faint); font-size:var(--text-md); line-height:1.7 }
-.console-empty strong { color:var(--muted); font-weight:500 }
-@media(max-width:720px) {
-  .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
-}
 /* The manager's console, laid out as legacy's `.detail:has(#composer)` laid out any
    managed console (the Today console does the same in today.css). Scoped to
    .project-console, so nothing here reaches the Sessions or Today console. */

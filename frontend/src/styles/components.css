@@ -504,3 +504,10 @@ details[open]>summary .ui-chevron { transform:rotate(45deg) }
 }
 @keyframes avatar-sweep { 0% { transform:translateX(0) } 55%, 100% { transform:translateX(76px) } }
 @keyframes pixel-run { 0%, 100% { opacity:.2 } 20% { opacity:1 } 50% { opacity:.35 } }
+
+/* A console with nothing in it yet says what will appear there (Today and Projects). */
+.console-empty { display:grid; place-content:center; gap:var(--space-2); min-height:240px; height:100%; padding:var(--space-8); text-align:center; color:var(--faint); font-size:var(--text-md); line-height:1.7 }
+.console-empty strong { color:var(--muted); font-weight:500 }
+@media(max-width:720px) {
+  .console-empty { min-height:160px; padding:var(--space-6) var(--space-4) }
+}
