@@ -35,5 +35,8 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}', 'dev/**/*.test.mts'],
     setupFiles: ['src/test/setup.ts'],
     restoreMocks: true,
+    // CI runners are several times slower than a laptop; whole-shell tests that load
+    // lazy feature chunks need room beyond the 5s default.
+    testTimeout: 20000,
   },
 })
