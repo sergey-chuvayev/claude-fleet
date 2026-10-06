@@ -122,8 +122,8 @@ export class FleetClient {
   /**
    * POST a JSON object with the control token. Returns the parsed JSON body, which the
    * caller must validate. Never retried here: a command after an ambiguous failure is
-   * reconciled by refetching, not by sending it again. A 403 refreshes the token for
-   * the next deliberate attempt (the server cannot yet say which 403 is a stale token).
+   * reconciled by refetching, not by sending it again. A TOKEN_INVALID answer (the server
+   * restarted) refreshes the token for the next deliberate attempt; other 403s do not.
    */
   async post(path: string, body: Readonly<Record<string, unknown>>, options: PostOptions = {}): Promise<unknown> {
     const token = await this.controlToken()
@@ -138,7 +138,7 @@ export class FleetClient {
       })
       if (!response.ok) {
         const error = await httpErrorFrom(response)
-        if (error.status === 403) {
+        if (error.code === 'TOKEN_INVALID') {
           this.token = null
           void this.store.refresh(this.resources.control)
         }

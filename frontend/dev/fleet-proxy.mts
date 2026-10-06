@@ -63,7 +63,7 @@ export function fleetGuardPlugin(devPort: number): Plugin {
         if (!refusal) return next()
         res.statusCode = 403
         res.setHeader('content-type', 'application/json; charset=utf-8')
-        res.end(JSON.stringify({ error: refusal }))
+        res.end(JSON.stringify({ error: refusal, code: 'FORBIDDEN_ORIGIN' }))
       })
     },
   }

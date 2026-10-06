@@ -37,10 +37,18 @@ export const controlSchema = z.looseObject({
   storageError: nullableString.optional(),
   searchDays: z.number().optional(),
   theme: z.looseObject({ name: nullableString.optional(), source: nullableString.optional() }).optional(),
-  // Planned by work package 2 (section 7); optional until the server sends them.
+  // Added by work package 2 (#103). Optional so an older running server still boots
+  // the page; the shell can then explain that a restart is needed.
   apiVersion: z.number().optional(),
   instanceId: z.string().optional(),
   buildId: z.string().optional(),
+  capabilities: z
+    .looseObject({
+      engines: z.record(z.string(), z.boolean()).optional(),
+      structuredErrors: z.boolean().optional(),
+    })
+    .catchall(z.unknown())
+    .optional(),
 })
 export type ControlResponse = z.infer<typeof controlSchema>
 /** Control as the rest of the app sees it: the POST token stays inside the transport. */

@@ -2,13 +2,19 @@
 // the server answered with an error status, the answer broke the sync protocol, or
 // the answer arrived but does not have the shape this client relies on.
 
-/** The server answered with a non-2xx status. `message` is the server's `error` text when it sent one. */
+/**
+ * The server answered with a non-2xx status. `message` is the server's `error` text;
+ * `code` and `retryable` are its machine-readable fields (server.js ERROR_CODES), null
+ * and false when the answer did not carry them. Branch on `code`, never on the text.
+ */
 export class HttpError extends Error {
   override readonly name = 'HttpError'
   constructor(
     readonly status: number,
     message: string,
     readonly body: unknown = null,
+    readonly code: string | null = null,
+    readonly retryable = false,
   ) {
     super(message)
   }
@@ -33,6 +39,9 @@ export class ContractError extends Error {
 export const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError'
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
 /** Read `{error}` from a failed response without trusting its body. */
 export async function httpErrorFrom(response: Response): Promise<HttpError> {
   let body: unknown = null
@@ -41,11 +50,10 @@ export async function httpErrorFrom(response: Response): Promise<HttpError> {
   } catch {
     body = null
   }
-  const text =
-    body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
-      ? body.error
-      : `HTTP ${response.status}`
-  return new HttpError(response.status, text, body)
+  const record: Record<string, unknown> = isRecord(body) ? body : {}
+  const text = typeof record.error === 'string' ? record.error : `HTTP ${response.status}`
+  const code = typeof record.code === 'string' ? record.code : null
+  return new HttpError(response.status, text, body, code, record.retryable === true)
 }
 
 /**

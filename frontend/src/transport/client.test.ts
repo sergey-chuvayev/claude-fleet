@@ -147,6 +147,20 @@ describe('FleetClient', () => {
     h.client.stop()
   })
 
+  it('forgets ETags when control reports a new server instance', async () => {
+    const h = harness()
+    h.client.start()
+    h.client.store.subscribe(h.client.resources.control, () => {})
+    h.client.store.subscribe(h.client.resources.sessions, () => {})
+    await flush(20)
+    h.setControl(() => jsonResponse({ ...controlFixture, instanceId: 'a-new-process' }))
+    h.client.store.invalidate(keys.control)
+    await flush(20)
+    expect(h.sessions.wire.at(-1)).toMatchObject({ ifNoneMatch: null, status: 200 })
+    expect(h.gets('/api/sessions')).toHaveLength(2)
+    h.client.stop()
+  })
+
   it('retries a refused stream with backoff', async () => {
     const h = harness()
     h.client.start()
@@ -191,7 +205,7 @@ describe('FleetClient', () => {
     h.setPost(() => {
       // The server restarted: a new process, a new token.
       h.setControl(() => jsonResponse({ ...controlFixture, token: 'fresh-token' }))
-      return jsonResponse({ error: 'Reload Fleet before sending commands.' }, 403)
+      return jsonResponse({ error: 'Reload Fleet before sending commands.', code: 'TOKEN_INVALID', retryable: true }, 403)
     })
     await expect(h.client.post('/api/queue', { paused: true })).rejects.toBeInstanceOf(HttpError)
     expect(h.calls.filter(c => c.method === 'POST')).toHaveLength(1)
@@ -199,6 +213,14 @@ describe('FleetClient', () => {
     await flush(20)
     await h.client.post('/api/queue', { paused: false })
     expect(h.calls.filter(c => c.method === 'POST').at(-1)?.headers.get('x-fleet-token')).toBe('fresh-token')
+  })
+
+  it('keeps the token for a 403 that is not about the token', async () => {
+    const h = harness()
+    h.setPost(() => jsonResponse({ error: 'Cross-origin requests are not allowed.', code: 'FORBIDDEN_ORIGIN' }, 403))
+    await expect(h.client.post('/api/queue', {})).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN_ORIGIN', retryable: false })
+    await flush(20)
+    expect(h.gets('/api/control')).toHaveLength(1)
   })
 
   it('reports an unusable control answer instead of trusting it', async () => {
