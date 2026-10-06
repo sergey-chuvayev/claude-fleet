@@ -82,26 +82,34 @@ export function startFixture(pack, { verbose = false } = {}) {
 
 /**
  * Serve dist/ on 127.0.0.1:<port> (0 for any) and forward Fleet paths to `fleetBase`.
- * `log` receives every proxied request as {method, path, status}, for request counts.
+ * `log` receives every proxied request as {method, path, status, bytes}, for request counts.
+ * `legacy: true` forwards everything instead, so the server's own public/ page is what
+ * loads, behind the same front as the build (the performance runs compare the two).
+ * `intercept(req, res)` may answer a request itself (a synthetic stream) by returning true.
  */
-export function startStatic({ fleetBase, port = 0, dist = DIST, log = null }) {
+export function startStatic({ fleetBase, port = 0, dist = DIST, log = null, legacy = false, intercept = null }) {
   const target = new URL(fleetBase)
   const sockets = new Set()
   const server = http.createServer((req, res) => {
     const own = server.address().port
     const url = req.url || '/'
-    if (isFleetPath(url)) {
+    if (legacy || isFleetPath(url)) {
       const refusal = refuse(req.headers, own)
       if (refusal) {
         res.writeHead(403, { 'content-type': 'application/json; charset=utf-8', ...SECURITY_HEADERS })
         return res.end(JSON.stringify({ error: refusal, code: 'FORBIDDEN_ORIGIN' }))
       }
+      if (intercept?.(req, res)) return
       const headers = { ...req.headers, host: target.host }
       if (req.headers.origin !== undefined) headers.origin = target.origin
       const upstream = http.request(
         { host: target.hostname, port: target.port, method: req.method, path: url, headers },
         answer => {
-          log?.({ method: req.method, path: url.split('?')[0], status: answer.statusCode, at: Date.now() })
+          const entry = { method: req.method, path: url.split('?')[0], status: answer.statusCode, at: Date.now(), bytes: 0 }
+          log?.(entry)
+          answer.on('data', chunk => {
+            entry.bytes += chunk.length
+          })
           res.writeHead(answer.statusCode || 502, answer.headers)
           answer.pipe(res)
         },
@@ -172,7 +180,8 @@ export async function startStack(pack, options = {}) {
   }
   const fixture = await startFixture(pack, options)
   try {
-    const front = await startStatic({ fleetBase: fixture.base, ...options })
+    const { verbose: _verbose, ...frontOptions } = options
+    const front = await startStatic({ fleetBase: fixture.base, ...frontOptions })
     return {
       base: front.base,
       fixtureBase: fixture.base,

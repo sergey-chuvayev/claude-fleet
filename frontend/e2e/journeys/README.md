@@ -28,6 +28,17 @@ server (the journeys write state), so the full run takes about a minute.
 
 To poke at the build by hand: `node frontend/e2e/journeys/serve.mjs day-full --port 4400`.
 
+Performance, legacy against React (about four minutes; results and their reading are in
+`docs/plans/2026-10-06-react-migration-perf.md`):
+
+```sh
+PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/journeys/perf.mjs --runs 3 --out /tmp/perf.json
+PLAYWRIGHT_DIR=/dir/with/playwright node frontend/e2e/journeys/perf.mjs react --runs 1   # one side, quick
+```
+
+The fixture servers use fixed directories (`/tmp/fleet-fixture-<pack>-serve`), so run one
+of these commands at a time on a machine.
+
 ## Files
 
 | File | What |
