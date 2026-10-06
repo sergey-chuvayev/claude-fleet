@@ -26,8 +26,10 @@ const { resolveReferences, referencePrompt } = require('./references')
 
 const ACTIVE = new Set(['starting', 'running', 'approval', 'stopping'])
 // Used until a live run reports the runtime's own list, which replaces it.
+// What a single agent runs on when the operator picks "Fleet default".
+const DEFAULT_AGENT_MODEL = 'claude-opus-5-5'
 const FALLBACK_MODELS = [
-  { value: '', displayName: 'Fleet default', description: 'Team manager model, or Sonnet for a single agent; without [1m]' },
+  { value: '', displayName: 'Fleet default', description: 'Team manager model, or Opus 5.5 for a single agent; without [1m]' },
   { value: 'opus', displayName: 'Opus', description: 'Most capable' },
   { value: 'sonnet', displayName: 'Sonnet', description: 'Balanced' },
   { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
@@ -786,7 +788,7 @@ class ManagedSessions extends EventEmitter {
     }
     const automatic=s.selectedModel===routing.AUTO_MODEL
     const selectedModel=automatic ? '' : s.selectedModel
-    options.model = boundedModel(selectedModel)
+    options.model = boundedModel(selectedModel, DEFAULT_AGENT_MODEL)
     options.effort = 'medium'
     // `agent` puts the manager on the main thread, so the operator's messages reach it and
     // nobody else; `agents` is where the Agent tool resolves the rest of the team from.

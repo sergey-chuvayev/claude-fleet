@@ -27,7 +27,7 @@ const { createPrStatus } = require('./pr-status.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
 const MODEL_FALLBACK = [
-  { value:'', displayName:'Fleet default', description:'Team manager model, or Sonnet for a single agent; without [1m]' },
+  { value:'', displayName:'Fleet default', description:'Team manager model, or Opus 5.5 for a single agent; without [1m]' },
   { value:'opus', displayName:'Opus', description:'Most capable' },
   { value:'sonnet', displayName:'Sonnet', description:'Balanced' },
   { value:'haiku', displayName:'Haiku', description:'Fastest' },
