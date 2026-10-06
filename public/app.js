@@ -362,7 +362,7 @@ function sessionRowHtml(s, spawnCounts) {
   const working = isWorkingRow(s)
   const avatar = `<span class="agent-avatar avatar-${tone}${working ? ' is-working' : ''}" style="--tone:${AVATAR_TONES[tone]}${working ? `;animation-delay:-${((Date.now() / 1000) % 2.4).toFixed(2)}s` : ''}" aria-hidden="true">${pixelAvatar(key(s), initial, tone, working)}<i class="avatar-status ${s.managedStatus === 'approval' ? 'stale' : s.state}"></i></span>`
   const body = `<span class="session-title-row">${title}</span><span class="session-preview">${esc(preview)}</span>${top}${initiativeTag(s)}${rowMeta(s)}${turnRow(s)}`
-  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" draggable="true" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${avatar}<span class="session-summary">${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
+  return `<button class="session${childSelectedHere ? ' session-ancestor' : ''}" data-session="${esc(key(s))}" aria-pressed="${selected === key(s) && !childSelectedHere}" aria-controls="detail" title="${hasUnseen(s) ? 'New output since you last opened this' : ''}">${avatar}<span class="session-summary">${body}</span>${contextCell(s)}</button>${childRowsHtml(s)}`
 }
 // The trigger names whichever combination is active instead of repeating every
 // count Sessions' own header badge already shows.

@@ -2473,7 +2473,6 @@ body[data-modal] { overflow:hidden }
 .block-reference summary{cursor:pointer;color:var(--accent);overflow-wrap:anywhere}
 .block-reference summary span,.block-reference p{color:var(--muted);font-size:var(--text-xs)}
 .block-reference pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--muted)}
-.session[draggable=true]:active{cursor:grabbing}
 .reference-state{font-size:var(--text-xs);color:var(--muted)}
 
 /* ── The archive ──────────────────────────────────────────────────────────────
