@@ -54,7 +54,10 @@ window.FleetProjects=(()=>{
     // Each open deliverable can go on today's Day; once there, it says so and leads there.
     const onToday=p.onToday || {}
     const todayButton=d=>onToday[d.id] ? `<button type="button" class="button ghost is-on-today" data-open-today="${escape(onToday[d.id].itemId)}" title="On today's Day: ${escape(DAY_STATUS[onToday[d.id].status] || onToday[d.id].status)}">${onToday[d.id].status==='done' ? 'Done today' : 'On Today'} <i class="ico ico-arrow" aria-hidden="true"></i></button>` : d.state==='done' ? '' : `<button type="button" class="button ghost" data-plan-today="${escape(d.id)}" title="Put this on today's Day. The Day agent prepares a launch brief for you to approve."><i class="ico ico-plus" aria-hidden="true"></i> Today</button>`
-    const deliverables=UI.list(p.deliverables.map(d=>UI.row({tone:STATE_TONE[d.state],orbTitle:STATE[d.state],title:escape(d.title),meta:d.note ? `<span class="ui-row-latest" title="${escape(d.note)}">${escape(d.note)}</span>`:'',side:`${todayButton(d)}<select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select>`})).join(''))
+    // A task shows its sources as chips; its brief, the context an agent starts from,
+    // opens in place.
+    const taskDetail=d=>d.brief || d.links?.length ? `<div class="task-detail">${d.brief ? `<div class="project-md">${md(d.brief)}</div>`:'<p class="note">No brief yet. Ask the project manager to write one.</p>'}${d.links?.length ? `<div class="task-sources"><span class="task-sources-label">Sources</span>${UI.links(d.links)}</div>`:''}</div>`:''
+    const deliverables=UI.list(p.deliverables.map(d=>UI.row({tone:STATE_TONE[d.state],orbTitle:STATE[d.state],title:escape(d.title),key:`task:${d.id}`,detail:taskDetail(d),meta:`${UI.links(d.links,{limit:3,cls:'is-quiet'})}${d.note ? `<span class="ui-row-latest" title="${escape(d.note)}">${escape(d.note)}</span>`:''}`,side:`${todayButton(d)}<select data-deliverable="${escape(d.id)}" aria-label="State of ${escape(d.title)}">${Object.entries(STATE).map(([k,v])=>`<option value="${k}" ${k===d.state ? 'selected':''}>${v}</option>`).join('')}</select>`})).join(''))
     const sessions=members.length ? UI.list(members.map(s=>UI.row({tone:SESSION_TONE[s.managedStatus],orbTitle:SESSION_STATE[s.managedStatus] || s.managedStatus,title:escape((s.title || s.name || 'Session').slice(0,80)),meta:UI.pill(escape(SESSION_STATE[s.managedStatus] || s.managedStatus),SESSION_TONE[s.managedStatus]),side:`<button type="button" class="button ghost" data-open-session="${escape(s.managedId)}">Open <i class="ico ico-arrow" aria-hidden="true"></i></button>`})).join(''),'is-compact') : '<p class="note">No sessions yet. Tag one from its console, or launch from your Day.</p>'
     const log=(p.log || []).slice(-5).reverse()
     const strip=[
@@ -96,13 +99,13 @@ window.FleetProjects=(()=>{
     // sections. Polling used to rebuild the pane every few seconds and wipe the form.
     const typed=new Map([...pane().querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.value]))
     const focused=document.activeElement?.closest?.('#projects-pane [data-keep]')?.dataset.keep
-    const opened=new Set([...pane().querySelectorAll('details[open][data-keep-open]')].map(el=>el.dataset.keepOpen))
+    const opened=new Set([...pane().querySelectorAll('details[open][data-keep-open], details[open][data-evidence]')].map(el=>el.dataset.keepOpen || el.dataset.evidence))
     pane().fleetSignature=signature
     const body=editing==='new' || !projects.length && editing!=='closed' ? newHtml() : p ? projectHtml(p,live) : `${UI.pageHead({title:'Projects'})}${UI.empty({title:'Group your work by outcome.',text:'A project holds a goal, a deadline and its deliverables. Sessions you tag to it, and items on your Day, roll up here, and its manager can tell you where things stand.',action:'<button type="button" class="button resume" data-new>Create a project <i class="ico ico-arrow" aria-hidden="true"></i></button>'})}`
     const top=pane().querySelector('.page-body')?.scrollTop || 0
     pane().innerHTML=body
     for(const el of pane().querySelectorAll('[data-keep]'))if(typed.has(el.dataset.keep))el.value=typed.get(el.dataset.keep)
-    for(const el of pane().querySelectorAll('details[data-keep-open]'))if(opened.has(el.dataset.keepOpen))el.open=true
+    for(const el of pane().querySelectorAll('details[data-keep-open], details[data-evidence]'))if(opened.has(el.dataset.keepOpen || el.dataset.evidence))el.open=true
     if(focused){const el=pane().querySelector(`[data-keep="${CSS.escape(focused)}"]`);if(el){el.focus({preventScroll:true});const end=el.value.length;el.setSelectionRange?.(end,end)}}
     const scroller=pane().querySelector('.page-body');if(scroller)scroller.scrollTop=top
   }

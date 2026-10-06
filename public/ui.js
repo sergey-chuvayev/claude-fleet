@@ -55,8 +55,22 @@ window.FleetUI=(()=>{
   const callout=(title,body,{tone,actions=''}={})=>`<div class="ui-callout"${attr('data-tone',tone)}><strong>${title}</strong>${body ? `<p>${body}</p>`:''}${actions ? `<div class="ui-actions">${actions}</div>`:''}</div>`
   // What a page or pane says when there is nothing in it yet.
   const empty=({title,text='',action=''})=>`<div class="ui-empty"><h3>${title}</h3>${text ? `<p>${text}</p>`:''}${action}</div>`
+  // A link as the thing it points at: TECH-5163, api-allo#4638, Slack, Notion.
+  function linkLabel(url) {
+    const linear=url.match(/linear\.app\/[^/]+\/issue\/([A-Za-z]+-\d+)/);if(linear)return linear[1].toUpperCase()
+    const pr=url.match(/github\.com\/[^/]+\/([^/]+)\/(?:pull|issues)\/(\d+)/);if(pr)return `${pr[1]}#${pr[2]}`
+    for(const [pattern,name] of [[/slack\.com/,'Slack'],[/notion\.(so|site)/,'Notion'],[/granola\.ai/,'Granola'],[/figma\.com/,'Figma'],[/docs\.google\.com/,'Google Doc'],[/usepylon\.com|pylon/,'Pylon']])if(pattern.test(url))return name
+    try{return new URL(url).hostname.replace(/^www\./,'')}catch{return 'Link'}
+  }
+  // Links as small chips that open in the browser. `limit` shows the first few and
+  // counts the rest.
+  const links=(urls,{limit=Infinity,cls=''}={})=>{
+    if(!urls?.length)return ''
+    const shown=urls.slice(0,limit),more=urls.length-shown.length
+    return `<span class="ui-links${cls ? ` ${cls}`:''}">${shown.map(url=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(linkLabel(url))}<i class="ico ico-arrow" aria-hidden="true"></i></a>`).join('')}${more>0 ? `<span class="ui-links-more">+${more}</span>`:''}</span>`
+  }
   // A log: time, then what happened.
   const log=entries=>entries.length ? `<ol class="ui-log">${entries.map(([time,text])=>`<li><time>${esc(time)}</time>${text}</li>`).join('')}</ol>`:''
 
-  return {esc,running,pageHead,stat,bar,ring,label,section,pill,orb,chevron,row,list,group,fold,ask,callout,empty,log}
+  return {esc,linkLabel,links,running,pageHead,stat,bar,ring,label,section,pill,orb,chevron,row,list,group,fold,ask,callout,empty,log}
 })()

@@ -20,7 +20,14 @@
 //
 //   ## Deliverables
 //   - [~] Queue as a ring option · #3796 rebasing
+//     Move the queue into the ring node so a call can wait for a free agent.
+//     Done when: a queued call rings the next free agent.
+//     - https://github.com/acme/api-allo/pull/3796
 //   - [ ] Waiting music and announcements
+//
+// A deliverable's indented lines are its brief (what, why, what done looks like) and
+// its links (an indented bullet holding only a URL): the context an agent needs to
+// start on it without asking again.
 //
 //   ## Sources
 //   ...
@@ -35,7 +42,7 @@ const bad = message => { throw Object.assign(new Error(message), {status:400}) }
 const STATES = ['todo','doing','review','done']
 const MARK = {todo:' ', doing:'~', review:'?', done:'x'}
 const FROM_MARK = {' ':'todo', '~':'doing', '?':'review', x:'done', X:'done'}
-const MAX_PROJECTS = 30, MAX_DELIVERABLES = 40, MAX_LOG = 80
+const MAX_PROJECTS = 30, MAX_DELIVERABLES = 40, MAX_LOG = 80, MAX_TASK_BRIEF = 4000, MAX_TASK_LINKS = 12
 // Sections Fleet reads into fields; every other section is kept as written.
 const KNOWN = ['brief','deliverables','log']
 
@@ -51,6 +58,15 @@ function list(value, label, max, each) {
   if (clean.length > max) bad(`${label}: at most ${max}.`)
   for (const v of clean) if (v.length > each) bad(`${label}: each at most ${each} characters.`)
   return clean
+}
+// Links are web addresses, kept once each.
+const urls = (value, label, max) => list(value, label, 100, 2000).filter(l => /^https?:\/\/\S+$/.test(l)).slice(0, max)
+// A task brief is kept as written, minus blank lines: in the file it is indented under
+// its deliverable, and a blank line there would end the list item for a reader.
+const taskBrief = value => {
+  const text = String(value ?? '').replace(/\r\n/g,'\n').split('\n').map(l => l.replace(/\s+$/,'')).filter(l => l.trim()).join('\n')
+  if (text.length > MAX_TASK_BRIEF) bad(`A task brief is at most ${MAX_TASK_BRIEF} characters.`)
+  return text
 }
 const date = value => {
   if (!value) return null
@@ -71,7 +87,8 @@ function render(p) {
     ...(p.repos.length ? ['repos:',...p.repos.map(r => `  - ${line(r)}`)] : []),...(p.links.length ? ['links:',...p.links.map(l => `  - ${line(l)}`)] : []),'---']
   const sections = [
     ['Brief', p.brief || '_Not written yet. Ask the project manager to fill it in._'],
-    ['Deliverables', p.deliverables.length ? p.deliverables.map(d => `- [${MARK[d.state]}] ${line(d.title)}${d.note ? ` · ${line(d.note)}` : ''}`).join('\n') : '_None yet._'],
+    ['Deliverables', p.deliverables.length ? p.deliverables.map(d => [`- [${MARK[d.state]}] ${line(d.title)}${d.note ? ` · ${line(d.note)}` : ''}`,
+      ...(d.brief ? d.brief.split('\n').map(l => `  ${l}`) : []), ...(d.links || []).map(l => `  - ${line(l)}`)].join('\n')).join('\n') : '_None yet._'],
     ...p.sections.map(s => [s.heading, s.body]),
     ['Log', p.log.length ? p.log.map(l => `- ${stamp(l.at)} ${line(l.text)}`).join('\n') : '_Nothing yet._'],
   ]
@@ -98,11 +115,20 @@ function parse(text, file) {
   const body = heading => sections.find(s => s.heading.toLowerCase() === heading)?.lines.join('\n').trim() || ''
   const placeholder = text => /^_.*_$/.test(text) ? '' : text
   const deliverables = []
+  let task = null
   for (const raw of body('deliverables').split('\n')) {
-    const d = /^\s*[-*]\s+\[([ ~?xX])\]\s+(.+)$/.exec(raw)
-    if (!d) continue
-    const [title, ...note] = d[2].split(' · ')
-    deliverables.push({id:deliverableId(title), title:title.trim(), state:FROM_MARK[d[1]], note:note.join(' · ').trim()})
+    const d = /^ ?[-*]\s+\[([ ~?xX])\]\s+(.+)$/.exec(raw)
+    if (d) {
+      const [title, ...note] = d[2].split(' · ')
+      task = {id:deliverableId(title), title:title.trim(), state:FROM_MARK[d[1]], note:note.join(' · ').trim(), brief:'', links:[]}
+      deliverables.push(task)
+      continue
+    }
+    // Indented under a deliverable: a lone URL bullet is a link, anything else its brief.
+    if (!task || !/^\s{2,}\S/.test(raw)) { if (raw.trim()) task = null; continue }
+    const link = /^\s+[-*]\s+(https?:\/\/\S+)\s*$/.exec(raw)
+    if (link) { if (task.links.length < MAX_TASK_LINKS && !task.links.includes(link[1])) task.links.push(link[1]) }
+    else task.brief = task.brief ? `${task.brief}\n${raw.replace(/^ {2}/,'')}` : raw.replace(/^ {2}/,'')
   }
   const log = []
   for (const raw of body('log').split('\n')) {
@@ -128,7 +154,7 @@ class ProjectStore {
   migrate(legacy) {
     let saved
     try { saved = JSON.parse(fs.readFileSync(legacy, 'utf8')) } catch { return }
-    for (const p of saved.projects || []) if (p?.id && p.name) this.write({id:p.id, name:p.name, deadline:p.deadline || null, archived:!!p.archived, repos:p.repos || [], links:p.links || [], brief:p.brief || '', deliverables:(p.deliverables || []).map(d => ({id:deliverableId(d.title), title:d.title, state:d.state, note:d.note || ''})), sections:[], log:p.log || []})
+    for (const p of saved.projects || []) if (p?.id && p.name) this.write({id:p.id, name:p.name, deadline:p.deadline || null, archived:!!p.archived, repos:p.repos || [], links:p.links || [], brief:p.brief || '', deliverables:(p.deliverables || []).map(d => ({id:deliverableId(d.title), title:d.title, state:d.state, note:d.note || '', brief:'', links:[]})), sections:[], log:p.log || []})
     fs.renameSync(legacy, `${legacy}.migrated`)
   }
   // Every file in the folder, re-read when it changed on disk.
@@ -166,7 +192,8 @@ class ProjectStore {
     return this.write({id:randomUUID(), name:string(name,'Project name',100), deadline:null, archived:false, repos:[], links:[], brief:'', deliverables:[], sections:[], log:[{at:Date.now(), text:'Project created.'}]})
   }
   // The manager's way of setting the project up or changing what it is. Any field left
-  // out is kept; deliverables arrive as titles and keep their state when already known.
+  // out is kept. Deliverables arrive as titles, or as {title, brief, links}; a known one
+  // keeps its state and note, and keeps its brief and links unless new ones are given.
   define(id, input = {}) {
     const p = this.require(id)
     if (input.name !== undefined) p.name = string(input.name,'Project name',100)
@@ -175,8 +202,17 @@ class ProjectStore {
     if (input.repos !== undefined) p.repos = list(input.repos,'Repositories',10,4096)
     if (input.links !== undefined) p.links = list(input.links,'Links',30,2000).filter(l => /^https?:\/\//.test(l))
     if (input.deliverables !== undefined) {
-      const titles = list(input.deliverables,'Deliverables',MAX_DELIVERABLES,300).map(line)
-      p.deliverables = titles.map(title => p.deliverables.find(d => d.title === title) || {id:deliverableId(title), title, state:'todo', note:''})
+      const given = (Array.isArray(input.deliverables) ? input.deliverables : list(input.deliverables,'Deliverables',MAX_DELIVERABLES,300))
+        .map(d => typeof d === 'string' ? {title:d} : d && typeof d === 'object' ? d : bad('Each deliverable is a title or {title, brief, links}.'))
+      if (given.length > MAX_DELIVERABLES) bad(`Deliverables: at most ${MAX_DELIVERABLES}.`)
+      const seen = new Set()
+      p.deliverables = given.map(g => {
+        const title = line(string(g.title,'Deliverable title',300))
+        if (seen.has(title)) return null
+        seen.add(title)
+        const known = p.deliverables.find(d => d.title === title) || {id:deliverableId(title), title, state:'todo', note:'', brief:'', links:[]}
+        return {...known, ...(g.brief !== undefined ? {brief:taskBrief(g.brief)} : {}), ...(g.links !== undefined ? {links:urls(g.links,'Task links',MAX_TASK_LINKS)} : {})}
+      }).filter(Boolean)
     }
     return this.write(p)
   }
@@ -193,11 +229,16 @@ class ProjectStore {
     return this.write(p)
   }
   archive(id, archived = true) { const p = this.require(id); p.archived = !!archived; return this.write(p) }
-  deliverable(id, deliverableId, { state, note } = {}) {
+  // One deliverable: its state and note, its brief, and its links. `links` replaces the
+  // list; `addLinks` adds to it (what an agent's pull request does).
+  deliverable(id, deliverableId, { state, note, brief, links, addLinks } = {}) {
     const p = this.require(id), d = p.deliverables.find(x => x.id === deliverableId)
     if (!d) bad('Deliverable not found. Read the project first.')
     if (state !== undefined) { if (!STATES.includes(state)) bad(`State must be one of: ${STATES.join(', ')}.`); d.state = state }
     if (note !== undefined) d.note = line(String(note).slice(0, 300))
+    if (brief !== undefined) d.brief = taskBrief(brief)
+    if (links !== undefined) d.links = urls(links,'Task links',MAX_TASK_LINKS)
+    if (addLinks !== undefined) d.links = [...new Set([...(d.links || []), ...urls(addLinks,'Task links',MAX_TASK_LINKS)])].slice(0, MAX_TASK_LINKS)
     this.write(p)
     return d
   }
@@ -210,4 +251,4 @@ class ProjectStore {
   markdown(id) { return fs.readFileSync(this.require(id).file, 'utf8') }
 }
 const progress = p => ({total:p.deliverables.length, done:p.deliverables.filter(d => d.state === 'done').length, doing:p.deliverables.filter(d => ['doing','review'].includes(d.state)).length})
-module.exports = { ProjectStore, STATES, progress, render, parse }
+module.exports = { ProjectStore, STATES, progress, render, parse, stamp }

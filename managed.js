@@ -17,7 +17,7 @@ const routing = require('./routing')
 const tasks = require('./tasks')
 const ownerReview = require('./owner-review')
 const day = require('./day')
-const { ProjectStore, progress: projectProgress } = require('./projects')
+const { ProjectStore, progress: projectProgress, stamp } = require('./projects')
 const projectAgent = require('./project-agent')
 const dayAgent = require('./day-agent')
 const worktrees = require('./worktree')
@@ -368,7 +368,7 @@ class ManagedSessions extends EventEmitter {
         // An agent's report is settled here, not by the Day agent: Done closes the item,
         // anything else leaves it open. No run is needed for that.
         if (result.need.report) {
-          if (result.need.decision === 'choose' && result.need.answer === 'Done') day.triage(s,result.item.id,{status:'done'})
+          if (result.need.decision === 'choose' && result.need.answer === 'Done') { day.triage(s,result.item.id,{status:'done'}); this.reportToProject(result.item,'done') }
           this.changed(s,true)
           this.syncThreads(s)
           return result
@@ -406,6 +406,7 @@ class ManagedSessions extends EventEmitter {
       item.links = [...new Set([...item.links, ...prs])].slice(0, 20)
       const words = (s.status === 'error' ? `It stopped with an error: ${s.error || 'unknown error'}` : last.text || 'Finished.').replace(/\s+/g,' ').trim()
       const gist = words.length > 280 ? words.slice(0, 279) + '…' : words
+      this.reportToProject(item, s.status === 'error' ? 'stopped' : 'finished', gist, prs)
       item.log.push({at:Date.now(), text:`${s.status === 'error' ? 'Agent stopped' : 'Agent finished'}: ${gist}`.slice(0, 2000)})
       item.log = item.log.slice(-50)
       item.needs = item.needs.filter(n => !(n.report && n.answer === undefined))
@@ -420,9 +421,21 @@ class ManagedSessions extends EventEmitter {
   // files or start sessions, so an approved brief becomes an ordinary Fleet session, the
   // same as one launched from the Work queue. The question's id is the request id, so a
   // double click cannot launch twice.
+  // A project task's story goes back to its project: what the agent did, the PRs it
+  // opened (on the deliverable), and the operator closing it on Today.
+  reportToProject(item, what, gist = '', prs = []) {
+    if (!item.projectId || !this.projects.get(item.projectId)) return
+    try {
+      const short = gist.length > 300 ? gist.slice(0, 299) + '…' : gist
+      const text = what === 'done' ? `Marked done on Today: ${item.title}` : `Agent ${what} on "${item.title}"${prs.length ? ` (${prs.join(', ')})` : ''}: ${short}`
+      this.projects.note(item.projectId, text.slice(0, 1000))
+      if (item.deliverableId && prs.length) this.projects.deliverable(item.projectId, item.deliverableId, {addLinks:prs})
+      this.emit('change','projects')
+    } catch (error) { this.emit('storage-error', error) }
+  }
   launchFromDay(s, {item, need}, body) {
     const plan = need.launch
-    const prompt = need.decision === 'edit' ? need.answer : need.draft
+    const prompt = withProject(need.decision === 'edit' ? need.answer : need.draft, item, item.projectId && this.projects.get(item.projectId))
     const cwd = typeof body.cwd === 'string' && body.cwd.trim() ? body.cwd.trim() : plan.cwd
     const teamId = body.teamId !== undefined ? body.teamId || null : plan.teamId || null
     const launched = this.create({cwd,prompt,name:plan.name || item.title.slice(0,100),...(item.projectId && this.projects.get(item.projectId) ? {projectId:item.projectId} : {}),...(teamId ? {teamId} : {}),...(plan.model ? {model:plan.model} : {}),approvalMode:s.approvalMode,requestId:need.id})
@@ -532,7 +545,7 @@ class ManagedSessions extends EventEmitter {
     const today = [...this.sessions.values()].filter(x => x.kind === 'day').sort((a,b) => b.createdAt-a.createdAt)[0]
     return {
       name:p.name, deadline:p.deadline, brief:p.brief, repos:p.repos, links:p.links,
-      deliverables:p.deliverables.map(d => ({id:d.id,title:d.title,state:d.state,note:d.note})), log:(p.log || []).slice(-15),
+      deliverables:p.deliverables.map(d => ({id:d.id,title:d.title,state:d.state,note:d.note,brief:d.brief || '',links:d.links || []})), log:(p.log || []).slice(-15),
       file:p.file, otherSections:p.sections.map(s => s.heading),
       sessions:this.members(p.id).map(x => ({...this.launchedStatus(x.id),lastWords:[...x.messages].reverse().find(m => m.role === 'assistant')?.text?.replace(/\s+/g,' ').slice(0,500) || null,updatedAt:x.updatedAt})),
       today:today?.dayBoard ? today.dayBoard.items.filter(i => i.projectId === p.id).map(i => ({title:i.title,status:i.status,mode:i.mode,lastLog:i.log.at(-1)?.text || null})) : [],
@@ -557,12 +570,13 @@ class ManagedSessions extends EventEmitter {
     if (!today) fail('Start your day on the Today tab first, then add this to it.',409)
     const existing = today.dayBoard.items.find(i => i.deliverableId === d.id && !['done','dropped'].includes(i.status))
     if (existing) return {item:existing,existing:true}
-    // No links: the Day merges an item into any other that shares one, and a project's
-    // links would fold this into whatever else mentions them.
-    const context = [`A deliverable of the project "${p.name}".`, d.note ? `Status note: ${d.note}` : '', p.brief ? `Project brief:\n${p.brief.slice(0,1500)}` : '', p.repos?.length ? `Repositories: ${p.repos.join(', ')}` : ''].filter(Boolean).join('\n\n')
+    // The task's own links travel with it. The Day does not fold a project task into
+    // another item that shares a link (see day.add); the project's general links stay
+    // behind, in the file the hand-off points to.
+    const context = handoff(p, d)
     const before = structuredClone(today.dayBoard)
     try {
-      const {item} = day.act(today,{title:d.title,context,priority:'should',mode:'agent',source:'me',projectId:p.id,deliverableId:d.id,action:'add'},'operator')
+      const {item} = day.act(today,{title:d.title,context,links:d.links || [],priority:'should',mode:'agent',source:'me',projectId:p.id,deliverableId:d.id,action:'add'},'operator')
       this.changed(today,true)
       // The note is the manager's evidence; moving the state leaves it be.
       if (d.state === 'todo') this.projects.deliverable(p.id,d.id,{state:'doing'})
@@ -1159,7 +1173,15 @@ class ManagedSessions extends EventEmitter {
     let reason=askReason(tool,input,s.approvalMode)
     // A Day reaches other people on the operator's behalf. Whatever the approval mode,
     // that happens only for content they approved on the board, or approve right here.
-    if (s.kind === 'project' && day.outward(tool)) reason='A project manager does not send anything outside Fleet'
+    // A project manager may change the operator's documents and tickets, one approved
+    // change at a time and only in a turn the operator asked for. It never reaches people.
+    let projectWrite=false
+    if (s.kind === 'project' && day.outward(tool)) {
+      if (projectAgent.reachesPeople(tool)) return Promise.resolve({behavior:'deny',message:'A project manager does not message people (Slack, email, comments). Suggest the wording to the operator; it goes out through their Day.'})
+      if (run.background) return Promise.resolve({behavior:'deny',message:'Changes outside Fleet happen only when the operator asks for them in this conversation.'})
+      reason='Changes something outside Fleet. Check exactly what it writes'
+      projectWrite=true
+    }
     const owner=this.dayFor(s)
     if (owner && day.outward(tool)) {
       const approved=day.approvedFor(owner,input)
@@ -1167,7 +1189,7 @@ class ManagedSessions extends EventEmitter {
       reason='Reaches other people and has no approved draft on the Day board'
     }
     if (!reason) return Promise.resolve({behavior:'allow',updatedInput:input})
-    return new Promise(resolve => {
+    const decided=new Promise(resolve => {
       const id=randomUUID()
       const approval={id,tool,input,at:Date.now(),reason,description:context.title || context.decisionReason || null,role:run.agentRoles?.get(context.agentID) || roleAsking(s,context)}
       let settled=false
@@ -1183,6 +1205,12 @@ class ManagedSessions extends EventEmitter {
       this.pending.set(id,{sessionId:s.id,input,tool,finish})
       context.signal.addEventListener('abort',abort,{once:true})
       s.approvals.push(approval); s.status='approval'; this.changed(s)
+    })
+    if (!projectWrite) return decided
+    // What the manager changed outside Fleet goes in the project's log, so the file says it.
+    return decided.then(result => {
+      if (result.behavior === 'allow') { try { this.projects.note(s.projectId,`Approved change outside Fleet: ${describeWrite(tool,result.updatedInput || input)}`); this.emit('change','projects') } catch {} }
+      return result
     })
   }
   decide(id,approvalId,body) {
@@ -1309,6 +1337,43 @@ function managedEvents(messages) {
     }
   }
   return out
+}
+// What + Today hands the Day about a project task: the task itself (brief, note, links),
+// then the project's story in order of use (brief, decisions, recent log), and the path
+// to the file for everything else. Bounded to what an item's context holds.
+const HANDOFF_MAX = 8000
+function handoff(p, d) {
+  const clip = (text, max) => text.length > max ? `${text.slice(0, max - 1)}…` : text
+  const decisions = p.sections.find(x => /^decisions?$/i.test(x.heading))?.body || ''
+  const others = p.sections.filter(x => !/^decisions?$/i.test(x.heading)).map(x => x.heading)
+  const log = (p.log || []).slice(-8).map(l => `- ${stamp(l.at)} ${l.text}`).join('\n')
+  const head = [
+    `A task from the project "${p.name}"${p.deadline ? ` (deadline ${p.deadline})` : ''}. Its file is ${p.file}: read it for the full story before writing the launch brief.`,
+    `## The task: ${d.title}\n${d.brief || 'No brief written for this task yet. Read the project file, and ask the operator only what it does not answer.'}${d.note ? `\nStatus note: ${d.note}` : ''}${d.links?.length ? `\nLinks:\n${d.links.map(l => `- ${l}`).join('\n')}` : ''}`,
+  ].join('\n\n')
+  const rest = [
+    p.brief ? `## Project brief\n${clip(p.brief, 2500)}` : '',
+    decisions ? `## Decisions\n${clip(decisions, 1500)}` : '',
+    log ? `## Recent project log\n${log}` : '',
+    p.repos?.length ? `Repositories: ${p.repos.join(', ')}` : '',
+    others.length ? `Also in the project file: ${others.join(', ')}.` : '',
+  ].filter(Boolean).join('\n\n')
+  return clip(rest ? `${head}\n\n${rest}` : head, HANDOFF_MAX)
+}
+// A session launched for a project task starts knowing where the project's story is,
+// and with the task's links even if the brief left them out.
+function withProject(prompt, item, p) {
+  if (!p) return prompt
+  const links = (item.links || []).filter(l => !prompt.includes(l))
+  const footer = `\n\n---\nThis is a task of the project "${p.name}". Its file, ${p.file}, holds the project's brief, decisions, sources and history: read it before you start. Fleet keeps that file up to date; do not edit it.${links.length ? `\nLinks for this task:\n${links.slice(0, 12).map(l => `- ${l}`).join('\n')}` : ''}`
+  return `${prompt.slice(0, 16000 - footer.length)}${footer}`
+}
+// One line for the project log about a change made outside Fleet: the tool and the thing
+// it changed, never the content itself.
+function describeWrite(tool, input) {
+  const name = tool.replace(/^mcp__/, '').replace(/__/, ' ')
+  const target = ['url','page_id','pageId','id','issueId','identifier','title','name'].map(k => input?.[k]).find(v => typeof v === 'string' && v.trim())
+  return `${name}${target ? ` (${String(target).replace(/\s+/g, ' ').slice(0, 120)})` : ''}`
 }
 function linksFromMessages(messages) {
   const links=new Map()

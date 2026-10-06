@@ -45,10 +45,16 @@ const open=item=>item.needs.filter(n=>n.answer===undefined)
 function log(item,text) {item.log.push({at:Date.now(),text:String(text).slice(0,2000)});if(item.log.length>MAX_LOG)item.log=item.log.slice(-MAX_LOG)}
 // What a run reads on every call: enough to plan from, without the log of everything
 // done so far, which only the inspector and `inspect` need.
-const compact=(item,ctx={})=>({...(item.projectId ? {projectId:item.projectId} : {}),...(item.carriedFrom ? {carriedFrom:item.carriedFrom} : {}),...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
+// The start of an item's context, so a run knows there is a brief to inspect before it
+// asks the operator for one.
+const PREVIEW=160
+const preview=text=>!text ? {} : {context:text.length>PREVIEW ? `${text.slice(0,PREVIEW-1)}… (inspect for the rest)` : text}
+const compact=(item,ctx={})=>({...(item.projectId ? {projectId:item.projectId} : {}),...(item.deliverableId ? {deliverableId:item.deliverableId} : {}),...preview(item.context),...(item.carriedFrom ? {carriedFrom:item.carriedFrom} : {}),...(item.launched?.length && ctx.launched ? {launched:item.launched.map(id=>ctx.launched(id))} : {}),...(item.thread?.summary ? {thread:item.thread.summary} : {}),id:item.id,title:item.title,source:item.source,priority:item.priority,status:item.status,mode:item.mode,estimateMin:item.estimateMin,links:item.links,needs:open(item).map(n=>({id:n.id,kind:n.kind,question:n.question})),answered:item.needs.filter(n=>n.answer!==undefined && !n.seen).map(n=>({id:n.id,question:n.question,decision:n.decision,answer:n.answer}))})
 function add(s,input,by) {
   const board=ledger(s),urls=links(input.links)
-  const twin=urls.length ? board.items.find(i=>i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
+  // A project task is its own item even when it shares a link with another: folding it
+  // in would lose the hand-off and the tie to its deliverable.
+  const twin=urls.length && !input.deliverableId ? board.items.find(i=>!i.deliverableId && i.links.some(l=>urls.some(u=>normal(u)===normal(l)))) : null
   if (twin) {
     twin.links=[...new Set([...twin.links,...urls])].slice(0,MAX_LINKS)
     if (input.context) twin.context=[twin.context,str(input.context,'Context',8000)].filter(Boolean).join('\n\n').slice(-8000)
@@ -211,7 +217,7 @@ function carryOver(previous,date=dateOf()) {
 }
 // A connector call that only reads. Everything else a Day agent does through a connector
 // reaches other people (a Slack message, a Linear status, a PR comment) and is outward.
-const READS=/^(get|list|search|read|query|fetch|extract)_|^slack_(search|read|get|list)_|^slack_send_message_draft$|^(issue|pull_request)_read$/
+const READS=/^(?:[a-z]+-)?(get|list|search|read|query|fetch|extract)[-_]|^[a-z]+-(search|fetch)$|^slack_(search|read|get|list)_|^slack_send_message_draft$|^(issue|pull_request)_read$/
 function outward(tool) {
   const match=/^mcp__(.+?)__(.+)$/.exec(tool)
   if (!match) return false

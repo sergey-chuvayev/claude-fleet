@@ -359,8 +359,8 @@ function renderControl() {
   if(gated && !gate){gate=document.createElement('span');gate.id='day-gate-note';gate.className='subtle day-gate-note';$('approval-mode').closest('.mode-picker').after(gate)}
   if(gate){
     gate.hidden=!gated
-    gate.textContent=pm ? 'Sends nothing outside Fleet' : 'Sends need your approval'
-    gate.title=pm ? 'A project manager reads and reports. Next steps go to your Day as proposals.' : 'Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.'
+    gate.textContent=pm ? 'Changes need your approval' : 'Sends need your approval'
+    gate.title=pm ? 'When you ask, it can change your Notion pages, Linear issues and GitHub, one approved change at a time, and logs each one in the project. It never messages people.' : 'Slack messages, Linear changes and GitHub reviews go out only after you approve the exact text on the board.'
   }
   projectPicker(s)
   if(pm && $('message-input'))$('message-input').placeholder='Ask about this project: status, blockers, are we on track…'

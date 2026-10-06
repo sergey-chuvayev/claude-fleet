@@ -63,7 +63,7 @@ test('list stays compact and hides settled items unless asked',()=>{
   const list=day.act(s,{action:'list'})
   assert.equal(list.items.length,1)
   assert.equal(list.closed,1)
-  assert.equal(list.items[0].context,undefined,'context is read with inspect, not on every list')
+  assert.match(list.items[0].context,/^x{159}… \(inspect for the rest\)$/,'only the start of the context on every list; inspect has the rest')
   assert.equal(day.act(s,{action:'inspect',itemId:a.id}).context.length,5000)
   assert.equal(day.act(s,{action:'list',includeClosed:true}).items.length,2)
 })

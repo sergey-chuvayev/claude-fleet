@@ -141,6 +141,28 @@ add or remove them, write their instructions, and set the model, turn limit, eff
 and allowed tools for each one. A team needs at least one manager and one verifier,
 and can have up to eight roles.
 
+## Projects
+
+A project is one Markdown file in `~/.claude-fleet/projects`: a brief, a deadline, its
+deliverables, sections such as Decisions and Sources, and a log. Its project manager
+keeps the file current, and you can edit it by hand at any time.
+
+Each deliverable is a task an agent can pick up cold. It carries:
+
+- its **brief**, a few indented lines: what it is, what was decided, and "Done when";
+- its **sources**, the ticket, Slack thread, PR or doc it came from, as indented links.
+
+On the Projects tab the sources show as chips under each task, and the brief opens in
+place. Press **+ Today** to start one: the item on your Day carries the task's brief and
+links, the project's brief, decisions and recent log, and the path to the file. The
+launched session is told where the project file is. When it finishes, its report and
+any pull request go back into the project's log and onto the deliverable.
+
+The project manager can also change your own documents and tickets when you ask (put a
+spec on a Notion page, update a Linear issue). Each change shows an approval card with
+exactly what it will write, and goes into the project log once approved. It never
+messages people: Slack messages, emails and comments go through your Day.
+
 ## Where to go next
 
 - The [README](../README.md#features-in-depth) covers each feature in more detail:
