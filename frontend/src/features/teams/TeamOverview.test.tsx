@@ -47,6 +47,48 @@ describe('TeamOverview (A11, F15)', () => {
     expect((screen.getByRole('combobox', { name: 'Message this agent' }) as HTMLTextAreaElement).placeholder).toBe('Message manager…')
   })
 
+  describe('the roster model (legacy teams-board.test.js)', () => {
+    const patched = (session: Record<string, unknown>): DetailBody => {
+      const base = detailOf(teamFile)
+      return { ...base, session: { ...base.session, ...session } }
+    }
+    const roster = () => [...document.querySelectorAll('.initiative-role')].map(el => el.textContent)
+
+    it('shows the configured model, never the one an in-flight delegation reported', async () => {
+      fleet.update(
+        't-team',
+        withBoard(detailOf(teamFile), b => ({ ...b, delegations: b.delegations.map(d => (d.id === RUNNING ? { ...d, model: 'claude-opus-4-1-20250805' } : d)) })),
+      )
+      mountConsole(fleet, <SessionDetail />, managed('t-team'))
+      await waitFor(() => expect(board()).toBeTruthy())
+      // The handoff says what actually ran; the roster says what the role is set to.
+      expect(document.querySelector(`[data-evidence="${RUNNING}"] > summary`)?.textContent).toContain('claude-opus-4-1-20250805')
+      expect(roster()).toContain('developersonnet · working')
+      expect(roster().join()).not.toContain('claude-opus-4-1-20250805')
+    })
+
+    it('has the manager reflect selectedModel over the configured one, and only the manager', async () => {
+      fleet.update('t-team', patched({ selectedModel: 'haiku' }))
+      mountConsole(fleet, <SessionDetail />, managed('t-team'))
+      await waitFor(() => expect(board()).toBeTruthy())
+      expect(roster()).toEqual(['managerhaiku · your contact', 'developersonnet · working', 'qahaiku'])
+    })
+
+    it('names the model Jev pinned for Auto, or Auto · Jev while it has not chosen', async () => {
+      fleet.update('t-team', patched({ selectedModel: 'auto-jev', modelRouting: { model: 'claude-opus-5' } }))
+      mountConsole(fleet, <SessionDetail />, managed('t-team'))
+      await waitFor(() => expect(board()).toBeTruthy())
+      expect(roster()[0]).toBe('managerclaude-opus-5 · your contact')
+    })
+
+    it('says Auto · Jev for the manager before Jev has routed', async () => {
+      fleet.update('t-team', patched({ selectedModel: 'auto-jev', modelRouting: null }))
+      mountConsole(fleet, <SessionDetail />, managed('t-team'))
+      await waitFor(() => expect(board()).toBeTruthy())
+      expect(roster()[0]).toBe('managerAuto · Jev · your contact')
+    })
+  })
+
   it('draws each task with its state, attempt, blocker and dependencies', async () => {
     mountConsole(fleet, <SessionDetail />, managed('t-team'))
     await waitFor(() => expect(board()).toBeTruthy())
