@@ -5,48 +5,14 @@ const {createPrStatus,parsePr,classify,ghExecutable}=require('./pr-status')
 
 const URL_A='https://github.com/example-org/demo-repo/pull/12'
 const URL_B='https://github.com/example-org/demo-repo/pull/13'
-const run=(name,conclusion,status='COMPLETED')=>({__typename:'CheckRun',name,status,conclusion})
-const pr=(state,rollup,extra={})=>JSON.stringify({state,isDraft:false,title:'Add widget',url:URL_A,number:12,statusCheckRollup:rollup,...extra})
+const pr=(state,extra={})=>JSON.stringify({state,isDraft:false,number:12,...extra})
 
-test('an open PR with every check green reads as open and passing',()=>{
-  const s=parsePr(pr('OPEN',[run('build','SUCCESS'),run('lint','NEUTRAL'),run('docs','SKIPPED')]))
-  assert.equal(s.state,'open')
-  assert.deepEqual(s.ci,{result:'pass',failing:[],total:3,pending:0})
-  assert.equal(s.number,12)
-})
-
-test('failing checks are named, and a failure outranks a check still running',()=>{
-  const s=parsePr(pr('OPEN',[run('build','FAILURE'),run('e2e','TIMED_OUT'),run('lint','',"IN_PROGRESS"),run('unit','SUCCESS')]))
-  assert.equal(s.ci.result,'fail')
-  assert.deepEqual(s.ci.failing,['build','e2e'])
-  assert.equal(s.ci.pending,1)
-})
-
-test('a check that has not finished is pending, not passing',()=>{
-  const s=parsePr(pr('OPEN',[run('build','',"QUEUED"),run('lint','SUCCESS')]))
-  assert.equal(s.ci.result,'pending')
-  assert.deepEqual(s.ci.failing,[])
-})
-
-test('commit statuses count the same way as check runs',()=>{
-  const s=parsePr(pr('OPEN',[{__typename:'StatusContext',context:'deploy/preview',state:'ERROR'},{__typename:'StatusContext',context:'ci/legacy',state:'PENDING'},{__typename:'StatusContext',context:'ci/ok',state:'SUCCESS'}]))
-  assert.equal(s.ci.result,'fail')
-  assert.deepEqual(s.ci.failing,['deploy/preview'])
-  assert.equal(s.ci.pending,1)
-})
-
-test('a re-run replaces the earlier result of the same check',()=>{
-  const s=parsePr(pr('OPEN',[run('build','FAILURE'),run('build','SUCCESS')]))
-  assert.equal(s.ci.result,'pass')
-  assert.equal(s.ci.total,1)
-})
-
-test('no checks at all is its own answer, and merged, closed and draft are kept',()=>{
-  assert.equal(parsePr(pr('OPEN',[])).ci.result,'none')
-  assert.equal(parsePr(pr('MERGED',[run('build','SUCCESS')])).state,'merged')
-  assert.equal(parsePr(pr('CLOSED',null)).state,'closed')
-  assert.equal(parsePr(pr('OPEN',[],{isDraft:true})).draft,true)
-  assert.equal(parsePr(pr('WEIRD',[])).state,'unknown')
+test('open, merged and closed come through, with draft and number kept',()=>{
+  assert.deepEqual(parsePr(pr('OPEN')),{state:'open',draft:false,number:12})
+  assert.equal(parsePr(pr('MERGED')).state,'merged')
+  assert.equal(parsePr(pr('CLOSED')).state,'closed')
+  assert.equal(parsePr(pr('OPEN',{isDraft:true})).draft,true)
+  assert.equal(parsePr(pr('WEIRD')).state,'unknown')
 })
 
 test('output that is not a PR throws rather than inventing a status',()=>{
@@ -74,11 +40,11 @@ function clock(){let t=1000;const now=()=>t;now.advance=ms=>{t+=ms};return now}
 
 test('answers are cached, concurrent asks share one gh call, and the cache expires',async()=>{
   const now=clock(),calls=[]
-  const status=createPrStatus({now,run:async args=>{calls.push(args);return pr('OPEN',[run('build','SUCCESS')])}})
+  const status=createPrStatus({now,run:async args=>{calls.push(args);return pr('OPEN')}})
   const [a,b]=await Promise.all([status.get(URL_A),status.get(URL_A)])
   assert.equal(calls.length,1,'two asks at once are one gh call')
-  assert.deepEqual(calls[0],['pr','view',URL_A,'--json','state,isDraft,title,url,number,statusCheckRollup'])
-  assert.equal(a.ok,true);assert.equal(b.ci.result,'pass')
+  assert.deepEqual(calls[0],['pr','view',URL_A,'--json','state,isDraft,number'])
+  assert.equal(a.ok,true);assert.equal(b.state,'open')
   await status.get(URL_A)
   assert.equal(calls.length,1,'a second ask inside the window is served from cache')
   now.advance(61000)
@@ -86,13 +52,16 @@ test('answers are cached, concurrent asks share one gh call, and the cache expir
   assert.equal(calls.length,2,'an open PR is looked at again after a minute')
 })
 
-test('a merged PR is not re-read for ten minutes, and a pending one is re-read sooner',async()=>{
+test('a merged PR is not re-read for ten minutes, an open one after a minute',async()=>{
   const now=clock(),calls=[]
-  const status=createPrStatus({now,run:async args=>{calls.push(args[2]);return args[2]===URL_A?pr('MERGED',[]):pr('OPEN',[run('build','',"IN_PROGRESS")])}})
+  const status=createPrStatus({now,run:async args=>{calls.push(args[2]);return args[2]===URL_A?pr('MERGED'):pr('OPEN')}})
   await status.get(URL_A);await status.get(URL_B)
-  now.advance(35000)
+  now.advance(61000)
   await status.get(URL_A);await status.get(URL_B)
   assert.deepEqual(calls,[URL_A,URL_B,URL_B])
+  now.advance(540000)
+  await status.get(URL_A)
+  assert.equal(calls.length,4,'merged is looked at again once ten minutes have passed')
 })
 
 test('a link that is not a GitHub PR never reaches gh',async()=>{
@@ -126,7 +95,7 @@ test('signed-out and rate-limited gh back off the same way',async()=>{
 
 test('one unreadable PR does not silence the others',async()=>{
   const calls=[]
-  const status=createPrStatus({run:async args=>{calls.push(args[2]);if(args[2]===URL_A)throw Object.assign(new Error('exit 1'),{stderr:'Could not resolve to a PullRequest'});return pr('OPEN',[run('build','SUCCESS')])}})
+  const status=createPrStatus({run:async args=>{calls.push(args[2]);if(args[2]===URL_A)throw Object.assign(new Error('exit 1'),{stderr:'Could not resolve to a PullRequest'});return pr('OPEN')}})
   assert.equal((await status.get(URL_A)).reason,'not-found')
   assert.equal((await status.get(URL_B)).ok,true)
   assert.equal((await status.get(URL_A)).reason,'not-found')
@@ -135,7 +104,7 @@ test('one unreadable PR does not silence the others',async()=>{
 
 test('no more than two gh calls run at once',async()=>{
   let live=0,peak=0
-  const status=createPrStatus({run:async()=>{live++;peak=Math.max(peak,live);await new Promise(r=>setTimeout(r,10));live--;return pr('OPEN',[])}})
+  const status=createPrStatus({run:async()=>{live++;peak=Math.max(peak,live);await new Promise(r=>setTimeout(r,10));live--;return pr('OPEN')}})
   await Promise.all([1,2,3,4,5].map(n=>status.get(`https://github.com/example-org/demo-repo/pull/${n}`)))
   assert.equal(peak,2)
 })

@@ -1,5 +1,5 @@
 'use strict'
-// PR state and CI result for the pull requests a session mentions, read with the gh CLI.
+// PR state (open, merged, closed, draft) for the pull requests a session mentions, read with the gh CLI.
 //
 // Fleet holds no GitHub credentials: this runs `gh pr view` as the operator and uses
 // whatever login gh already has. A missing or signed-out gh is an answer ("unavailable"),
@@ -10,46 +10,21 @@ const fs = require('node:fs')
 const { execFile } = require('node:child_process')
 
 const PR_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+$/
-const FIELDS = 'state,isDraft,title,url,number,statusCheckRollup'
-const OPEN_TTL = 60000, PENDING_TTL = 30000, SETTLED_TTL = 600000
+const FIELDS = 'state,isDraft,number'
+const OPEN_TTL = 60000, SETTLED_TTL = 600000
 const BACKOFF = 300000, ERROR_TTL = 60000
 const MAX_CACHED = 200, MAX_PARALLEL = 2, TIMEOUT = 10000
 const GH_PATHS = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh']
 
-const FAILED = new Set(['FAILURE', 'TIMED_OUT', 'CANCELLED', 'ACTION_REQUIRED', 'STARTUP_FAILURE', 'ERROR'])
-const PASSED = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED'])
-
-// One rollup entry is either a check run (name, status, conclusion) or a commit status
-// (context, state). Both end up as { name, result: pass | fail | pending }.
-function checkOf(entry) {
-  if (!entry || typeof entry !== 'object') return null
-  const name = String(entry.name || entry.context || '').trim()
-  if (!name) return null
-  const outcome = String(entry.__typename === 'StatusContext' || entry.context ? entry.state : entry.status === 'COMPLETED' ? entry.conclusion : '').toUpperCase()
-  return { name, result: FAILED.has(outcome) ? 'fail' : PASSED.has(outcome) ? 'pass' : 'pending' }
-}
-
-// gh's JSON for one PR, reduced to what the console shows. A re-run lists the same check
-// again, and the later entry is the current one.
+// gh's JSON for one PR, reduced to what the inspector shows.
 function parsePr(raw) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
   if (!data || typeof data !== 'object') throw new Error('Unexpected gh output.')
   const state = String(data.state || '').toLowerCase()
-  const latest = new Map()
-  for (const entry of Array.isArray(data.statusCheckRollup) ? data.statusCheckRollup : []) {
-    const check = checkOf(entry)
-    if (check) latest.set(check.name, check)
-  }
-  const checks = [...latest.values()]
-  const failing = checks.filter(c => c.result === 'fail').map(c => c.name)
-  const pending = checks.filter(c => c.result === 'pending').length
-  const ci = failing.length ? 'fail' : pending ? 'pending' : checks.length ? 'pass' : 'none'
   return {
     state: ['open', 'merged', 'closed'].includes(state) ? state : 'unknown',
     draft: !!data.isDraft,
-    title: String(data.title || '').slice(0, 200),
     number: Number(data.number) || null,
-    ci: { result: ci, failing, total: checks.length, pending },
   }
 }
 
@@ -96,7 +71,7 @@ function createPrStatus({ run = defaultRun, now = Date.now } = {}) {
     await slot()
     try {
       const pr = parsePr(await run(['pr', 'view', url, '--json', FIELDS]))
-      const ttl = pr.state !== 'open' ? SETTLED_TTL : pr.ci.result === 'pending' ? PENDING_TTL : OPEN_TTL
+      const ttl = pr.state === 'merged' || pr.state === 'closed' ? SETTLED_TTL : OPEN_TTL
       return remember(url, { ok: true, url, ...pr, checkedAt: now() }, ttl)
     } catch (error) {
       const reason = error instanceof SyntaxError ? 'failed' : classify(error)
