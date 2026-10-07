@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000002-f1e1-4000-8000-000000000000/ask",
+    "body": {
+      "message": "Set this up"
+    },
+    "note": "capacity 409"
+  },
+  "response": {
+    "status": 409,
+    "contentType": "application/json",
+    "body": {
+      "error": "8 agents are already running. Stop one or wait for it to finish.",
+      "code": "CAPACITY",
+      "retryable": true
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "explode"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Unknown Day action.",
+      "code": "VALIDATION"
+    }
+  }
+}

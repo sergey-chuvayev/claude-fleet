@@ -75,7 +75,7 @@ class Archive {
   set(ids, archived) {
     const list = [...new Set((Array.isArray(ids) ? ids : []).filter(id => typeof id === 'string' && id && id.length <= 200))]
     if (!list.length) return 0
-    if (list.length > MAX_ENTRIES) throw Object.assign(new Error('Too many sessions in one request.'), { status: 413 })
+    if (list.length > MAX_ENTRIES) throw Object.assign(new Error('Too many sessions in one request.'), { status: 413, code: 'PAYLOAD_TOO_LARGE' })
     const at = Date.now()
     const next = { archived: new Map(this.archived), kept: new Map(this.kept) }
     for (const id of list) {

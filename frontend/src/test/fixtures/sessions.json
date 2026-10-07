@@ -1,0 +1,82 @@
+{
+  "generatedAt": 1791300000000,
+  "counts": { "busy": 2, "idle": 1, "stale": 0, "dead": 1 },
+  "total": 4,
+  "archived": 1,
+  "archiveRule": { "enabled": false, "days": 14 },
+  "queue": { "enabled": true, "limit": 4, "paused": false, "running": 1, "waiting": 0 },
+  "storageError": null,
+  "usage": null,
+  "sessions": [
+    {
+      "managedId": "m-claude-1",
+      "sessionId": "8a1f0c2e-1111-4a5b-9c3d-000000000001",
+      "shortId": "8a1f0c2e",
+      "engine": "claude",
+      "name": "Fix the flaky upload test",
+      "title": "Fix the flaky upload test",
+      "state": "busy",
+      "managedStatus": "running",
+      "managed": true,
+      "alive": true,
+      "pid": null,
+      "cwd": "/Users/fixture/projects/api",
+      "cwdShort": "~/projects/api",
+      "lastActivity": 1791299990000
+    },
+    {
+      "managedId": "m-codex-1",
+      "sessionId": null,
+      "shortId": "m-codex-",
+      "engine": "codex",
+      "name": "Draft the release notes",
+      "title": "Draft the release notes",
+      "state": "idle",
+      "managedStatus": "queued",
+      "managed": true,
+      "alive": false,
+      "pid": null,
+      "cwd": "/Users/fixture/projects/docs",
+      "cwdShort": "~/projects/docs",
+      "lastActivity": 1791299900000
+    },
+    {
+      "pid": 4242,
+      "sessionId": "c0ffee00-2222-4a5b-9c3d-000000000002",
+      "shortId": "c0ffee00",
+      "name": null,
+      "title": "Terminal session in the desktop app",
+      "state": "busy",
+      "alive": true,
+      "cwd": "/Users/fixture/projects/desktop",
+      "cwdShort": "~/projects/desktop",
+      "lastActivity": 1791299995000
+    },
+    {
+      "engine": "codex",
+      "pid": null,
+      "sessionId": "0dec0de0-3333-4a5b-9c3d-000000000003",
+      "shortId": "0dec0de0",
+      "name": null,
+      "title": null,
+      "state": "dead",
+      "alive": false,
+      "cwd": "/Users/fixture/projects/app",
+      "cwdShort": "~/projects/app",
+      "lastActivity": 1791200000000
+    },
+    {
+      "pid": null,
+      "sessionId": "a2c41ced-4444-4a5b-9c3d-000000000004",
+      "shortId": "a2c41ced",
+      "name": null,
+      "title": "An archived conversation",
+      "state": "dead",
+      "alive": false,
+      "archived": true,
+      "cwd": "/Users/fixture/projects/old",
+      "cwdShort": "~/projects/old",
+      "lastActivity": 1790000000000
+    }
+  ]
+}

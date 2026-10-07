@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/settings/gateway"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "gateway": {
+        "configured": false,
+        "source": null
+      }
+    }
+  }
+}

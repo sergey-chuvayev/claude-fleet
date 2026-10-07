@@ -1,0 +1,90 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/teams",
+    "body": {
+      "id": "my-owner-review",
+      "name": "My owner and review",
+      "description": "One owner, one reviewer.",
+      "manager": "owner",
+      "roles": {
+        "owner": {
+          "description": "Writes the docs",
+          "prompt": "Write the docs.",
+          "model": "sonnet",
+          "maxTurns": 30,
+          "effort": "medium",
+          "tools": [
+            "Read",
+            "Write",
+            "Edit",
+            "Bash"
+          ]
+        },
+        "reviewer": {
+          "description": "Checks the docs",
+          "prompt": "Check the docs.",
+          "model": "haiku",
+          "maxTurns": 15,
+          "effort": "low",
+          "tools": [
+            "Read",
+            "Grep"
+          ]
+        }
+      },
+      "workflow": {
+        "mode": "owner-review",
+        "reviewers": [
+          "reviewer"
+        ],
+        "maxAttempts": 3
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "team": {
+        "id": "my-owner-review",
+        "name": "My owner and review",
+        "description": "One owner, one reviewer.",
+        "manager": "owner",
+        "roles": {
+          "owner": {
+            "description": "Writes the docs",
+            "prompt": "Write the docs.",
+            "model": "sonnet",
+            "maxTurns": 30,
+            "effort": "medium",
+            "tools": [
+              "Read",
+              "Write",
+              "Edit",
+              "Bash"
+            ]
+          },
+          "reviewer": {
+            "description": "Checks the docs",
+            "prompt": "Check the docs.",
+            "model": "haiku",
+            "maxTurns": 15,
+            "effort": "low",
+            "tools": [
+              "Read",
+              "Grep"
+            ]
+          }
+        },
+        "workflow": {
+          "mode": "owner-review",
+          "reviewers": [
+            "reviewer"
+          ],
+          "maxAttempts": 3
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "add",
+      "item": {
+        "title": "",
+        "source": "me"
+      }
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Title must contain 1-200 characters.",
+      "code": "VALIDATION"
+    }
+  }
+}

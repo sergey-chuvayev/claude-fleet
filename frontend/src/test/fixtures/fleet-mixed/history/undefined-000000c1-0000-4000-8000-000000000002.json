@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions/history?sessionId=000000c1-0000-4000-8000-000000000002"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "u0",
+          "role": "user",
+          "text": "Fixture prompt",
+          "at": 1791279960000,
+          "h": "8nOctVgiibCq0jrh"
+        },
+        {
+          "id": "a1",
+          "role": "assistant",
+          "text": "Review done. Two comments left on the PR.",
+          "at": 1791280080000,
+          "h": "3-yx58Ye57SDROgB"
+        }
+      ],
+      "truncated": false,
+      "alive": true
+    }
+  }
+}

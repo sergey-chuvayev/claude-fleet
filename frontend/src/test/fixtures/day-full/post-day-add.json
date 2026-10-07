@@ -1,0 +1,3787 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "add",
+      "item": {
+        "title": "Call the accountant",
+        "source": "me",
+        "priority": "must",
+        "mode": "me",
+        "context": "About the quarter close.",
+        "links": [
+          "https://example.com/ledger"
+        ],
+        "estimateMin": 30
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "result": {
+        "merged": false,
+        "item": {
+          "id": "000000d4-f1e1-4000-8000-000000000000",
+          "title": "Call the accountant",
+          "source": "me",
+          "links": [
+            "https://example.com/ledger"
+          ],
+          "context": "About the quarter close.",
+          "priority": "must",
+          "status": "today",
+          "mode": "me",
+          "estimateMin": 30,
+          "needs": [],
+          "log": [],
+          "createdAt": 1791280800000,
+          "by": "operator"
+        }
+      },
+      "session": {
+        "id": "day-today",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000041",
+        "name": "Day 2026-10-06",
+        "cwd": "/fixture/repos/day-repo",
+        "createRequestId": "req-day-today",
+        "createdAt": 1791273600000,
+        "updatedAt": 1791280800000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "dt-u",
+            "role": "user",
+            "text": "Start my day",
+            "at": 1791273600000
+          },
+          {
+            "id": "dt-a",
+            "role": "assistant",
+            "text": "Here is your day. Five things need you.",
+            "at": 1791273660000
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "day",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "dayChecks": {
+          "lastAt": 1791279600000,
+          "everyMin": 30,
+          "hours": [
+            8,
+            19
+          ]
+        },
+        "dayBoard": {
+          "date": "2026-10-06",
+          "items": [
+            {
+              "id": "00000004-f1e1-4000-8000-000000000000",
+              "title": "Reply to Thomas about the migration",
+              "source": "slack",
+              "links": [
+                "https://example.slack.com/archives/C1/p1"
+              ],
+              "context": "Thomas asked if the migration can ship Friday.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [
+                {
+                  "id": "000000cc-f1e1-4000-8000-000000000000",
+                  "kind": "approve",
+                  "question": "Send this Slack reply to Thomas?",
+                  "draft": "Hi Thomas, yes, Friday works if QA signs off by Thursday. I will confirm tomorrow morning.",
+                  "at": 1791280800000
+                }
+              ],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator",
+              "carriedFrom": "2026-10-05",
+              "previousThread": {
+                "summary": "Agreed to ship Friday if QA signs off.",
+                "at": 1791208800000,
+                "sessionId": "thr-old"
+              },
+              "projectId": "00000001-f1e1-4000-8000-000000000000",
+              "deliverableId": "00000002f1e1",
+              "thread": {
+                "sessionId": "thr-today",
+                "at": 1791280200000
+              }
+            },
+            {
+              "id": "00000005-f1e1-4000-8000-000000000000",
+              "title": "Review the pricing PR",
+              "source": "github",
+              "links": [
+                "https://github.com/example-org/web-app/pull/77"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [
+                {
+                  "id": "000000cd-f1e1-4000-8000-000000000000",
+                  "kind": "choose",
+                  "question": "Which environment should the check run on?",
+                  "options": [
+                    "staging",
+                    "production",
+                    "both"
+                  ],
+                  "at": 1791280800000
+                }
+              ],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator",
+              "carriedFrom": "2026-10-05"
+            },
+            {
+              "id": "00000007-f1e1-4000-8000-000000000000",
+              "title": "Item 001: Reply to the pricing change",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/100"
+              ],
+              "context": "Context for item 0.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [
+                {
+                  "id": "000000ce-f1e1-4000-8000-000000000000",
+                  "kind": "info",
+                  "question": "What is the ticket number for the pricing change?",
+                  "at": 1791280800000
+                }
+              ],
+              "log": [
+                {
+                  "at": 1791280740000,
+                  "text": "Scout noted: item 0 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000008-f1e1-4000-8000-000000000000",
+              "title": "Item 002: Review a flaky build",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-201/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [
+                {
+                  "id": "000000cf-f1e1-4000-8000-000000000000",
+                  "kind": "launch",
+                  "question": "Start an agent for the totals cache?",
+                  "draft": "Implement the totals cache described in TECH-110. Add tests.",
+                  "launch": {
+                    "cwd": "/fixture/repos/day-repo",
+                    "teamId": "quick",
+                    "name": "Totals cache"
+                  },
+                  "at": 1791280800000
+                }
+              ],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent",
+              "launched": [
+                "m-launched"
+              ]
+            },
+            {
+              "id": "00000009-f1e1-4000-8000-000000000000",
+              "title": "Item 003: Prepare a customer thread",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [
+                {
+                  "id": "000000d0-f1e1-4000-8000-000000000000",
+                  "kind": "choose",
+                  "question": "The agent finished and opened a pull request: Cached totals, tests green.",
+                  "options": [
+                    "Done",
+                    "Needs more work"
+                  ],
+                  "at": 1791280800000,
+                  "report": "m-launched"
+                }
+              ],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000a-f1e1-4000-8000-000000000000",
+              "title": "Item 004: Triage the roadmap draft",
+              "source": "github",
+              "links": [],
+              "context": "Short context 3.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000b-f1e1-4000-8000-000000000000",
+              "title": "Item 005: Follow up on the release notes",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/104"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000c-f1e1-4000-8000-000000000000",
+              "title": "Item 006: Reply to the pricing change",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-205/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000d-f1e1-4000-8000-000000000000",
+              "title": "Item 007: Review a flaky build",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 6.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791280380000,
+                  "text": "Scout noted: item 6 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000e-f1e1-4000-8000-000000000000",
+              "title": "Item 008: Prepare a customer thread",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000000f-f1e1-4000-8000-000000000000",
+              "title": "Item 009: Triage the roadmap draft",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/108"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000010-f1e1-4000-8000-000000000000",
+              "title": "Item 010: Follow up on the release notes",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-209/thing"
+              ],
+              "context": "Context for item 9.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000011-f1e1-4000-8000-000000000000",
+              "title": "Item 011: Reply to the pricing change",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000012-f1e1-4000-8000-000000000000",
+              "title": "Item 012: Review a flaky build",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000013-f1e1-4000-8000-000000000000",
+              "title": "Item 013: Prepare a customer thread",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/112"
+              ],
+              "context": "Short context 12.",
+              "priority": "must",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791280020000,
+                  "text": "Scout noted: item 12 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000014-f1e1-4000-8000-000000000000",
+              "title": "Item 014: Triage the roadmap draft",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-213/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000015-f1e1-4000-8000-000000000000",
+              "title": "Item 015: Follow up on the release notes",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000016-f1e1-4000-8000-000000000000",
+              "title": "Item 016: Reply to the pricing change",
+              "source": "github",
+              "links": [],
+              "context": "Short context 15.",
+              "priority": "must",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000017-f1e1-4000-8000-000000000000",
+              "title": "Item 017: Review a flaky build",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/116"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000018-f1e1-4000-8000-000000000000",
+              "title": "Item 018: Prepare a customer thread",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-217/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000019-f1e1-4000-8000-000000000000",
+              "title": "Item 019: Triage the roadmap draft",
+              "source": "slack",
+              "links": [],
+              "context": "Context for item 18.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791279660000,
+                  "text": "Scout noted: item 18 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001a-f1e1-4000-8000-000000000000",
+              "title": "Item 020: Follow up on the release notes",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001b-f1e1-4000-8000-000000000000",
+              "title": "Item 021: Reply to the pricing change",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/120"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001c-f1e1-4000-8000-000000000000",
+              "title": "Item 022: Review a flaky build",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-221/thing"
+              ],
+              "context": "Short context 21.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001d-f1e1-4000-8000-000000000000",
+              "title": "Item 023: Prepare a customer thread",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001e-f1e1-4000-8000-000000000000",
+              "title": "Item 024: Triage the roadmap draft",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000001f-f1e1-4000-8000-000000000000",
+              "title": "Item 025: Follow up on the release notes",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/124"
+              ],
+              "context": "Short context 24.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791279300000,
+                  "text": "Scout noted: item 24 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000020-f1e1-4000-8000-000000000000",
+              "title": "Item 026: Reply to the pricing change",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-225/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000021-f1e1-4000-8000-000000000000",
+              "title": "Item 027: Review a flaky build",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000022-f1e1-4000-8000-000000000000",
+              "title": "Item 028: Prepare a customer thread",
+              "source": "github",
+              "links": [],
+              "context": "Context for item 27.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000023-f1e1-4000-8000-000000000000",
+              "title": "Item 029: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/128"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000024-f1e1-4000-8000-000000000000",
+              "title": "Item 030: Follow up on the release notes",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-229/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000025-f1e1-4000-8000-000000000000",
+              "title": "Item 031: Reply to the pricing change",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 30.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791278940000,
+                  "text": "Scout noted: item 30 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000026-f1e1-4000-8000-000000000000",
+              "title": "Item 032: Review a flaky build",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000027-f1e1-4000-8000-000000000000",
+              "title": "Item 033: Prepare a customer thread",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/132"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000028-f1e1-4000-8000-000000000000",
+              "title": "Item 034: Triage the roadmap draft",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-233/thing"
+              ],
+              "context": "Short context 33.",
+              "priority": "must",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000029-f1e1-4000-8000-000000000000",
+              "title": "Item 035: Follow up on the release notes",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002a-f1e1-4000-8000-000000000000",
+              "title": "Item 036: Reply to the pricing change",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002b-f1e1-4000-8000-000000000000",
+              "title": "Item 037: Review a flaky build",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/136"
+              ],
+              "context": "Context for item 36.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791278580000,
+                  "text": "Scout noted: item 36 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002c-f1e1-4000-8000-000000000000",
+              "title": "Item 038: Prepare a customer thread",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-237/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002d-f1e1-4000-8000-000000000000",
+              "title": "Item 039: Triage the roadmap draft",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002e-f1e1-4000-8000-000000000000",
+              "title": "Item 040: Follow up on the release notes",
+              "source": "github",
+              "links": [],
+              "context": "Short context 39.",
+              "priority": "must",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000002f-f1e1-4000-8000-000000000000",
+              "title": "Item 041: Reply to the pricing change",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/140"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000030-f1e1-4000-8000-000000000000",
+              "title": "Item 042: Review a flaky build",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-241/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000031-f1e1-4000-8000-000000000000",
+              "title": "Item 043: Prepare a customer thread",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 42.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791278220000,
+                  "text": "Scout noted: item 42 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000032-f1e1-4000-8000-000000000000",
+              "title": "Item 044: Triage the roadmap draft",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000033-f1e1-4000-8000-000000000000",
+              "title": "Item 045: Follow up on the release notes",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/144"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000034-f1e1-4000-8000-000000000000",
+              "title": "Item 046: Reply to the pricing change",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-245/thing"
+              ],
+              "context": "Context for item 45.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000035-f1e1-4000-8000-000000000000",
+              "title": "Item 047: Review a flaky build",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000036-f1e1-4000-8000-000000000000",
+              "title": "Item 048: Prepare a customer thread",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000037-f1e1-4000-8000-000000000000",
+              "title": "Item 049: Triage the roadmap draft",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/148"
+              ],
+              "context": "Short context 48.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791277860000,
+                  "text": "Scout noted: item 48 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000038-f1e1-4000-8000-000000000000",
+              "title": "Item 050: Follow up on the release notes",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-249/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000039-f1e1-4000-8000-000000000000",
+              "title": "Item 051: Reply to the pricing change",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003a-f1e1-4000-8000-000000000000",
+              "title": "Item 052: Review a flaky build",
+              "source": "github",
+              "links": [],
+              "context": "Short context 51.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003b-f1e1-4000-8000-000000000000",
+              "title": "Item 053: Prepare a customer thread",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/152"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003c-f1e1-4000-8000-000000000000",
+              "title": "Item 054: Triage the roadmap draft",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-253/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003d-f1e1-4000-8000-000000000000",
+              "title": "Item 055: Follow up on the release notes",
+              "source": "slack",
+              "links": [],
+              "context": "Context for item 54.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791277500000,
+                  "text": "Scout noted: item 54 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003e-f1e1-4000-8000-000000000000",
+              "title": "Item 056: Reply to the pricing change",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000003f-f1e1-4000-8000-000000000000",
+              "title": "Item 057: Review a flaky build",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/156"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000040-f1e1-4000-8000-000000000000",
+              "title": "Item 058: Prepare a customer thread",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-257/thing"
+              ],
+              "context": "Short context 57.",
+              "priority": "must",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000041-f1e1-4000-8000-000000000000",
+              "title": "Item 059: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000042-f1e1-4000-8000-000000000000",
+              "title": "Item 060: Follow up on the release notes",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000043-f1e1-4000-8000-000000000000",
+              "title": "Item 061: Reply to the pricing change",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/160"
+              ],
+              "context": "Short context 60.",
+              "priority": "must",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791277140000,
+                  "text": "Scout noted: item 60 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000044-f1e1-4000-8000-000000000000",
+              "title": "Item 062: Review a flaky build",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-261/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000045-f1e1-4000-8000-000000000000",
+              "title": "Item 063: Prepare a customer thread",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000046-f1e1-4000-8000-000000000000",
+              "title": "Item 064: Triage the roadmap draft",
+              "source": "github",
+              "links": [],
+              "context": "Context for item 63.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000047-f1e1-4000-8000-000000000000",
+              "title": "Item 065: Follow up on the release notes",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/164"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000048-f1e1-4000-8000-000000000000",
+              "title": "Item 066: Reply to the pricing change",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-265/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000049-f1e1-4000-8000-000000000000",
+              "title": "Item 067: Review a flaky build",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 66.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791276780000,
+                  "text": "Scout noted: item 66 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004a-f1e1-4000-8000-000000000000",
+              "title": "Item 068: Prepare a customer thread",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004b-f1e1-4000-8000-000000000000",
+              "title": "Item 069: Triage the roadmap draft",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/168"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004c-f1e1-4000-8000-000000000000",
+              "title": "Item 070: Follow up on the release notes",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-269/thing"
+              ],
+              "context": "Short context 69.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004d-f1e1-4000-8000-000000000000",
+              "title": "Item 071: Reply to the pricing change",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004e-f1e1-4000-8000-000000000000",
+              "title": "Item 072: Review a flaky build",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000004f-f1e1-4000-8000-000000000000",
+              "title": "Item 073: Prepare a customer thread",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/172"
+              ],
+              "context": "Context for item 72.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791276420000,
+                  "text": "Scout noted: item 72 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000050-f1e1-4000-8000-000000000000",
+              "title": "Item 074: Triage the roadmap draft",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-273/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000051-f1e1-4000-8000-000000000000",
+              "title": "Item 075: Follow up on the release notes",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000052-f1e1-4000-8000-000000000000",
+              "title": "Item 076: Reply to the pricing change",
+              "source": "github",
+              "links": [],
+              "context": "Short context 75.",
+              "priority": "must",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000053-f1e1-4000-8000-000000000000",
+              "title": "Item 077: Review a flaky build",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/176"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000054-f1e1-4000-8000-000000000000",
+              "title": "Item 078: Prepare a customer thread",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-277/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000055-f1e1-4000-8000-000000000000",
+              "title": "Item 079: Triage the roadmap draft",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 78.",
+              "priority": "must",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791276060000,
+                  "text": "Scout noted: item 78 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000056-f1e1-4000-8000-000000000000",
+              "title": "Item 080: Follow up on the release notes",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000057-f1e1-4000-8000-000000000000",
+              "title": "Item 081: Reply to the pricing change",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/180"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000058-f1e1-4000-8000-000000000000",
+              "title": "Item 082: Review a flaky build",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-281/thing"
+              ],
+              "context": "Context for item 81.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000059-f1e1-4000-8000-000000000000",
+              "title": "Item 083: Prepare a customer thread",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005a-f1e1-4000-8000-000000000000",
+              "title": "Item 084: Triage the roadmap draft",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005b-f1e1-4000-8000-000000000000",
+              "title": "Item 085: Follow up on the release notes",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/184"
+              ],
+              "context": "Short context 84.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791275700000,
+                  "text": "Scout noted: item 84 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005c-f1e1-4000-8000-000000000000",
+              "title": "Item 086: Reply to the pricing change",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-285/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005d-f1e1-4000-8000-000000000000",
+              "title": "Item 087: Review a flaky build",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005e-f1e1-4000-8000-000000000000",
+              "title": "Item 088: Prepare a customer thread",
+              "source": "github",
+              "links": [],
+              "context": "Short context 87.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000005f-f1e1-4000-8000-000000000000",
+              "title": "Item 089: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/188"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000060-f1e1-4000-8000-000000000000",
+              "title": "Item 090: Follow up on the release notes",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-289/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000061-f1e1-4000-8000-000000000000",
+              "title": "Item 091: Reply to the pricing change",
+              "source": "slack",
+              "links": [],
+              "context": "Context for item 90.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791275340000,
+                  "text": "Scout noted: item 90 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000062-f1e1-4000-8000-000000000000",
+              "title": "Item 092: Review a flaky build",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000063-f1e1-4000-8000-000000000000",
+              "title": "Item 093: Prepare a customer thread",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/192"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000064-f1e1-4000-8000-000000000000",
+              "title": "Item 094: Triage the roadmap draft",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-293/thing"
+              ],
+              "context": "Short context 93.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000065-f1e1-4000-8000-000000000000",
+              "title": "Item 095: Follow up on the release notes",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000066-f1e1-4000-8000-000000000000",
+              "title": "Item 096: Reply to the pricing change",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000067-f1e1-4000-8000-000000000000",
+              "title": "Item 097: Review a flaky build",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/196"
+              ],
+              "context": "Short context 96.",
+              "priority": "must",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791274980000,
+                  "text": "Scout noted: item 96 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000068-f1e1-4000-8000-000000000000",
+              "title": "Item 098: Prepare a customer thread",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-297/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000069-f1e1-4000-8000-000000000000",
+              "title": "Item 099: Triage the roadmap draft",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006a-f1e1-4000-8000-000000000000",
+              "title": "Item 100: Follow up on the release notes",
+              "source": "github",
+              "links": [],
+              "context": "Context for item 99.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006b-f1e1-4000-8000-000000000000",
+              "title": "Item 101: Reply to the pricing change",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/200"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006c-f1e1-4000-8000-000000000000",
+              "title": "Item 102: Review a flaky build",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-301/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006d-f1e1-4000-8000-000000000000",
+              "title": "Item 103: Prepare a customer thread",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 102.",
+              "priority": "must",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791274620000,
+                  "text": "Scout noted: item 102 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006e-f1e1-4000-8000-000000000000",
+              "title": "Item 104: Triage the roadmap draft",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000006f-f1e1-4000-8000-000000000000",
+              "title": "Item 105: Follow up on the release notes",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/204"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000070-f1e1-4000-8000-000000000000",
+              "title": "Item 106: Reply to the pricing change",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-305/thing"
+              ],
+              "context": "Short context 105.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000071-f1e1-4000-8000-000000000000",
+              "title": "Item 107: Review a flaky build",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000072-f1e1-4000-8000-000000000000",
+              "title": "Item 108: Prepare a customer thread",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000073-f1e1-4000-8000-000000000000",
+              "title": "Item 109: Triage the roadmap draft",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/208"
+              ],
+              "context": "Context for item 108.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791274260000,
+                  "text": "Scout noted: item 108 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000074-f1e1-4000-8000-000000000000",
+              "title": "Item 110: Follow up on the release notes",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-309/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000075-f1e1-4000-8000-000000000000",
+              "title": "Item 111: Reply to the pricing change",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000076-f1e1-4000-8000-000000000000",
+              "title": "Item 112: Review a flaky build",
+              "source": "github",
+              "links": [],
+              "context": "Short context 111.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000077-f1e1-4000-8000-000000000000",
+              "title": "Item 113: Prepare a customer thread",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/212"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000078-f1e1-4000-8000-000000000000",
+              "title": "Item 114: Triage the roadmap draft",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-313/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000079-f1e1-4000-8000-000000000000",
+              "title": "Item 115: Follow up on the release notes",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 114.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791273900000,
+                  "text": "Scout noted: item 114 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007a-f1e1-4000-8000-000000000000",
+              "title": "Item 116: Reply to the pricing change",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007b-f1e1-4000-8000-000000000000",
+              "title": "Item 117: Review a flaky build",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/216"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007c-f1e1-4000-8000-000000000000",
+              "title": "Item 118: Prepare a customer thread",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-317/thing"
+              ],
+              "context": "Context for item 117.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007d-f1e1-4000-8000-000000000000",
+              "title": "Item 119: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007e-f1e1-4000-8000-000000000000",
+              "title": "Item 120: Follow up on the release notes",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000007f-f1e1-4000-8000-000000000000",
+              "title": "Item 121: Reply to the pricing change",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/220"
+              ],
+              "context": "Short context 120.",
+              "priority": "must",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791273540000,
+                  "text": "Scout noted: item 120 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000080-f1e1-4000-8000-000000000000",
+              "title": "Item 122: Review a flaky build",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-321/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000081-f1e1-4000-8000-000000000000",
+              "title": "Item 123: Prepare a customer thread",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000082-f1e1-4000-8000-000000000000",
+              "title": "Item 124: Triage the roadmap draft",
+              "source": "github",
+              "links": [],
+              "context": "Short context 123.",
+              "priority": "must",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000083-f1e1-4000-8000-000000000000",
+              "title": "Item 125: Follow up on the release notes",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/224"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000084-f1e1-4000-8000-000000000000",
+              "title": "Item 126: Reply to the pricing change",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-325/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000085-f1e1-4000-8000-000000000000",
+              "title": "Item 127: Review a flaky build",
+              "source": "slack",
+              "links": [],
+              "context": "Context for item 126.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791273180000,
+                  "text": "Scout noted: item 126 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000086-f1e1-4000-8000-000000000000",
+              "title": "Item 128: Prepare a customer thread",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000087-f1e1-4000-8000-000000000000",
+              "title": "Item 129: Triage the roadmap draft",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/228"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000088-f1e1-4000-8000-000000000000",
+              "title": "Item 130: Follow up on the release notes",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-329/thing"
+              ],
+              "context": "Short context 129.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000089-f1e1-4000-8000-000000000000",
+              "title": "Item 131: Reply to the pricing change",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008a-f1e1-4000-8000-000000000000",
+              "title": "Item 132: Review a flaky build",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008b-f1e1-4000-8000-000000000000",
+              "title": "Item 133: Prepare a customer thread",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/232"
+              ],
+              "context": "Short context 132.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791272820000,
+                  "text": "Scout noted: item 132 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008c-f1e1-4000-8000-000000000000",
+              "title": "Item 134: Triage the roadmap draft",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-333/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008d-f1e1-4000-8000-000000000000",
+              "title": "Item 135: Follow up on the release notes",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008e-f1e1-4000-8000-000000000000",
+              "title": "Item 136: Reply to the pricing change",
+              "source": "github",
+              "links": [],
+              "context": "Context for item 135.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000008f-f1e1-4000-8000-000000000000",
+              "title": "Item 137: Review a flaky build",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/236"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000090-f1e1-4000-8000-000000000000",
+              "title": "Item 138: Prepare a customer thread",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-337/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000091-f1e1-4000-8000-000000000000",
+              "title": "Item 139: Triage the roadmap draft",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 138.",
+              "priority": "must",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791272460000,
+                  "text": "Scout noted: item 138 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000092-f1e1-4000-8000-000000000000",
+              "title": "Item 140: Follow up on the release notes",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000093-f1e1-4000-8000-000000000000",
+              "title": "Item 141: Reply to the pricing change",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/240"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000094-f1e1-4000-8000-000000000000",
+              "title": "Item 142: Review a flaky build",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-341/thing"
+              ],
+              "context": "Short context 141.",
+              "priority": "must",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000095-f1e1-4000-8000-000000000000",
+              "title": "Item 143: Prepare a customer thread",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000096-f1e1-4000-8000-000000000000",
+              "title": "Item 144: Triage the roadmap draft",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000097-f1e1-4000-8000-000000000000",
+              "title": "Item 145: Follow up on the release notes",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/244"
+              ],
+              "context": "Context for item 144.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791272100000,
+                  "text": "Scout noted: item 144 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000098-f1e1-4000-8000-000000000000",
+              "title": "Item 146: Reply to the pricing change",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-345/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "00000099-f1e1-4000-8000-000000000000",
+              "title": "Item 147: Review a flaky build",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009a-f1e1-4000-8000-000000000000",
+              "title": "Item 148: Prepare a customer thread",
+              "source": "github",
+              "links": [],
+              "context": "Short context 147.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009b-f1e1-4000-8000-000000000000",
+              "title": "Item 149: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/248"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009c-f1e1-4000-8000-000000000000",
+              "title": "Item 150: Follow up on the release notes",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-349/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009d-f1e1-4000-8000-000000000000",
+              "title": "Item 151: Reply to the pricing change",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 150.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791271740000,
+                  "text": "Scout noted: item 150 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009e-f1e1-4000-8000-000000000000",
+              "title": "Item 152: Review a flaky build",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "0000009f-f1e1-4000-8000-000000000000",
+              "title": "Item 153: Prepare a customer thread",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/252"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a0-f1e1-4000-8000-000000000000",
+              "title": "Item 154: Triage the roadmap draft",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-353/thing"
+              ],
+              "context": "Context for item 153.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a1-f1e1-4000-8000-000000000000",
+              "title": "Item 155: Follow up on the release notes",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a2-f1e1-4000-8000-000000000000",
+              "title": "Item 156: Reply to the pricing change",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a3-f1e1-4000-8000-000000000000",
+              "title": "Item 157: Review a flaky build",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/256"
+              ],
+              "context": "Short context 156.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791271380000,
+                  "text": "Scout noted: item 156 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a4-f1e1-4000-8000-000000000000",
+              "title": "Item 158: Prepare a customer thread",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-357/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a5-f1e1-4000-8000-000000000000",
+              "title": "Item 159: Triage the roadmap draft",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a6-f1e1-4000-8000-000000000000",
+              "title": "Item 160: Follow up on the release notes",
+              "source": "github",
+              "links": [],
+              "context": "Short context 159.",
+              "priority": "must",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a7-f1e1-4000-8000-000000000000",
+              "title": "Item 161: Reply to the pricing change",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/260"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a8-f1e1-4000-8000-000000000000",
+              "title": "Item 162: Review a flaky build",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-361/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000a9-f1e1-4000-8000-000000000000",
+              "title": "Item 163: Prepare a customer thread",
+              "source": "slack",
+              "links": [],
+              "context": "Context for item 162.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791271020000,
+                  "text": "Scout noted: item 162 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000aa-f1e1-4000-8000-000000000000",
+              "title": "Item 164: Triage the roadmap draft",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ab-f1e1-4000-8000-000000000000",
+              "title": "Item 165: Follow up on the release notes",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/264"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ac-f1e1-4000-8000-000000000000",
+              "title": "Item 166: Reply to the pricing change",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-365/thing"
+              ],
+              "context": "Short context 165.",
+              "priority": "must",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ad-f1e1-4000-8000-000000000000",
+              "title": "Item 167: Review a flaky build",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ae-f1e1-4000-8000-000000000000",
+              "title": "Item 168: Prepare a customer thread",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000af-f1e1-4000-8000-000000000000",
+              "title": "Item 169: Triage the roadmap draft",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/268"
+              ],
+              "context": "Short context 168.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791270660000,
+                  "text": "Scout noted: item 168 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b0-f1e1-4000-8000-000000000000",
+              "title": "Item 170: Follow up on the release notes",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-369/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b1-f1e1-4000-8000-000000000000",
+              "title": "Item 171: Reply to the pricing change",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b2-f1e1-4000-8000-000000000000",
+              "title": "Item 172: Review a flaky build",
+              "source": "github",
+              "links": [],
+              "context": "Context for item 171.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b3-f1e1-4000-8000-000000000000",
+              "title": "Item 173: Prepare a customer thread",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/272"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b4-f1e1-4000-8000-000000000000",
+              "title": "Item 174: Triage the roadmap draft",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-373/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b5-f1e1-4000-8000-000000000000",
+              "title": "Item 175: Follow up on the release notes",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 174.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791270300000,
+                  "text": "Scout noted: item 174 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b6-f1e1-4000-8000-000000000000",
+              "title": "Item 176: Reply to the pricing change",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b7-f1e1-4000-8000-000000000000",
+              "title": "Item 177: Review a flaky build",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/276"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "today",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b8-f1e1-4000-8000-000000000000",
+              "title": "Item 178: Prepare a customer thread",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-377/thing"
+              ],
+              "context": "Short context 177.",
+              "priority": "must",
+              "status": "in_progress",
+              "mode": "agent",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000b9-f1e1-4000-8000-000000000000",
+              "title": "Item 179: Triage the roadmap draft",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "waiting_on_you",
+              "mode": "ask",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ba-f1e1-4000-8000-000000000000",
+              "title": "Item 180: Follow up on the release notes",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "done",
+              "mode": "me",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000bb-f1e1-4000-8000-000000000000",
+              "title": "Item 181: Reply to the pricing change",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/280"
+              ],
+              "context": "Context for item 180.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "later",
+              "mode": "draft",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791269940000,
+                  "text": "Scout noted: item 180 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000bc-f1e1-4000-8000-000000000000",
+              "title": "Item 182: Review a flaky build",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-381/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "dropped",
+              "mode": "agent",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000bd-f1e1-4000-8000-000000000000",
+              "title": "Item 183: Prepare a customer thread",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "proposed",
+              "mode": "ask",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000be-f1e1-4000-8000-000000000000",
+              "title": "Item 184: Triage the roadmap draft",
+              "source": "github",
+              "links": [],
+              "context": "Short context 183.",
+              "priority": "must",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000bf-f1e1-4000-8000-000000000000",
+              "title": "Item 185: Follow up on the release notes",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/284"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "in_progress",
+              "mode": "draft",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c0-f1e1-4000-8000-000000000000",
+              "title": "Item 186: Reply to the pricing change",
+              "source": "me",
+              "links": [
+                "https://linear.app/team/issue/TECH-385/thing"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "waiting_on_you",
+              "mode": "agent",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c1-f1e1-4000-8000-000000000000",
+              "title": "Item 187: Review a flaky build",
+              "source": "slack",
+              "links": [],
+              "context": "Short context 186.",
+              "priority": "must",
+              "status": "done",
+              "mode": "ask",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791269580000,
+                  "text": "Scout noted: item 186 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c2-f1e1-4000-8000-000000000000",
+              "title": "Item 188: Prepare a customer thread",
+              "source": "linear",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "later",
+              "mode": "me",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c3-f1e1-4000-8000-000000000000",
+              "title": "Item 189: Triage the roadmap draft",
+              "source": "granola",
+              "links": [
+                "https://github.com/example-org/web-app/pull/288"
+              ],
+              "context": "",
+              "priority": "could",
+              "status": "dropped",
+              "mode": "draft",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c4-f1e1-4000-8000-000000000000",
+              "title": "Item 190: Follow up on the release notes",
+              "source": "github",
+              "links": [
+                "https://linear.app/team/issue/TECH-389/thing"
+              ],
+              "context": "Context for item 189.\n\n## Why\nIt blocks the release.\n\n- step one\n- step two\n\nMore detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail. More detail.",
+              "priority": "must",
+              "status": "proposed",
+              "mode": "agent",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c5-f1e1-4000-8000-000000000000",
+              "title": "Item 191: Reply to the pricing change",
+              "source": "calendar",
+              "links": [],
+              "context": "",
+              "priority": "should",
+              "status": "today",
+              "mode": "ask",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c6-f1e1-4000-8000-000000000000",
+              "title": "Item 192: Review a flaky build",
+              "source": "me",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "in_progress",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c7-f1e1-4000-8000-000000000000",
+              "title": "Item 193: Prepare a customer thread",
+              "source": "slack",
+              "links": [
+                "https://github.com/example-org/web-app/pull/292"
+              ],
+              "context": "Short context 192.",
+              "priority": "must",
+              "status": "waiting_on_you",
+              "mode": "draft",
+              "estimateMin": 45,
+              "needs": [],
+              "log": [
+                {
+                  "at": 1791269220000,
+                  "text": "Scout noted: item 192 changed."
+                }
+              ],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c8-f1e1-4000-8000-000000000000",
+              "title": "Item 194: Triage the roadmap draft",
+              "source": "linear",
+              "links": [
+                "https://linear.app/team/issue/TECH-393/thing"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "done",
+              "mode": "agent",
+              "estimateMin": 60,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000c9-f1e1-4000-8000-000000000000",
+              "title": "Item 195: Follow up on the release notes",
+              "source": "granola",
+              "links": [],
+              "context": "",
+              "priority": "could",
+              "status": "later",
+              "mode": "ask",
+              "estimateMin": null,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000ca-f1e1-4000-8000-000000000000",
+              "title": "Item 196: Reply to the pricing change",
+              "source": "github",
+              "links": [],
+              "context": "Short context 195.",
+              "priority": "must",
+              "status": "dropped",
+              "mode": "me",
+              "estimateMin": 15,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000cb-f1e1-4000-8000-000000000000",
+              "title": "Item 197: Review a flaky build",
+              "source": "calendar",
+              "links": [
+                "https://github.com/example-org/web-app/pull/296"
+              ],
+              "context": "",
+              "priority": "should",
+              "status": "proposed",
+              "mode": "draft",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "agent"
+            },
+            {
+              "id": "000000d4-f1e1-4000-8000-000000000000",
+              "title": "Call the accountant",
+              "source": "me",
+              "links": [
+                "https://example.com/ledger"
+              ],
+              "context": "About the quarter close.",
+              "priority": "must",
+              "status": "today",
+              "mode": "me",
+              "estimateMin": 30,
+              "needs": [],
+              "log": [],
+              "createdAt": 1791280800000,
+              "by": "operator"
+            }
+          ],
+          "cursors": {
+            "slack": "c-200",
+            "github": "g-9",
+            "linear": "l-4"
+          },
+          "capacity": {
+            "freeMinutes": 190,
+            "at": 1791280800000
+          }
+        },
+        "subagents": [
+          {
+            "id": "scout-calendar-0",
+            "itemId": null,
+            "role": "calendar-scout",
+            "description": "Scan calendar",
+            "prompt": "Scan calendar for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791277200000,
+            "finishedAt": 1791277290000,
+            "output": "",
+            "report": "calendar: 0 new items found.",
+            "steps": [
+              {
+                "id": "ss-calendar-0",
+                "tool": "mcp__scan",
+                "target": "calendar",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-calendar-1",
+            "itemId": null,
+            "role": "calendar-scout",
+            "description": "Scan calendar",
+            "prompt": "Scan calendar for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791273600000,
+            "finishedAt": 1791273690000,
+            "output": "",
+            "report": "calendar: 1 new items found.",
+            "steps": [
+              {
+                "id": "ss-calendar-1",
+                "tool": "mcp__scan",
+                "target": "calendar",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-slack-0",
+            "itemId": null,
+            "role": "slack-scout",
+            "description": "Scan slack",
+            "prompt": "Scan slack for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791277140000,
+            "finishedAt": 1791277230000,
+            "output": "",
+            "report": "slack: 1 new items found.",
+            "steps": [
+              {
+                "id": "ss-slack-0",
+                "tool": "mcp__scan",
+                "target": "slack",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-slack-1",
+            "itemId": null,
+            "role": "slack-scout",
+            "description": "Scan slack",
+            "prompt": "Scan slack for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791273540000,
+            "finishedAt": 1791273630000,
+            "output": "",
+            "report": "slack: 2 new items found.",
+            "steps": [
+              {
+                "id": "ss-slack-1",
+                "tool": "mcp__scan",
+                "target": "slack",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-github-0",
+            "itemId": null,
+            "role": "github-scout",
+            "description": "Scan github",
+            "prompt": "Scan github for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791277080000,
+            "finishedAt": 1791277170000,
+            "output": "",
+            "report": "github: 2 new items found.",
+            "steps": [
+              {
+                "id": "ss-github-0",
+                "tool": "mcp__scan",
+                "target": "github",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-github-1",
+            "itemId": null,
+            "role": "github-scout",
+            "description": "Scan github",
+            "prompt": "Scan github for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791273480000,
+            "finishedAt": 1791273570000,
+            "output": "",
+            "report": "github: 3 new items found.",
+            "steps": [
+              {
+                "id": "ss-github-1",
+                "tool": "mcp__scan",
+                "target": "github",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-linear-0",
+            "itemId": null,
+            "role": "linear-scout",
+            "description": "Scan linear",
+            "prompt": "Scan linear for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791277020000,
+            "finishedAt": 1791277110000,
+            "output": "",
+            "report": "linear: 3 new items found.",
+            "steps": [
+              {
+                "id": "ss-linear-0",
+                "tool": "mcp__scan",
+                "target": "linear",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-linear-1",
+            "itemId": null,
+            "role": "linear-scout",
+            "description": "Scan linear",
+            "prompt": "Scan linear for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791273420000,
+            "finishedAt": 1791273510000,
+            "output": "",
+            "report": "linear: 4 new items found.",
+            "steps": [
+              {
+                "id": "ss-linear-1",
+                "tool": "mcp__scan",
+                "target": "linear",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-granola-0",
+            "itemId": null,
+            "role": "granola-scout",
+            "description": "Scan granola",
+            "prompt": "Scan granola for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791276960000,
+            "finishedAt": 1791277050000,
+            "output": "",
+            "report": "granola: 4 new items found.",
+            "steps": [
+              {
+                "id": "ss-granola-0",
+                "tool": "mcp__scan",
+                "target": "granola",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "id": "scout-granola-1",
+            "itemId": null,
+            "role": "granola-scout",
+            "description": "Scan granola",
+            "prompt": "Scan granola for new work since the last cursor.",
+            "status": "completed",
+            "startedAt": 1791273360000,
+            "finishedAt": 1791273450000,
+            "output": "",
+            "report": "granola: 5 new items found.",
+            "steps": [
+              {
+                "id": "ss-granola-1",
+                "tool": "mcp__scan",
+                "target": "granola",
+                "status": "done",
+                "input": {},
+                "result": "ok",
+                "ms": 0,
+                "truncated": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

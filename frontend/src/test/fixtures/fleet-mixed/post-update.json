@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/update",
+    "body": {}
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "update": {
+        "name": "claude-fleet",
+        "current": "0.54.0",
+        "latest": "0.54.0",
+        "available": false,
+        "canInstall": true,
+        "channel": "npm",
+        "checkedAt": 1791280800000,
+        "state": "installed",
+        "error": null,
+        "installed": "0.54.0",
+        "restarting": false
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions",
+    "headers": {
+      "X-Fleet-Known": "<25 KB of fingerprints>"
+    }
+  },
+  "response": {
+    "status": 431,
+    "error": null,
+    "body": null
+  }
+}

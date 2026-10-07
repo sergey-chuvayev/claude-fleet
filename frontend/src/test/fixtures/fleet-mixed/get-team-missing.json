@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/teams/does-not-exist"
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Team not found.",
+      "code": "NOT_FOUND"
+    }
+  }
+}

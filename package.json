@@ -1,6 +1,6 @@
 {
   "name": "@sergeychuvayev/claude-fleet",
-  "version": "0.54.0",
+  "version": "0.55.0",
   "description": "A local control room for Claude Code sessions",
   "keywords": [
     "claude",
@@ -23,7 +23,7 @@
   },
   "files": [
     "bin/",
-    "public/",
+    "dist/",
     "build/make-app.sh",
     "archive.js",
     "checkouts.js",
@@ -62,11 +62,14 @@
   "scripts": {
     "start": "node bin/claude-fleet.js start",
     "test": "node --require ./test-setup.js --test *.test.js docs/prototypes/*/*.test.js",
-    "vendor": "esbuild build/vendor-entry.js --bundle --minify --format=iife --target=es2022 --outfile=public/vendor/libs.js",
+    "typecheck": "tsc -p frontend/tsconfig.json",
+    "test:frontend": "vitest run --config frontend/vite.config.mts",
+    "dev:frontend": "vite --config frontend/vite.config.mts",
+    "build:frontend": "vite build --config frontend/vite.config.mts",
     "icons": "node build/make-icons.js",
     "app": "node bin/claude-fleet.js install-app",
     "prototype": "node docs/prototypes/task-control/preview-server.js",
-    "prepack": "npm run vendor"
+    "prepack": "npm run build:frontend"
   },
   "engines": {
     "node": ">=22"
@@ -76,12 +79,24 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.177",
-    "dompurify": "^3.4.15",
-    "highlight.js": "^11.12.0",
-    "marked": "^18.0.13",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "dompurify": "^3.4.15",
+    "highlight.js": "^11.12.0",
+    "jsdom": "29.1.1",
+    "marked": "^18.0.13",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
   }
 }

@@ -1,0 +1,56 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/control"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "token": "FIXTURE_TOKEN",
+      "version": "0.54.0",
+      "apiVersion": 1,
+      "instanceId": "FIXTURE_INSTANCE",
+      "buildId": "FIXTURE_BUILD",
+      "capabilities": {
+        "engines": {
+          "claude": true,
+          "codex": true
+        },
+        "sessionReferences": true,
+        "structuredErrors": true,
+        "queue": true,
+        "days": true,
+        "projects": true,
+        "teams": true,
+        "search": true,
+        "worktrees": true,
+        "connections": true,
+        "gateway": true,
+        "service": true,
+        "update": false
+      },
+      "codex": {
+        "available": true,
+        "model": "codex"
+      },
+      "supportsSessionReferences": true,
+      "defaultCwd": "/fixture/user",
+      "maxConcurrent": 8,
+      "defaultApprovalMode": "all",
+      "queue": {
+        "enabled": false,
+        "limit": 8,
+        "paused": false,
+        "running": 0,
+        "waiting": 0
+      },
+      "storageError": null,
+      "searchDays": 60,
+      "theme": {
+        "name": "Fleet Default",
+        "source": null
+      }
+    }
+  }
+}

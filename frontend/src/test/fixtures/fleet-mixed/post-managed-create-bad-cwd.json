@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed",
+    "body": {
+      "requestId": "fixture-launch-2",
+      "cwd": "/does/not/exist",
+      "prompt": "x"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Project directory does not exist or is not accessible.",
+      "code": "VALIDATION"
+    }
+  }
+}

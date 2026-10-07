@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-codex-idle"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-codex-idle",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000007",
+        "name": "Codex: tidy imports",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-m-codex-idle",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791279300000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m7-u",
+            "role": "user",
+            "text": "Tidy the imports",
+            "at": 1791279600000,
+            "h": "OJ9dZMyhpchbcnVN"
+          },
+          {
+            "id": "m7-a",
+            "role": "assistant",
+            "text": "Imports sorted and unused ones removed.",
+            "at": 1791279660000,
+            "h": "5RNV1Xiw3_ITG1OJ"
+          }
+        ],
+        "approvals": [],
+        "model": "gpt-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "engine": "codex"
+      }
+    }
+  }
+}

@@ -1,0 +1,416 @@
+/* The conversation log: blocks, code, prose, delegation, attachments, references, the
+   pinned question. Ported from public/styles.css in the same cascade order: the
+   original block rules first, then the "minimal dark workspace" overrides that give
+   the console its current look. Legacy rules scoped to `.detail:has(#composer)
+   .conversation` are written against `.conversation` here, because this log is only
+   ever mounted inside the console. */
+
+/* The frame holds the pin over the log; the pane around it decides the height. */
+.conversation-frame { position:relative; display:flex; flex-direction:column; flex:1 1 0; min-width:0; min-height:0 }
+
+.conversation {
+  max-height:none;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-color:var(--line) transparent;
+  font-feature-settings:"liga" 1,"calt" 1;
+}
+.conversation .note { font-size:var(--text-sm); color:var(--faint); line-height:1.6; font-family:inherit; padding:14px; margin:0 }
+
+/* Blocks */
+.block {
+  position:relative;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-left:2px solid var(--line);
+  border-radius:var(--radius-md);
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.block:last-child { margin-bottom:0 }
+.block[data-role="user"] {
+  border-left-color:var(--term-accent);
+  background:color-mix(in oklab,var(--term-bg) 90%,var(--term-accent));
+}
+.block[data-role="assistant"] { border-left-color:color-mix(in oklab,var(--term-cyan) 70%,var(--term-bg)) }
+.block[data-role="tool"] { border-left-color:color-mix(in oklab,var(--term-fg) 34%,var(--term-bg)) }
+.block[data-status="running"] { border-left-color:var(--term-yellow) }
+.block[data-status="error"] { border-left-color:var(--term-red) }
+.block-head {
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 10px;
+  background:color-mix(in oklab,var(--panel) 88%,var(--term-bg));
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(6px);
+  font-size:var(--text-sm);
+  line-height:1.4;
+}
+.block-icon {
+  color:var(--term-accent);
+  width:13px;
+  text-align:center;
+  flex:none;
+}
+.block[data-role="tool"] .block-icon { color:color-mix(in oklab,var(--term-cyan) 75%,var(--term-fg)) }
+.block-tool {
+  color:var(--text);
+  font-weight:600;
+  letter-spacing:.4px;
+  flex:none;
+}
+.block[data-role="user"] .block-tool, .block[data-role="user"] .block-icon { color:var(--term-accent) }
+.block-target {
+  color:var(--muted);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+  flex:1 1 auto;
+}
+.block-meta {
+  color:var(--faint);
+  font-size:var(--text-xs);
+  margin-left:auto;
+  flex:none;
+  font-variant-numeric:tabular-nums;
+}
+.block-target+.block-meta { margin-left:0 }
+.block-state:empty { display:none }
+.block-state {
+  font-size:var(--text-2xs);
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  flex:none;
+  background:none;
+  border:0;
+  padding:0;
+  margin:0;
+  border-radius:0;
+}
+.block-state.is-running { color:var(--term-yellow) }
+.block-state.is-failed { color:color-mix(in oklab,var(--term-red) 70%,var(--term-fg)) }
+.block-state.is-interrupted { color:var(--faint) }
+.block-actions {
+  display:flex;
+  gap:2px;
+  flex:none;
+  opacity:0;
+  transition:opacity .12s ease;
+}
+.block:hover .block-actions, .block:focus-within .block-actions { opacity:1 }
+@media (hover:none) {
+  .block-actions { opacity:1 }
+}
+.block-button {
+  background:none;
+  border:0;
+  padding:2px 5px;
+  border-radius:var(--radius-sm);
+  color:var(--faint);
+  font-size:var(--text-md);
+  line-height:1;
+  cursor:pointer;
+}
+.block-button:hover { color:var(--text); background:var(--raised) }
+.block-body { padding:2px 0 }
+.block.collapsed .block-body { display:none }
+.block.collapsed .block-head { border-bottom:0 }
+.block.collapsed [data-collapse] { transform:rotate(-90deg) }
+/* Code, results, prose */
+.block-code {
+  margin:0;
+  padding:9px 12px;
+  overflow:auto;
+  max-height:420px;
+  font:var(--code)/1.65 var(--mono);
+  scrollbar-color:var(--line) transparent;
+}
+.block-code code {
+  background:none;
+  padding:0;
+  font:inherit;
+  white-space:pre;
+}
+.block-code.is-command code::before {
+  content:"$ ";
+  color:var(--term-green);
+  user-select:none;
+}
+.block-plain {
+  margin:0;
+  padding:9px 12px;
+  font:var(--code)/1.7 var(--mono);
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  color:var(--text);
+}
+.block-result { border-top:1px dashed var(--line) }
+.block-result .block-code { color:var(--muted); max-height:360px }
+.block-result.is-error .block-code { color:color-mix(in oklab,var(--term-red) 60%,var(--term-fg)) }
+.block-note {
+  margin:0;
+  padding:4px 12px 8px;
+  font-size:var(--text-xs);
+  color:var(--faint);
+}
+.block-todos {
+  margin:0;
+  padding:9px 14px;
+  list-style:none;
+  font:var(--code)/1.9 var(--mono);
+}
+.block-todos li {
+  display:flex;
+  gap:8px;
+  color:var(--muted);
+}
+.block-todos li span { color:var(--faint); flex:none }
+.block-todos .todo-completed { color:var(--faint); text-decoration:line-through }
+.block-todos .todo-in_progress { color:var(--term-yellow) }
+.block-todos .todo-in_progress span { color:var(--term-yellow) }
+.block-prose {
+  padding:10px 13px;
+  font:var(--code)/1.75 var(--mono);
+  color:var(--text);
+  overflow-wrap:anywhere;
+}
+.block-prose>:first-child { margin-top:0 }
+.block-prose>:last-child { margin-bottom:0 }
+.block-prose p, .block-prose ul, .block-prose ol, .block-prose blockquote { margin:0 0 .75em }
+.block-prose h1, .block-prose h2, .block-prose h3, .block-prose h4 {
+  margin:1.1em 0 .5em;
+  font-size:1em;
+  font-weight:700;
+  color:var(--term-accent);
+  letter-spacing:.3px;
+}
+.block-prose ul, .block-prose ol { padding-left:1.4em }
+.block-prose li { margin:.15em 0 }
+.block-prose a {
+  color:color-mix(in oklab,var(--term-cyan) 70%,var(--term-fg));
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.block-prose code {
+  background:var(--raised);
+  padding:1px 5px;
+  border-radius:var(--radius-sm);
+  font-size:.94em;
+  color:var(--term-yellow);
+}
+.block-prose pre {
+  margin:.7em 0;
+  background:var(--term-bg);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+}
+.block-prose pre code {
+  background:none;
+  padding:0;
+  color:inherit;
+}
+.block-prose blockquote {
+  border-left:2px solid var(--line);
+  padding-left:12px;
+  color:var(--muted);
+}
+.block-prose hr {
+  border:0;
+  border-top:1px solid var(--line);
+  margin:1em 0;
+}
+.block-prose table {
+  border-collapse:collapse;
+  font-size:.94em;
+  margin:.6em 0;
+  display:block;
+  overflow:auto;
+}
+.block-prose th, .block-prose td {
+  border:1px solid var(--line);
+  padding:4px 9px;
+  text-align:left;
+}
+.block-prose th { color:var(--term-accent); font-weight:600 }
+.block-prose img { max-width:100% }
+/* Syntax theme, mixed from the terminal palette so it follows the active Warp theme. */
+.hljs { color:var(--text); background:none }
+.hljs-comment, .hljs-quote { color:var(--faint); font-style:italic }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-doctag, .hljs-name {
+  color:color-mix(in oklab,var(--term-green) 80%,var(--term-fg));
+}
+.hljs-string, .hljs-regexp, .hljs-attribute, .hljs-meta .hljs-string { color:var(--term-yellow) }
+.hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link, .hljs-selector-attr, .hljs-template-variable {
+  color:color-mix(in oklab,var(--term-magenta) 45%,var(--term-fg));
+}
+.hljs-title, .hljs-section, .hljs-title.function_, .hljs-title.class_ {
+  color:color-mix(in oklab,var(--term-cyan) 62%,var(--term-fg));
+}
+.hljs-type, .hljs-class .hljs-title, .hljs-built_in, .hljs-builtin-name {
+  color:color-mix(in oklab,var(--term-cyan) 80%,var(--term-fg));
+}
+.hljs-attr, .hljs-variable, .hljs-property, .hljs-selector-id, .hljs-selector-class {
+  color:color-mix(in oklab,var(--term-blue) 40%,var(--term-fg));
+}
+.hljs-params { color:var(--text) }
+.hljs-meta, .hljs-tag { color:var(--muted) }
+.hljs-emphasis { font-style:italic }
+.hljs-strong { font-weight:700 }
+.hljs-addition {
+  color:var(--term-green);
+  background:color-mix(in oklab,var(--term-bg) 88%,var(--term-green));
+  display:inline-block;
+  width:100%;
+}
+.hljs-deletion {
+  color:color-mix(in oklab,var(--term-red) 70%,var(--term-fg));
+  background:color-mix(in oklab,var(--term-bg) 88%,var(--term-red));
+  display:inline-block;
+  width:100%;
+}
+@media (prefers-reduced-motion:reduce) {
+  .block-actions { transition:none }
+}
+@media(max-width:720px) {
+  .conversation { max-height:460px; height:var(--conv-height,460px); resize:none }
+}
+.block-auto {
+  font-size:var(--text-2xs);
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--faint);
+  flex:none;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:0 4px;
+}
+.block-attachments {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px 13px 0;
+}
+.block-attachments a {
+  display:block;
+  border-radius:var(--radius-md);
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:var(--term-bg);
+}
+.block-attachments img {
+  display:block;
+  max-width:280px;
+  max-height:200px;
+  object-fit:contain;
+}
+.block-attachments+.block-prose { padding-top:8px }
+/* Delegation: mandate and report disclosures */
+.block[data-tool="Task"], .block[data-tool="Agent"] { border-left:2px solid var(--accent) }
+.block[data-tool="Task"] .block-tool, .block[data-tool="Agent"] .block-tool {
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.delegation-mandate { margin:0 13px; padding:12px 0 }
+.delegation-report {
+  margin:0 13px;
+  padding:12px 0;
+  border-top:1px solid var(--line);
+}
+.delegation-mandate>summary, .delegation-report>summary {
+  cursor:pointer;
+  color:var(--muted);
+  font-size:var(--text-sm);
+  font-weight:600;
+}
+.delegation-mandate>summary:focus-visible, .delegation-report>summary:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:4px;
+}
+.delegation-mandate .block-prose, .delegation-report .block-prose { padding:12px 0 0 }
+.delegation-mandate .block-plain, .delegation-report .block-plain {
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+/* A referenced session, as it was when the message was sent */
+.block-reference{padding:10px 13px;border-bottom:1px solid var(--line);font-size:var(--text-sm)}
+.block-reference summary{cursor:pointer;color:var(--accent);overflow-wrap:anywhere}
+.block-reference summary span,.block-reference p{color:var(--muted);font-size:var(--text-xs)}
+.block-reference pre{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--muted)}
+
+/* Open session sections. The transcript keeps the remaining vertical space. */
+.conversation {
+  border:0; border-radius:0; background:transparent; padding:0;
+  resize:none; flex:1 1 0; height:auto; min-height:120px;
+}
+.conversation .block {
+  border:0; border-radius:0; border-bottom:1px solid var(--line);
+  background:transparent; margin:0; overflow:visible;
+}
+.conversation .block-head { border:0; background:var(--panel) }
+.conversation .block[data-status="running"] .block-icon { color:var(--term-yellow) }
+.conversation .block[data-status="error"] .block-icon { color:var(--term-red) }
+@media(max-width:720px) {
+  .conversation { height:460px; flex:none }
+}
+
+/* The minimal dark workspace: chat bubbles for people and replies, outlined cards for tools. */
+.conversation { padding:20px 0 24px; background:transparent; min-height:120px; font:14px/1.7 "Avenir Next","Segoe UI",sans-serif; scrollbar-width:thin; scrollbar-color:var(--line) transparent }
+.conversation .block { max-width:780px; margin:0 auto 22px; border:0; border-radius:16px; overflow:hidden; background:var(--panel) }
+.conversation .block[data-role=user] { width:fit-content; max-width:86%; margin-left:auto; margin-right:0; background:#2b2b30; border-radius:18px 18px 5px 18px }
+.conversation .block[data-role=assistant] { margin-left:0; margin-right:auto; border-radius:var(--radius-md) 18px 18px 18px }
+.conversation .block-head { position:static; background:transparent; backdrop-filter:none; padding:10px 16px 0; gap:7px; min-height:28px }
+.conversation .block-tool { font:500 10px/1.4 "Avenir Next","Segoe UI",sans-serif; color:var(--muted); letter-spacing:.4px }
+.conversation .block-icon { color:var(--muted); font-size:var(--text-md) }
+.conversation .block-meta { font-size:var(--text-xs); color:var(--faint) }
+.conversation .block-body { padding:2px 4px 7px }
+.block-prose { font-family:"Avenir Next","Segoe UI",sans-serif; font-size:var(--text-xl); line-height:1.75; color:var(--text) }
+.block-prose p { color:inherit }
+.block-plain { font-family:inherit; font-size:var(--text-xl); line-height:1.75 }
+.conversation .block[data-role=tool] { border:1px solid var(--divider); background:transparent; border-radius:10px; margin:0 0 10px; max-width:none; font-family:var(--mono) }
+.conversation .block[data-role=tool] .block-head { padding:9px 12px; min-height:36px }
+.conversation .block[data-role=tool] .block-actions { opacity:1 }
+.conversation .block[data-role=tool] .block-tool { letter-spacing:0; font-size:var(--text-sm) }
+.block-code { font-size:var(--text-md); background:#121214; border-radius:var(--radius-lg); margin:4px 8px; }
+.block-prose a { color:#b8cee6 }
+@media(max-width:720px) {
+  .conversation { flex:none; height:440px; padding:12px 0 }
+  .conversation .block { max-width:100%; margin-bottom:16px }
+  .conversation .block[data-role=tool] .block-meta { display:none }
+  .block-prose { font-size:var(--text-lg) }
+}
+
+/* Automatic runs as markers, board calls as one plain list. */
+.block[data-role=event] { border:0; background:transparent; margin:6px 0 }
+.block-event { display:flex; align-items:center; gap:10px; color:var(--faint); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em }
+.block-event::before, .block-event::after { content:""; flex:1 1 auto; height:1px; background:var(--line) }
+.block-event .block-meta { order:1; text-transform:none; letter-spacing:0 }
+.block-lines { margin:0; padding:4px 0 4px 18px; color:var(--muted); font-size:var(--text-sm); line-height:1.7 }
+.block-lines li.is-error { color:var(--hot) }
+
+/* Touch: at narrow widths every control is at least a 44px target. */
+@media(max-width:720px) {
+  .conversation .block-button { min-width:var(--touch); min-height:var(--touch) }
+}
+
+/* The running mark (.pixel-run) is a shared primitive: components/PixelRun.tsx, styled in components.css. */
+
+.block-icon.is-live { display:inline-grid; place-items:center }
+.block-state.is-live { display:inline-flex; align-items:center; gap:6px }
+.block-state.is-running { color:var(--busy) }
+.conversation .block[data-status=running] { border-color:color-mix(in oklab,var(--busy) 45%,var(--line)); box-shadow:inset 2px 0 0 var(--busy) }
+
+/* The pinned question: a compact copy of your last message above the fold, laid over
+   the top of the conversation. It eases in when a new question takes its place. */
+.question-pin { position:relative; height:0; z-index:4; flex:none }
+.question-pin-bubble { position:absolute; top:8px; right:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:min(86%,720px); padding:8px 14px 9px; border:1px solid color-mix(in oklab,var(--line) 80%,transparent); border-radius:16px 16px 5px 16px; background:color-mix(in oklab,#2b2b30 86%,transparent); -webkit-backdrop-filter:blur(12px) saturate(1.2); backdrop-filter:blur(12px) saturate(1.2); box-shadow:0 10px 28px -8px rgba(0,0,0,.55); color:var(--text); font:inherit; text-align:left; cursor:pointer;
+  opacity:0; transform:translateY(-8px) scale(.97); transform-origin:top right; pointer-events:none; transition:opacity .18s ease, transform .28s cubic-bezier(.2,.8,.2,1), background-color .15s ease }
+.question-pin.is-shown .question-pin-bubble { opacity:1; transform:none; pointer-events:auto }
+.question-pin-bubble:hover { background:color-mix(in oklab,#323238 92%,transparent) }
+.question-pin-label { color:var(--faint); font-size:var(--text-2xs); font-weight:600; letter-spacing:.1em }
+.question-pin-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:var(--text-lg); line-height:1.5 }
+@media(prefers-reduced-motion:reduce) { .question-pin-bubble { transition:opacity .1s linear; transform:none } }

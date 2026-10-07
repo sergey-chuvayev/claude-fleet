@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/theme.css"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/css",
+    "body": "/* Generated from the Fleet fallback palette — \"Fleet Default\". */\n:root {\n  --w-bg: #0c1014;\n  --w-fg: #99d1ce;\n  --w-accent: #2aa889;\n  --w-cursor: #2aa889;\n  --w-font-size: 13px;\n  --w-black: #0c1014;\n  --w-red: #c23127;\n  --w-green: #2aa889;\n  --w-yellow: #edb443;\n  --w-blue: #195466;\n  --w-magenta: #4e5166;\n  --w-cyan: #33859e;\n  --w-white: #99d1ce;\n  --w-bright-black: #11151c;\n  --w-bright-red: #d26937;\n  --w-bright-green: #2aa889;\n  --w-bright-yellow: #edb443;\n  --w-bright-blue: #195466;\n  --w-bright-magenta: #888ca6;\n  --w-bright-cyan: #33859e;\n  --w-bright-white: #d3ebe9;\n}\n"
+  }
+}

@@ -6,7 +6,8 @@ const os=require('node:os')
 const path=require('node:path')
 const {randomUUID}=require('node:crypto')
 const {ManagedSessions}=require('./managed')
-const {createApp}=require('./server')
+const http=require('node:http')
+const {createApp,loadFrontend,staleBuild}=require('./server')
 const delay=ms=>new Promise(r=>setTimeout(r,ms))
 async function until(fn){for(let i=0;i<100;i++){if(fn())return;await delay(5)}throw Error('Condition timed out')}
 function setup(queryFactory,externalSessions){const directory=fs.mkdtempSync(path.join(os.tmpdir(),'fleet-managed-'));return {directory,manager:new ManagedSessions({directory,queryFactory,externalSessions})}}
@@ -273,25 +274,125 @@ test('a tool block whose result never arrives is marked interrupted, on stop and
   } finally { await manager.close(); fs.rmSync(directory, { recursive: true, force: true }) }
 })
 
-test('the console assets and the generated Warp stylesheet are served, and nothing else is', async () => {
+// A stand-in for `npm run build:frontend`: the same layout Vite writes, with one stray file
+// on disk that the manifest does not list.
+function fakeBuild() {
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-dist-'))
+  fs.mkdirSync(path.join(dist, '.vite')); fs.mkdirSync(path.join(dist, 'assets')); fs.mkdirSync(path.join(dist, 'icons'))
+  fs.writeFileSync(path.join(dist, '.vite', 'manifest.json'), JSON.stringify({
+    'index.html': { file: 'assets/index-Ab12Cd34.js', isEntry: true, src: 'index.html', css: ['assets/index-Ef56Gh78.css'], dynamicImports: ['src/Lazy.tsx'] },
+    'src/Lazy.tsx': { file: 'assets/Lazy-Ij90Kl12.js', isDynamicEntry: true },
+    'src/escape.ts': { file: '../server.js' },
+  }))
+  fs.writeFileSync(path.join(dist, 'index.html'), '<!doctype html><script type="module" src="/assets/index-Ab12Cd34.js"></script><div id="root"></div>')
+  fs.writeFileSync(path.join(dist, 'assets', 'index-Ab12Cd34.js'), 'export {}')
+  fs.writeFileSync(path.join(dist, 'assets', 'index-Ef56Gh78.css'), 'body{}')
+  fs.writeFileSync(path.join(dist, 'assets', 'Lazy-Ij90Kl12.js'), 'export default 1')
+  fs.writeFileSync(path.join(dist, 'assets', 'stray.js'), 'alert(1)')
+  for (const size of [192, 512]) fs.writeFileSync(path.join(dist, 'icons', `fleet-${size}.png`), Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  return dist
+}
+// fetch() resolves `..` and `%2e` itself, so traversal attempts go out as raw paths.
+const rawGet = (port, pathname) => new Promise((resolve, reject) => {
+  http.get({ host: '127.0.0.1', port, path: pathname, headers: { host: `127.0.0.1:${port}` } }, res => {
+    let text = ''; res.on('data', c => text += c); res.on('end', () => resolve({ status: res.statusCode, type: res.headers['content-type'], text }))
+  }).on('error', reject)
+})
+
+test('only the built web app is served: its page, the hashed files its manifest lists, icons and the generated theme', async () => {
   const { directory, manager } = setup(async () => ({ close() {}, async *[Symbol.asyncIterator]() { yield { type:'result', is_error:false, result:'Done' } } }))
-  const app = createApp({ manager, collectSessions: () => ({ sessions:[], counts:{}, total:0, generatedAt:Date.now() }) })
+  const dist = fakeBuild()
+  const frontend = loadFrontend(dist)
+  const app = createApp({ manager, collectSessions: () => ({ sessions:[], counts:{}, total:0, generatedAt:Date.now() }), frontend })
   try {
     await new Promise((resolve, reject) => { app.server.once('error', reject); app.server.listen(0, '127.0.0.1', resolve) })
-    const base = `http://127.0.0.1:${app.server.address().port}`
+    const port = app.server.address().port
+    const base = `http://127.0.0.1:${port}`
+    for (const page of ['/', '/index.html']) {
+      const response = await fetch(base + page)
+      assert.equal(response.status, 200, page)
+      assert.match(response.headers.get('content-type'), /^text\/html/)
+      assert.equal(response.headers.get('cache-control'), 'no-cache')
+      assert.match(response.headers.get('content-security-policy'), /script-src 'self';/)
+      assert.doesNotMatch(response.headers.get('content-security-policy'), /unsafe-eval/)
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+      assert.equal(response.headers.get('x-frame-options'), 'DENY')
+      assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+      assert.match(await response.text(), /\/assets\/index-Ab12Cd34\.js/)
+    }
+    for (const [asset, type] of [['/assets/index-Ab12Cd34.js', /^text\/javascript/], ['/assets/Lazy-Ij90Kl12.js', /^text\/javascript/], ['/assets/index-Ef56Gh78.css', /^text\/css/]]) {
+      const response = await fetch(base + asset)
+      assert.equal(response.status, 200, asset)
+      assert.match(response.headers.get('content-type'), type)
+      assert.match(response.headers.get('cache-control'), /immutable/)
+    }
+    for (const icon of ['/icons/fleet-192.png', '/icons/fleet-512.png']) {
+      const response = await fetch(base + icon)
+      assert.equal(response.status, 200, icon)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+    }
     const css = await fetch(base + '/theme.css')
     assert.equal(css.status, 200)
     assert.match(css.headers.get('content-type'), /text\/css/)
     assert.match(await css.text(), /--w-bg: #[0-9a-fA-F]{3,8};/)
-    for (const asset of ['/blocks.js', '/vendor/libs.js']) {
-      const response = await fetch(base + asset)
-      assert.equal(response.status, 200, asset)
-      assert.match(response.headers.get('content-type'), /javascript/)
+    assert.match((await fetch(base + '/manifest.webmanifest')).headers.get('content-type'), /application\/manifest\+json/)
+    // On disk but not in the manifest, a manifest entry pointing outside assets/, the legacy
+    // scripts, and every spelling of traversal: all 404 with a JSON body, never the page.
+    for (const pathname of ['/assets/stray.js', '/server.js', '/assets/index-Ab12Cd34.js.map', '/app.js', '/styles.css', '/vendor/libs.js', '/blocks.js', '/sessions', '/assets/../server.js', '/assets/%2e%2e/server.js', '/assets/..%2fserver.js', '/assets%2Findex-Ab12Cd34.js', '/assets/..%5cserver.js', '/icons/../index.html', '/./index.html']) {
+      const response = await rawGet(port, pathname)
+      assert.equal(response.status, 404, pathname)
+      assert.match(response.type, /application\/json/, pathname)
+      assert.equal(JSON.parse(response.text).code, 'NOT_FOUND', pathname)
     }
-    assert.equal((await fetch(base + '/vendor/../managed.js')).status, 404)
-    assert.equal((await fetch(base + '/vendor/libs.js.map')).status, 404)
-    assert.match((await (await fetch(base + '/api/control')).json()).theme.name, /\w/)
-  } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive: true, force: true }) }
+    assert.equal((await (await fetch(base + '/api/control')).json()).buildId, frontend.buildId)
+    // The process keeps the build it loaded: a file it has served survives a rebuild that
+    // removes it. One it never read 404s rather than being swapped for another build's file.
+    fs.rmSync(path.join(dist, 'assets'), { recursive: true })
+    assert.equal((await fetch(base + '/assets/index-Ab12Cd34.js')).status, 200)
+    assert.equal((await fetch(base + '/')).status, 200)
+  } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(dist, { recursive: true, force: true }) }
+})
+
+test('a checkout whose frontend sources changed after the build is warned; an npm install is not', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-stale-'))
+  const at = (file, seconds) => { fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); if (!fs.existsSync(path.join(root, file))) fs.writeFileSync(path.join(root, file), 'x'); fs.utimesSync(path.join(root, file), seconds, seconds) }
+  try {
+    at('dist/.vite/manifest.json', 2000)
+    at('package-lock.json', 1000)
+    assert.equal(staleBuild(root), null, 'no frontend/: an npm install is never checked')
+    at('frontend/index.html', 1000)
+    at('frontend/src/app/deep/View.tsx', 1000)
+    assert.equal(staleBuild(root), null, 'everything older than the build')
+    at('frontend/src/app/deep/View.tsx', 3000)
+    assert.match(staleBuild(root), /frontend[/\\]src[/\\]app[/\\]deep[/\\]View\.tsx.*npm run build:frontend/)
+    at('frontend/src/app/deep/View.tsx', 1000)
+    at('frontend/index.html', 3000)
+    assert.match(staleBuild(root), /frontend[/\\]index\.html/)
+    at('frontend/index.html', 1000)
+    at('package-lock.json', 3000)
+    assert.match(staleBuild(root), /package-lock\.json/)
+    fs.rmSync(path.join(root, 'dist'), { recursive: true })
+    assert.equal(staleBuild(root), null, 'no build is the startup error, not this warning')
+  } finally { fs.rmSync(root, { recursive: true, force: true }) }
+})
+
+test('without a build, the page explains how to make one and no asset is served', async () => {
+  const { directory, manager } = setup(async () => ({ close() {}, async *[Symbol.asyncIterator]() {} }))
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'fleet-nodist-'))
+  const frontend = loadFrontend(empty)
+  assert.equal(frontend.built, false)
+  assert.match(frontend.error, /npm run build:frontend/)
+  const app = createApp({ manager, collectSessions: () => ({ sessions:[], counts:{}, total:0, generatedAt:Date.now() }), frontend })
+  try {
+    await new Promise((resolve, reject) => { app.server.once('error', reject); app.server.listen(0, '127.0.0.1', resolve) })
+    const base = `http://127.0.0.1:${app.server.address().port}`
+    const page = await fetch(base + '/')
+    assert.equal(page.status, 503)
+    assert.match((await page.json()).error, /npm run build:frontend/)
+    assert.equal((await fetch(base + '/icons/fleet-192.png')).status, 404)
+    assert.equal((await fetch(base + '/theme.css')).status, 200)
+    assert.equal((await (await fetch(base + '/api/control')).json()).buildId, require('./package.json').version)
+  } finally { await app.close(); app.server.closeAllConnections(); fs.rmSync(directory, { recursive: true, force: true }); fs.rmSync(empty, { recursive: true, force: true }) }
 })
 
 test('auto mode answers safe tools itself, still stops for the denylist, and is switchable', async () => {
@@ -1049,7 +1150,7 @@ test('team HTTP endpoints validate writes and require same-origin authorization'
     const stored=await (await fetch(base+'/api/teams/my-delivery')).json()
     assert.equal(stored.team.roles.developer.prompt,team.roles.developer.prompt)
     assert.equal((await fetch(base+'/api/teams/missing')).status,404)
-    assert.equal((await fetch(base+'/teams.js')).status,200)
+    assert.equal((await fetch(base+'/teams.js')).status,404,'the legacy script went with public/ at cutover')
   }finally{await app.close();app.server.closeAllConnections();fs.rmSync(directory,{recursive:true,force:true})}
 })
 
@@ -1256,9 +1357,7 @@ test('the dashboard can read the queue and change its limit over HTTP',async()=>
     const config=await (await fetch(base+'/api/control')).json()
     const page=await (await fetch(base+'/')).text()
     assert.doesNotMatch(page,/id="view-queue"/,'the Work queue tab is gone')
-    const asset=await fetch(base+'/views.js')
-    assert.equal(asset.status,200)
-    assert.match(await asset.text(),/window\.FleetViews/)
+    assert.equal((await fetch(base+'/views.js')).status,404,'the legacy view switcher went with public/ at cutover')
     assert.equal(config.queue.enabled,true)
     assert.equal(config.maxConcurrent,4,'the advertised limit is the one actually enforced')
 

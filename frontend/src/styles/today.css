@@ -1,0 +1,183 @@
+/* The Today view: the Day board and the Day's console. Ported from public/styles.css
+   (0.54.0), the "Day", "The Today tab", "Today: what is particular to the Day board"
+   and scout rules, in legacy order. The console rules legacy reached through
+   `.detail:has(#composer)` are scoped to `.day-console` here, so they never touch the
+   Sessions console. */
+
+/* ── Console layout ──────────────────────────────────────────────────────── */
+[data-view=today] #detail { display:flex; flex-direction:column; padding:0; overflow:hidden }
+.day-console { display:flex; flex-direction:column; flex:1 1 auto; min-width:0; min-height:0; padding:0 28px; overflow:hidden }
+.day-console .conversation-header { display:flex; flex:none; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-2) var(--space-3); min-height:var(--panel-head); margin:0; padding:var(--space-3) 0; border:0 }
+.day-console .header-title { display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0; min-height:var(--control-sm) }
+.day-console .conversation-header h3 { margin:0; font-size:15px; line-height:20px; font-weight:600; letter-spacing:-.2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.day-console .header-controls { display:flex; flex:0 1 auto; align-items:center; gap:var(--space-2); flex-wrap:wrap; min-width:0 }
+.day-console .context-chip { font-family:var(--mono); font-variant-numeric:tabular-nums }
+.day-console #agent-state { font-family:"Avenir Next","Segoe UI",sans-serif }
+.day-console .conversation-frame { flex:1 1 0; min-height:120px }
+.day-console .composer { flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+.day-console .composer:focus-within { border-color:#62626c }
+.day-console .composer textarea { display:block; width:100%; box-sizing:border-box; min-height:50px; max-height:40vh; overflow-y:auto; padding:2px 0 8px; border:0; background:transparent; resize:none; color:var(--text); font-family:inherit; font-size:var(--text-xl); line-height:1.6 }
+.day-console .composer textarea:focus { outline:0 }
+.day-console .composer textarea::placeholder { color:var(--faint) }
+.day-console .composer-footer { display:flex; gap:8px; align-items:center; justify-content:end; padding-top:4px }
+.day-console .composer-footer .note { margin-right:auto; font:10px/1.5 "Avenir Next","Segoe UI",sans-serif; color:var(--faint) }
+.day-console .composer-footer .button { font-size:var(--text-sm); padding:0 var(--space-3) }
+.day-console .form-error { margin:8px 0 0 }
+@media(max-width:720px) {
+  [data-view=today] #detail { display:block; overflow:visible }
+  .day-console { padding:0 16px; overflow:visible }
+  .day-console .conversation-frame { flex:none; height:460px }
+  .day-console .composer { min-height:170px }
+}
+
+/* A subagent's run: sections like the inspector's. */
+.day-agent-view .detail-section { border-top:1px solid var(--divider); margin-top:24px; padding-top:20px }
+.day-agent-view .detail-section h3 { display:flex; justify-content:space-between; gap:10px; margin:0 0 12px; font-size:var(--text-sm); font-weight:500; color:var(--muted) }
+.day-agent-view .detail-section h3 span { font-size:var(--text-xs); color:var(--faint) }
+.day-agent-view .response { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8; font-size:var(--text-md); max-height:300px; overflow:auto; color:color-mix(in oklab,var(--text) 88%,var(--term-bg)) }
+.day-agent-view .response.missing { color:var(--faint); font-style:italic }
+.child-steps { list-style:none; margin:0; padding:0; font-size:var(--text-sm) }
+.child-step { display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; padding:7px 0; border-top:1px solid var(--line) }
+.child-step:first-child { border-top:0 }
+.child-step-tool { font-weight:600; flex:none }
+.child-step-target { color:var(--muted); overflow-wrap:anywhere; flex:1; min-width:0 }
+.child-step-state { color:var(--faint); flex:none }
+.child-step[data-status="running"] .child-step-state { color:var(--busy) }
+.child-step[data-status="error"] .child-step-state { color:var(--dead) }
+.child-step[data-status="interrupted"] .child-step-state { color:var(--stale) }
+.child-step-time { color:var(--faint); font-variant-numeric:tabular-nums; flex:none }
+.child-step-detail { flex-basis:100%; min-width:0 }
+.child-step-detail summary { cursor:pointer; color:var(--muted); padding:4px 0 }
+.child-step-detail pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:320px; overflow:auto; font-size:var(--text-md) }
+.child-step-detail h4 { margin:10px 0 4px; font-size:var(--text-md) }
+
+/* ── Day ─────────────────────────────────────────────────────────────────── */
+.day-context { margin:6px 0 0; color:var(--muted); font-size:var(--text-md); line-height:1.6; overflow-wrap:anywhere }
+.day-context>:first-child { margin-top:0 }
+.day-context>:last-child { margin-bottom:0 }
+.day-context :is(h1,h2,h3) { margin:12px 0 4px; color:var(--text); font-size:var(--text-sm); font-weight:600; text-transform:uppercase; letter-spacing:.05em }
+.day-context :is(p,ul,ol) { margin:4px 0 }
+.day-context .block-prose { font:inherit; color:inherit; line-height:inherit }
+.day-context-fold { margin-top:6px }
+.day-links { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px }
+.day-links a { color:var(--idle); font-size:var(--text-xs); text-decoration:none }
+.day-links a:hover { text-decoration:underline }
+.day-need { margin-top:8px }
+.day-need>p { margin:0 0 6px; line-height:1.6 }
+.day-need textarea, .day-need input {
+  width:100%; box-sizing:border-box; padding:8px;
+  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md);
+  font:var(--code)/1.6 var(--mono); resize:vertical;
+}
+.day-inline input { flex:1 1 200px; width:auto }
+
+/* ── The Today tab ───────────────────────────────────────────────────────── */
+#day-board { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; font-size:var(--text-sm) }
+.today-gathering { margin:0 0 16px }
+.today-empty textarea {
+  width:100%; box-sizing:border-box; padding:10px 12px; resize:vertical;
+  background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg);
+  font:inherit; font-size:var(--text-lg);
+}
+.day-reply { display:flex; gap:6px; margin-top:8px }
+.day-reply input { flex:1 1 auto; width:auto }
+.day-field { display:grid; gap:4px; color:var(--muted); font-size:var(--text-xs) }
+.day-launch-fields { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:8px; margin-top:8px }
+.day-launch-fields input, .day-launch-fields :is(select,.fleet-select) {
+  width:100%; box-sizing:border-box; padding:7px 8px; background-color:var(--bg); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--radius-md); font:var(--code)/1.4 var(--mono);
+}
+.day-launched { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 2px }
+.day-launch-chip {
+  display:inline-flex; align-items:center; gap:6px; padding:3px 9px; cursor:pointer;
+  background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:999px; font-size:var(--text-xs);
+}
+.day-launch-chip:hover { border-color:var(--accent) }
+.day-launch-chip .dot { width:6px; height:6px; border-radius:50%; background:var(--idle) }
+.day-launch-chip[data-state=running] .dot, .day-launch-chip[data-state=starting] .dot { background:var(--busy) }
+.day-launch-chip[data-state=approval] .dot, .day-launch-chip[data-state=queued] .dot { background:var(--stale) }
+.day-launch-chip[data-state=error] .dot, .day-launch-chip[data-state=closed] .dot { background:var(--hot) }
+.day-launch-chip[data-state=closed] { cursor:default; color:var(--muted) }
+#day-agents { display:flex; align-items:center; gap:4px; overflow-x:auto; padding:8px 0; border-bottom:1px solid var(--divider); flex:none; scrollbar-width:thin }
+.day-agent-tab {
+  display:inline-flex; align-items:center; gap:6px; flex:none; padding:4px 10px; cursor:pointer;
+  background:transparent; color:var(--muted); border:1px solid transparent; border-radius:999px; font-size:var(--text-xs); white-space:nowrap;
+}
+.day-agent-tab:hover { color:var(--text); background:var(--hover) }
+.day-agent-tab[aria-pressed=true] { color:var(--text); background:var(--selected); border-color:var(--accent) }
+.day-agent-tab .dot { width:6px; height:6px; border-radius:50%; background:var(--faint) }
+.day-agent-tab .dot.busy { background:var(--busy) }
+.day-agent-tab .dot.idle { background:var(--idle) }
+.day-agent-tab .dot.hot { background:var(--hot) }
+.day-agent-tab .dot.stale { background:var(--stale) }
+#day-agents .note { flex:none; margin:0 0 0 6px; font-size:var(--text-xs) }
+.day-agents-running { color:var(--busy) }
+.day-agent-view { flex:1 1 0; min-height:0; overflow:auto; padding:16px 2px }
+.day-agent-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px }
+.day-agent-head h3 { margin:0; font-size:16px }
+.day-agent-head .note { margin:0 }
+@media(max-width:720px) { .day-launch-fields { grid-template-columns:1fr } }
+.day-capacity { display:inline-flex; align-items:center; gap:8px; color:var(--muted); text-transform:none; letter-spacing:0; font-variant-numeric:tabular-nums }
+.day-capacity .mini-bar { width:70px; height:4px; margin:0 }
+.day-capacity.is-over, .day-capacity.is-over .mini-bar i { color:var(--stale) }
+.day-capacity.is-over .mini-bar i { background:var(--stale) }
+.day-check-state { color:var(--faint); font-size:var(--text-xs); display:inline-flex; align-items:center; gap:6px }
+.day-check-state.is-running { color:var(--accent) }
+.day-spinner { width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:day-spin .8s linear infinite }
+@keyframes day-spin { to { transform:rotate(360deg) } }
+@media(prefers-reduced-motion:reduce) { .day-spinner { animation:none } }
+.day-gate-note { align-self:center; font-size:var(--text-xs); color:var(--muted) }
+#day-agents[hidden] { display:none }
+.day-thread-gist { display:flex; align-items:baseline; gap:8px; margin:6px 0 2px; color:var(--muted); font-size:var(--text-sm); line-height:1.6 }
+.day-thread-gist .day-launch-chip { flex:none }
+.day-agent-tab.is-thread { border-color:var(--line) }
+.day-agent-tab.is-thread[aria-pressed=true] { border-color:var(--accent) }
+.day-carried { flex:none; padding:1px 6px; border-radius:999px; background:var(--raised); color:var(--muted); font-size:var(--text-xs); white-space:nowrap }
+.day-project { flex:none; padding:1px 6px; border-radius:999px; border:1px solid color-mix(in oklab,var(--accent) 40%,var(--line)); color:var(--accent); font-size:var(--text-xs); white-space:nowrap }
+
+/* A Day item's project: a tag that opens the project. */
+button.day-project { display:inline-flex; align-items:center; gap:5px; cursor:pointer; background:transparent; font:inherit; font-size:var(--text-xs) }
+button.day-project span { font-size:8px; opacity:.8 }
+button.day-project:hover { background:color-mix(in oklab,var(--accent) 12%,transparent); border-color:var(--accent) }
+button.day-project:focus-visible { outline:2px solid color-mix(in oklab,var(--accent) 50%,transparent); outline-offset:1px }
+
+/* The Day's scouts: one tab each, its runs today listed inside. */
+.day-agent-tab .ui-count { margin-left:2px }
+.day-agent-tab .pixel-run { margin-right:2px }
+.scout-runs { list-style:none; margin:0; padding:0; display:grid; gap:2px }
+.scout-run { display:grid; grid-template-columns:8px 44px minmax(0,1fr) auto; align-items:center; gap:10px; width:100%; padding:7px 10px; border:0; border-radius:var(--radius-lg); background:transparent; color:var(--muted); font:inherit; font-size:var(--text-md); text-align:left; cursor:pointer }
+.scout-run:hover { background:var(--hover); color:var(--text) }
+.scout-run[aria-current=true] { background:var(--selected); color:var(--text) }
+.scout-run .dot { width:6px; height:6px; border-radius:50%; background:var(--faint) }
+.scout-run .dot.busy { background:var(--busy) }
+.scout-run .dot.hot { background:var(--hot) }
+.scout-run .dot.stale { background:var(--stale) }
+.scout-run time { color:var(--faint); font-variant-numeric:tabular-nums }
+.scout-run-gist { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.scout-run small { color:var(--faint); font-variant-numeric:tabular-nums }
+
+/* ── Today: what is particular to the Day board ─────────────────────────────── */
+#day-board .day-check-state { font-size:var(--text-md) }
+.day-source { display:inline-flex; align-items:center; gap:6px; flex:none; color:var(--muted); font-size:var(--text-md); font-weight:500 }
+.day-source::before { content:""; width:6px; height:6px; border-radius:var(--radius-xs); background:var(--faint) }
+.day-source[data-source=linear]::before { background:var(--term-blue) }
+.day-source[data-source=slack]::before { background:var(--term-magenta) }
+.day-source[data-source=github]::before { background:var(--text) }
+.day-source[data-source=granola]::before { background:var(--busy) }
+.day-source[data-source=calendar]::before { background:var(--stale) }
+.day-source[data-source=me]::before { background:var(--term-red) }
+.day-carried, .day-project { padding:1px 8px; line-height:16px }
+.day-card-head { display:flex; align-items:center; gap:10px; min-width:0 }
+.day-card-head strong { flex:1 1 auto; min-width:0; color:var(--text); font-size:var(--text-xl); line-height:20px; overflow-wrap:anywhere }
+.day-card-head small { flex:none; color:var(--muted); font-variant-numeric:tabular-nums }
+.day-capacity .mini-bar i { background:var(--busy); border-radius:999px }
+
+/* The foot of a Waiting on you card: the session behind it, its links, the item itself. */
+.day-card-foot { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:10px }
+.day-card-foot .day-launched, .day-card-foot .day-links { margin:0 }
+.day-card-foot .day-card-details { margin-left:auto; color:var(--muted); height:26px; min-height:0; padding:0 10px; font-size:var(--text-sm) }
+
+/* ── Touch: at narrow widths every control is at least a 44px target ───────── */
+@media(max-width:720px) {
+  .day-agent-tab, .day-launch-chip { min-height:var(--touch) }
+}

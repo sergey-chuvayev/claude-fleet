@@ -1,0 +1,70 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-claude-running"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-claude-running",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000002",
+        "name": "Migrate settings screen",
+        "cwd": "/fixture/repos/web-app",
+        "createRequestId": "req-m-claude-running",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280790000,
+        "status": "running",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m2-u",
+            "role": "user",
+            "text": "Migrate the settings screen",
+            "at": 1791279600000,
+            "h": "pSzrMUemcq7AryoI"
+          },
+          {
+            "id": "m2-a",
+            "role": "assistant",
+            "text": "Starting with the form state.",
+            "at": 1791279660000,
+            "h": "kQE5r7wLVUsRvtoG"
+          },
+          {
+            "id": "m2-t",
+            "role": "tool",
+            "tool": "Bash",
+            "at": 1791280770000,
+            "status": "running",
+            "input": {
+              "command": "npm test"
+            },
+            "target": "npm test",
+            "text": "",
+            "result": null,
+            "ms": null,
+            "approval": "auto",
+            "h": "sLePQ3u5Pd0TaFzs"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": "Bash",
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

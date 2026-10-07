@@ -1,0 +1,48 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/managed/m-claude-queued"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "m-claude-queued",
+        "projectId": null,
+        "sessionId": null,
+        "name": "Waiting for a free agent",
+        "cwd": "/fixture/repos/docs-site",
+        "createRequestId": "req-m-claude-queued",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280620000,
+        "status": "queued",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "m4-u",
+            "role": "user",
+            "text": "Rewrite the changelog",
+            "at": 1791280620000,
+            "h": "3VDXuXgLVxDvIS3l"
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "waitingForRelease": false
+      }
+    }
+  }
+}

@@ -5,80 +5,64 @@ const fs=require('node:fs')
 const os=require('node:os')
 const path=require('node:path')
 const http=require('node:http')
-const vm=require('node:vm')
 const {randomUUID}=require('node:crypto')
 const {respond,tagOf}=require('./sync')
 
-// The page's half (public/sync.js) against the server's half, over real HTTP. Whatever
-// travels, the page must end up with exactly what a plain full fetch returns.
+// The server's half over real HTTP. The page's half (rebuilding a packed answer, asking again
+// for a fingerprint it cannot place) is frontend/src/transport/conditional.test.ts, which runs
+// against this same module through a fake fetch.
 async function harness() {
   let current
   const server=http.createServer((req,res)=>respond(req,res,current(),{paths:['sessions','detail.messages'],volatile:['generatedAt']}))
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
   const base=`http://127.0.0.1:${server.address().port}`
-  const wire=[]
-  const context=vm.createContext({AbortSignal,Map,Set,Error,JSON,Object,Array,window:{},fetch:async(url,options)=>{
-    const response=await fetch(base+url,options)
-    wire.push({status:response.status,bytes:Number(response.headers.get('content-length') || 0) || (response.status===304 ? 0 : (await response.clone().text()).length),known:!!options.headers['x-fleet-known']})
-    return response
-  }})
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'public','sync.js'),'utf8'),context)
-  const plain=async()=>{const r=await fetch(base+'/');return r.json()}
-  const strip=value=>JSON.parse(JSON.stringify(value,(k,v)=>k==='h' || k==='generatedAt' ? undefined : v))
-  return {set:fn=>{current=fn},get:()=>context.window.FleetSync.get('/',{paths:['sessions','detail.messages']}),sync:context.window.FleetSync,plain,strip,wire,close:()=>server.close()}
+  const get=async(headers={})=>{const r=await fetch(base+'/',{headers});return {status:r.status,etag:r.headers.get('etag'),text:await r.text()}}
+  return {set:fn=>{current=fn},get,close:()=>server.close()}
 }
 const rows=n=>Array.from({length:n},(_,i)=>({sessionId:`s${i}`,title:`Session ${i}`,latestResponse:'x'.repeat(2000)}))
 
-test('an unchanged answer is a 304, a changed one sends only what changed, and the page always has it all',async()=>{
+test('an unchanged answer is a 304, and a changed one sends whole only the items the page does not hold',async()=>{
   const h=await harness()
   try {
     let sessions=rows(50),messages=[{id:'m1',text:'hi'},{id:'m2',text:'there'}],at=1
     h.set(()=>({generatedAt:at++,counts:{all:sessions.length},sessions,detail:{messages}}))
     const first=await h.get()
-    assert.equal(first.changed,true)
-    assert.deepEqual(h.strip(first.value),h.strip(await h.plain()))
-    const full=h.wire.at(-1).bytes
+    assert.equal(first.status,200)
+    const body=JSON.parse(first.text)
+    assert.equal(body.sessions.length,50)
+    assert.ok(body.sessions.every(s=>/^[\w-]{16}$/.test(s.h) && s.title),'a first answer is whole, each item with its fingerprint')
 
-    const second=await h.get()
-    assert.equal(second.changed,false,'only generatedAt moved, which does not count')
-    assert.equal(h.wire.at(-1).status,304)
+    const second=await h.get({'if-none-match':first.etag})
+    assert.equal(second.status,304,'only generatedAt moved, which does not count')
+    assert.equal(second.text,'')
 
+    const known=[...body.sessions,...body.detail.messages].map(x=>x.h).join(',')
     sessions=sessions.map((s,i)=>i===7 ? {...s,title:'Renamed'} : s)
     messages=[...messages,{id:'m3',text:'new'}]
-    const third=await h.get()
-    assert.equal(third.changed,true)
-    assert.ok(h.wire.at(-1).known,'the page said what it holds')
-    assert.ok(h.wire.at(-1).bytes<full/10,`a one-row change sends a fraction of the list (${h.wire.at(-1).bytes} of ${full} bytes)`)
-    assert.deepEqual(h.strip(third.value),h.strip(await h.plain()),'rebuilt, it is exactly the full answer')
-    assert.equal(third.value.sessions[7].title,'Renamed')
-    assert.equal(third.value.detail.messages.length,3)
+    const third=await h.get({'if-none-match':first.etag,'x-fleet-known':known})
+    assert.equal(third.status,200)
+    assert.ok(third.text.length<first.text.length/10,`a one-row change sends a fraction of the list (${third.text.length} of ${first.text.length} bytes)`)
+    const packed=JSON.parse(third.text)
+    assert.equal(packed.sessions.length,50,'every row is still there, by fingerprint or whole')
+    assert.deepEqual(packed.sessions.filter(s=>s.title).map(s=>s.title),['Renamed'])
+    assert.deepEqual(packed.detail.messages.map(m=>m.text),[undefined,undefined,'new'])
+    assert.notEqual(third.etag,first.etag)
 
     sessions=sessions.slice(1)
-    const fourth=await h.get()
-    assert.deepEqual(h.strip(fourth.value),h.strip(await h.plain()),'a row that went away is gone')
+    const fourth=JSON.parse((await h.get({'x-fleet-known':known})).text)
+    assert.equal(fourth.sessions.length,49,'a row that went away is gone')
   } finally { h.close() }
 })
 
-test('a fingerprint the page cannot place makes it ask again for everything',async()=>{
-  // A server that answers with a fingerprint the page never had (a copy that drifted,
-  // a restart): the page must ask again, without what it holds, and show no hole.
-  const http=require('node:http')
-  let tamper=true,calls=[]
-  const server=http.createServer((req,res)=>{
-    calls.push(!!req.headers['x-fleet-known'])
-    const body=req.headers['x-fleet-known'] && tamper ? {sessions:[{h:'AAAAAAAAAAAAAAAA'},{sessionId:'b',h:'BBBBBBBBBBBBBBBB'}]} : {sessions:[{sessionId:'a',h:'CCCCCCCCCCCCCCCC'},{sessionId:'b',h:'BBBBBBBBBBBBBBBB'}]}
-    res.writeHead(200,{'content-type':'application/json',etag:'"t'+calls.length+'"'});res.end(JSON.stringify(body))
-  })
-  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
-  const base=`http://127.0.0.1:${server.address().port}`
-  const context=vm.createContext({AbortSignal,Map,Set,Error,JSON,Object,Array,window:{},fetch:(url,options)=>fetch(base+url,options)})
-  vm.runInContext(fs.readFileSync(path.join(__dirname,'public','sync.js'),'utf8'),context)
+test('a fingerprint header the server cannot use is ignored, and the answer comes back whole',async()=>{
+  const h=await harness()
   try {
-    await context.window.FleetSync.get('/',{paths:['sessions']})
-    const next=await context.window.FleetSync.get('/',{paths:['sessions']})
-    assert.deepEqual(calls,[false,true,false],'the second answer had a stranger in it, so the page asked again from scratch')
-    assert.deepEqual(next.value.sessions.map(s=>s.sessionId),['a','b'])
-  } finally { server.close() }
+    h.set(()=>({generatedAt:1,sessions:rows(3),detail:{messages:[]}}))
+    for(const known of ['not-a-fingerprint','short,also bad,///']){
+      const body=JSON.parse((await h.get({'x-fleet-known':known})).text)
+      assert.ok(body.sessions.every(s=>s.title),known.slice(0,20))
+    }
+  } finally { h.close() }
 })
 
 test('the server turns away a fingerprint it does not recognise by sending the item whole',async()=>{

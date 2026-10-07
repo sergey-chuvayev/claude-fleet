@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/f-one/stop",
+    "body": {},
+    "note": "stop stays available"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "f-one",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000060",
+        "name": "First agent",
+        "cwd": "/fixture/repos/fail-repo",
+        "createRequestId": "req-f-one",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280320000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "f1-u",
+            "role": "user",
+            "text": "Do the thing",
+            "at": 1791280260000
+          },
+          {
+            "id": "f1-a",
+            "role": "assistant",
+            "text": "Done.",
+            "at": 1791280320000
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "agent",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null
+      }
+    }
+  }
+}

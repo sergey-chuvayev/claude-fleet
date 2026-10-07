@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/worktrees"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "checkouts": [
+        {
+          "path": "/fixture/repos/web-app",
+          "pathShort": "/fixture/repos/web-app",
+          "isMain": true,
+          "branch": "feat/checkout",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": true,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "web-app",
+            "root": "/fixture/repos/web-app"
+          },
+          "sessions": [
+            {
+              "id": "c-heavy",
+              "name": "Fix flaky checkout test",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280798000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000001",
+              "name": "checkout-refactor",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280741000
+            },
+            {
+              "id": "c-error",
+              "name": "Run that failed",
+              "cwd": "/fixture/repos/web-app",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791279720000
+            },
+            {
+              "id": "c-codex",
+              "name": "Codex: add retries",
+              "cwd": "/fixture/repos/web-app",
+              "alive": false,
+              "engine": "codex",
+              "lastActivity": 1791279120000
+            }
+          ],
+          "lastActivity": 1791280798000
+        }
+      ],
+      "outside": 0
+    }
+  }
+}

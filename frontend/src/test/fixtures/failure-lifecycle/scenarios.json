@@ -1,0 +1,216 @@
+{
+  "note": "Scripted responses for the cases the real server cannot produce on demand. `at` is milliseconds from the start of the scenario. Shapes reference real fixtures where they exist.",
+  "scenarios": [
+    {
+      "id": "reversed-responses",
+      "covers": "A25",
+      "steps": [
+        {
+          "at": 0,
+          "send": "GET /api/managed/f-one",
+          "respondAt": 400,
+          "respond": {
+            "fixtureLike": "managed detail",
+            "messages": 2
+          },
+          "note": "sent first, answers last"
+        },
+        {
+          "at": 50,
+          "send": "POST /api/managed/f-one/messages",
+          "respondAt": 100,
+          "respond": {
+            "status": 200,
+            "session": {
+              "messages": 3
+            }
+          },
+          "note": "the mutation answers first"
+        },
+        {
+          "at": 120,
+          "send": "GET /api/managed/f-one",
+          "respondAt": 200,
+          "respond": {
+            "fixtureLike": "managed detail",
+            "messages": 3
+          }
+        }
+      ],
+      "expect": "the 400 ms response with 2 messages must not replace the 3-message state"
+    },
+    {
+      "id": "dropped-mutation-response",
+      "covers": "A26",
+      "steps": [
+        {
+          "at": 0,
+          "send": "POST /api/managed/f-one/messages {requestId:R}",
+          "serverEffect": "message accepted",
+          "networkError": "ECONNRESET before the response"
+        },
+        {
+          "at": 200,
+          "send": "GET /api/managed/f-one",
+          "respond": {
+            "messages": 3
+          }
+        },
+        {
+          "at": 300,
+          "send": "POST /api/managed/f-one/messages {requestId:R}",
+          "respond": {
+            "status": 200,
+            "note": "same request id: the same session, no second message"
+          }
+        }
+      ],
+      "expect": "reconcile by refetching; only a requestId-deduped route may be retried"
+    },
+    {
+      "id": "request-timeout",
+      "covers": "A25",
+      "steps": [
+        {
+          "at": 0,
+          "send": "GET /api/sessions",
+          "hangMs": 20000
+        },
+        {
+          "at": 15000,
+          "abort": true
+        },
+        {
+          "at": 15500,
+          "send": "GET /api/sessions",
+          "respond": {
+            "status": 200
+          }
+        }
+      ],
+      "expect": "last good data stays on screen with a stale indicator, one retry with jitter"
+    },
+    {
+      "id": "disk-full-and-recovery",
+      "covers": "A27",
+      "real": [
+        "storage-1-control-latched",
+        "storage-2-post-refused",
+        "storage-4-control-still-latched-after-read",
+        "storage-7-control-recovered"
+      ],
+      "expect": "banner appears with the latch, survives reads, clears after a write lands; stop and update stay allowed"
+    },
+    {
+      "id": "server-restart",
+      "covers": "A26",
+      "real": [
+        "token-1-control",
+        "token-2-stale-token-rejected",
+        "token-3-control-after-restart",
+        "token-4-retry-with-new-token"
+      ],
+      "steps": [
+        {
+          "at": 0,
+          "sse": "drop"
+        },
+        {
+          "at": 800,
+          "send": "GET /api/control",
+          "respond": {
+            "tokenChanged": true,
+            "instanceId": "FIXTURE_INSTANCE_3"
+          }
+        }
+      ],
+      "expect": "new token fetched once, ETags and fingerprint maps cleared when instanceId changes, drafts and selection kept"
+    },
+    {
+      "id": "sse-drop-duplicate-burst",
+      "covers": "A25",
+      "real": [
+        "sse-2-burst-and-duplicates"
+      ],
+      "steps": [
+        {
+          "at": 0,
+          "sse": [
+            "sessions:[f-one]",
+            "sessions:[f-one]",
+            "list:{}"
+          ]
+        },
+        {
+          "at": 10,
+          "sse": "burst 50 x sessions:[f-two]"
+        },
+        {
+          "at": 500,
+          "sse": "drop"
+        },
+        {
+          "at": 2500,
+          "sse": "reconnect"
+        }
+      ],
+      "expect": "coalesced into one refetch per key; a reconnect triggers a full refresh"
+    },
+    {
+      "id": "unknown-fingerprint",
+      "covers": "A24",
+      "steps": [
+        {
+          "at": 0,
+          "send": "GET /api/sessions",
+          "respond": {
+            "fixture": "fleet-mixed/get-sessions-packed",
+            "note": "the client holds none of these hashes"
+          }
+        },
+        {
+          "at": 10,
+          "send": "GET /api/sessions (no conditional headers)",
+          "respond": {
+            "fixture": "fleet-mixed/get-sessions"
+          }
+        }
+      ],
+      "expect": "exactly one full retry, never a partly reconstructed list"
+    },
+    {
+      "id": "incompatible-build",
+      "covers": "A22, WP2",
+      "steps": [
+        {
+          "at": 0,
+          "send": "GET /api/control",
+          "respond": {
+            "apiVersion": 99,
+            "buildId": "FIXTURE_BUILD",
+            "instanceId": "FIXTURE_INSTANCE_4"
+          }
+        }
+      ],
+      "expect": "a readable reload state instead of errors; the server now sends apiVersion and buildId (#103), but no client rejects a mismatch yet"
+    },
+    {
+      "id": "missing-hashed-asset-after-update",
+      "covers": "A22, A29",
+      "steps": [
+        {
+          "at": 0,
+          "send": "GET /assets/index-OLD.js",
+          "respond": {
+            "status": 404,
+            "body": {
+              "error": "Not found."
+            },
+            "contentType": "application/json"
+          }
+        }
+      ],
+      "expect": "a 404 JSON (see asset-2-unknown-script), never the index HTML"
+    }
+  ]
+}

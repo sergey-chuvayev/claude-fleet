@@ -65,7 +65,8 @@ test('settings HTTP endpoints enforce authorization and return no key',async t=>
     const response=await post({action:'save',apiKey:'secret'},{'x-fleet-token':token})
     assert.equal(response.status,200);assert.doesNotMatch(await response.text(),/secret/)
     assert.deepEqual(await (await fetch(base+'/api/settings/gateway')).json(),{gateway:{configured:true,source:'saved'}})
-    assert.equal((await fetch(base+'/settings.js')).status,200)
+    // The legacy settings script went with public/ at cutover; the dialog is in the React build.
+    assert.equal((await fetch(base+'/settings.js')).status,404)
     assert.equal((await post({action:'remove'},{'x-fleet-token':token})).status,200)
     assert.equal(settings.key(),'')
   }finally{await app.close()}

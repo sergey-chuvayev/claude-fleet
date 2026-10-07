@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/teams",
+    "body": {
+      "id": "tiny",
+      "name": "Docs team",
+      "description": "Writes and reviews docs.",
+      "manager": "lead",
+      "roles": {
+        "lead": {
+          "description": "Plans the docs",
+          "prompt": "Plan the docs work.",
+          "model": "sonnet",
+          "maxTurns": 20,
+          "effort": "medium",
+          "tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Bash"
+          ]
+        }
+      },
+      "workflow": {
+        "mode": "team",
+        "reviewers": [
+          "checker"
+        ],
+        "maxAttempts": 2
+      }
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "A team needs 3–8 roles, including its manager.",
+      "code": "VALIDATION"
+    }
+  }
+}

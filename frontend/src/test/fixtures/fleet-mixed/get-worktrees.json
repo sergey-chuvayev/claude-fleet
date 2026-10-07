@@ -1,0 +1,365 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/worktrees"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "generatedAt": 1791280800000,
+      "checkouts": [
+        {
+          "path": "/fixture/repos/web-app-merged",
+          "pathShort": "/fixture/repos/web-app-merged",
+          "isMain": false,
+          "branch": "feat/web-app-merged",
+          "detached": false,
+          "tip": "d0bf190a848c517da54df91f6d704e2a77936ff5",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": true,
+          "mergedBy": "ancestor",
+          "empty": false,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [],
+          "clearable": true,
+          "repo": {
+            "name": "web-app",
+            "root": "/fixture/repos/web-app"
+          },
+          "sessions": [
+            {
+              "id": "000000c1-0000-4000-8000-000000000009",
+              "name": null,
+              "cwd": "/fixture/repos/web-app-merged",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791259200000
+            }
+          ],
+          "lastActivity": 1791259200000
+        },
+        {
+          "path": "/fixture/repos/web-app-wip",
+          "pathShort": "/fixture/repos/web-app-wip",
+          "isMain": false,
+          "branch": "feat/web-app-wip",
+          "detached": false,
+          "tip": "0c21ac09b83cd0166a7232b34c8118f51132ae3d",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 1,
+          "unpushed": 1,
+          "ahead": 1,
+          "merged": false,
+          "mergedBy": null,
+          "empty": false,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "dirty",
+              "text": "1 uncommitted change."
+            },
+            {
+              "code": "unpushed",
+              "text": "1 commit that exist nowhere else."
+            },
+            {
+              "code": "unmerged",
+              "text": "Not merged into main."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "web-app",
+            "root": "/fixture/repos/web-app"
+          },
+          "sessions": [
+            {
+              "id": "000000c1-0000-4000-8000-000000000010",
+              "name": null,
+              "cwd": "/fixture/repos/web-app-wip",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791277800000
+            }
+          ],
+          "lastActivity": 1791277800000
+        },
+        {
+          "path": "/fixture/repos/api-service",
+          "pathShort": "/fixture/repos/api-service",
+          "isMain": true,
+          "branch": "main",
+          "detached": false,
+          "tip": "5064324c40ff6ffc97cc03de25827104040c8485",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": true,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "api-service",
+            "root": "/fixture/repos/api-service"
+          },
+          "sessions": [
+            {
+              "id": "m-claude-approval",
+              "name": "Clean up stale branches",
+              "cwd": "/fixture/repos/api-service",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280680000
+            },
+            {
+              "id": "m-fork-pending",
+              "name": "Copy of api-review",
+              "cwd": "/fixture/repos/api-service",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280795000
+            },
+            {
+              "id": "m-codex-running",
+              "name": "Codex: add retry logic",
+              "cwd": "/fixture/repos/api-service",
+              "alive": true,
+              "engine": "codex",
+              "lastActivity": 1791280792000
+            },
+            {
+              "id": "m-held",
+              "name": "Waiting on the terminal",
+              "cwd": "/fixture/repos/api-service",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280740000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000002",
+              "name": "api-review",
+              "cwd": "/fixture/repos/api-service",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280080000
+            },
+            {
+              "id": "m-claude-error",
+              "name": "Broken deploy script",
+              "cwd": "/fixture/repos/api-service",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791278400000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000005",
+              "name": null,
+              "cwd": "/fixture/repos/api-service",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1790503200000
+            }
+          ],
+          "lastActivity": 1791280795000
+        },
+        {
+          "path": "/fixture/repos/web-app",
+          "pathShort": "/fixture/repos/web-app",
+          "isMain": true,
+          "branch": "feat/checkout",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": true,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": true,
+          "mergedBy": "ancestor",
+          "empty": false,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "web-app",
+            "root": "/fixture/repos/web-app"
+          },
+          "sessions": [
+            {
+              "id": "m-claude-running",
+              "name": "Migrate settings screen",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280790000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000001",
+              "name": "checkout-refactor",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280740000
+            },
+            {
+              "id": "000000c0-0000-4000-8000-000000000001",
+              "name": "Codex: fix flaky test",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "codex",
+              "lastActivity": 1791280740000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000006",
+              "name": "observer",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1791280680000
+            },
+            {
+              "id": "m-claude-idle",
+              "name": "Fix flaky checkout test",
+              "cwd": "/fixture/repos/web-app",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791279660000
+            },
+            {
+              "id": "m-codex-idle",
+              "name": "Codex: tidy imports",
+              "cwd": "/fixture/repos/web-app",
+              "alive": false,
+              "engine": "codex",
+              "lastActivity": 1791279300000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000004",
+              "name": "stale-session",
+              "cwd": "/fixture/repos/web-app",
+              "alive": true,
+              "engine": "claude",
+              "lastActivity": 1790935200000
+            }
+          ],
+          "lastActivity": 1791280790000
+        },
+        {
+          "path": "/fixture/repos/docs-site",
+          "pathShort": "/fixture/repos/docs-site",
+          "isMain": true,
+          "branch": "docs/refresh",
+          "detached": false,
+          "tip": "876361053ae10c7044e49bf314364f066bd35904",
+          "locked": false,
+          "missing": false,
+          "trunk": "main",
+          "running": false,
+          "dirty": 0,
+          "unpushed": 0,
+          "ahead": 0,
+          "merged": false,
+          "mergedBy": null,
+          "empty": true,
+          "pr": null,
+          "prKnown": false,
+          "blockers": [
+            {
+              "code": "main",
+              "text": "This is the main checkout."
+            }
+          ],
+          "clearable": false,
+          "repo": {
+            "name": "docs-site",
+            "root": "/fixture/repos/docs-site"
+          },
+          "sessions": [
+            {
+              "id": "m-claude-queued",
+              "name": "Waiting for a free agent",
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791280620000
+            },
+            {
+              "id": "m-tagged",
+              "name": "Tagged to a project",
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791279900000
+            },
+            {
+              "id": "m-claude-stopped",
+              "name": "Interrupted by restart",
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791262800000
+            },
+            {
+              "id": "000000c0-0000-4000-8000-000000000002",
+              "name": "Codex: rewrite README",
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "codex",
+              "lastActivity": 1791275400000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000003",
+              "name": null,
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791270000000
+            },
+            {
+              "id": "000000c1-0000-4000-8000-000000000007",
+              "name": null,
+              "cwd": "/fixture/repos/docs-site",
+              "alive": false,
+              "engine": "claude",
+              "lastActivity": 1791187200000
+            }
+          ],
+          "lastActivity": 1791280620000
+        }
+      ],
+      "outside": 0
+    }
+  }
+}

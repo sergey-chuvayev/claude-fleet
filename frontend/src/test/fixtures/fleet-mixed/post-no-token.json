@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": {
+      "enabled": true
+    },
+    "note": "no X-Fleet-Token"
+  },
+  "response": {
+    "status": 403,
+    "contentType": "application/json",
+    "body": {
+      "error": "Reload Fleet before sending commands.",
+      "code": "TOKEN_INVALID",
+      "retryable": true
+    }
+  }
+}

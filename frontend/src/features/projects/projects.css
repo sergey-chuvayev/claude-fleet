@@ -1,0 +1,50 @@
+/* ── Projects ─────────────────────────────────────────────────────────────── */
+.projects-pane { display:flex; flex-direction:column }
+/* A project's Markdown, as the console renders replies. */
+.project-md { color:var(--text); font-size:var(--text-md); line-height:1.7 }
+.project-md > :first-child { margin-top:0 }
+.project-md ul, .project-md ol { padding-left:20px }
+/* Markdown in a project reads flush with the rest of the pane. */
+.project-md .block-prose { padding:0; font:inherit; line-height:1.7 }
+/* The project's links, under its brief. */
+.day-links { display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px }
+.day-links a { color:var(--idle); font-size:var(--text-xs); text-decoration:none }
+.day-links a:hover { text-decoration:underline }
+/* "Setting up": the manager's first run is under way. */
+.day-spinner { display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:day-spin .8s linear infinite }
+@keyframes day-spin { to { transform:rotate(360deg) } }
+@media(prefers-reduced-motion:reduce) { .day-spinner { animation:none } }
+/* A task already on today's Day says so and leads there. */
+.button.ghost.is-on-today { color:var(--busy); border-color:color-mix(in oklab,var(--busy) 35%,var(--line)) }
+
+/* A task's brief, opened under its row. */
+.task-detail { display:grid; gap:10px; padding:2px 0 6px }
+.task-detail .project-md { color:var(--muted); font-size:var(--text-md) }
+.task-detail .project-md>:first-child { margin-top:0 }
+.task-detail .project-md>:last-child { margin-bottom:0 }
+.task-sources { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+.task-sources-label { color:var(--faint); font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.06em }
+/* A comment on a task, under its brief. */
+.task-comment { margin-top:2px }
+.task-comment { align-items:flex-start }
+.task-comment textarea { flex:1 1 auto; min-width:0; box-sizing:border-box; min-height:var(--control-md); max-height:30vh; padding:9px 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-lg); font:inherit; font-size:var(--text-md); line-height:1.4; resize:none; field-sizing:content }
+.task-comment textarea:focus { outline:0; border-color:var(--faint) }
+.task-comment .button { flex:none; min-height:var(--control-md) }
+
+/* The console: the manager's title, state and the approval gate, then its conversation. */
+/* The manager's console, laid out as legacy's `.detail:has(#composer)` laid out any
+   managed console (the Today console does the same in today.css). Scoped to
+   .project-console, so nothing here reaches the Sessions or Today console. */
+[data-view=projects] #detail:has(.project-console) { display:flex; flex-direction:column; padding:0; overflow:hidden }
+.project-console { display:flex; flex-direction:column; flex:1 1 auto; min-width:0; min-height:0; padding:0 28px; overflow:hidden }
+.project-console > .conversation-frame { flex:1 1 0; min-height:120px }
+.project-console > :is(.now-line, #queued-messages, #agent-error, #approvals) { flex:none }
+.project-console > #approvals { max-height:34vh; overflow:auto }
+.project-console > .composer { display:flex; flex-direction:column; flex:0 1 auto; min-height:110px; margin:8px 0 20px; padding:12px 16px; background:#222225; border:1px solid #37373c; border-radius:22px; box-shadow:0 4px 20px #00000012 }
+.project-console > .note { padding:14px 0 }
+@media(max-width:720px) {
+  [data-view=projects] #detail:has(.project-console) { display:block; overflow:visible }
+  .project-console { padding:0 16px; overflow:visible }
+  .project-console > .conversation-frame { flex:none; height:460px }
+  .project-console > .composer { min-height:170px }
+}

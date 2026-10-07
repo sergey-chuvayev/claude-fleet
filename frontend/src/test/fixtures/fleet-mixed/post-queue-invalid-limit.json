@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/queue",
+    "body": {
+      "limit": 99
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Choose 1–8 concurrent tasks.",
+      "code": "VALIDATION"
+    }
+  }
+}

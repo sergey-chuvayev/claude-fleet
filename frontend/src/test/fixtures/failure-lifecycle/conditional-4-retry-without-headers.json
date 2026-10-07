@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/sessions",
+    "note": "one retry without conditional headers"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "sessions": 3
+    }
+  }
+}

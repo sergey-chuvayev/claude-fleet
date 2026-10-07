@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/00000003-f1e1-4000-8000-000000000000/mode",
+    "body": {
+      "mode": "nope"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Choose ask, auto, or all.",
+      "code": "VALIDATION"
+    }
+  }
+}

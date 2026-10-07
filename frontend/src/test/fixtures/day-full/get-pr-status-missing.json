@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/pr-status?url=https%3A%2F%2Fgithub.com%2Fexample-org%2Fdemo-repo%2Fpull%2F9"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "status": {
+        "ok": false,
+        "url": "https://github.com/example-org/demo-repo/pull/9",
+        "reason": "missing"
+      }
+    }
+  }
+}

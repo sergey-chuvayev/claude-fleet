@@ -3,7 +3,7 @@
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
-const { randomBytes, timingSafeEqual } = require('node:crypto')
+const { randomBytes, randomUUID, createHash, timingSafeEqual } = require('node:crypto')
 const { collect, transcriptFor, transcriptFile } = require('./fleet.js')
 const { history } = require('./history.js')
 const codex = require('./codex.js')
@@ -26,18 +26,102 @@ const { openDashboard } = require('./open.js')
 const { createPrStatus } = require('./pr-status.js')
 const { version: VERSION } = require('./package.json')
 const HOST = '127.0.0.1'
+// Bumped when a client built for an older contract could misread a response.
+const API_VERSION = 1
+// Machine-readable error codes. Every JSON error keeps its human `error` text and adds one of
+// these; domain code may set `error.code` (with a status) and the rest derive from the status.
+const ERROR_CODES = new Set(['TOKEN_INVALID','FORBIDDEN_ORIGIN','NOT_FOUND','METHOD_NOT_ALLOWED','UNSUPPORTED_MEDIA_TYPE','PAYLOAD_TOO_LARGE','INVALID_JSON','VALIDATION','CAPACITY','CONFLICT','STALE_APPROVAL','STORAGE_UNAVAILABLE','SHUTTING_DOWN','UNSUPPORTED_ENGINE','UPSTREAM_ERROR','TIMEOUT','UNAVAILABLE','INTERNAL'])
+const STATUS_CODES = {400:'VALIDATION',403:'FORBIDDEN_ORIGIN',404:'NOT_FOUND',405:'METHOD_NOT_ALLOWED',409:'CONFLICT',413:'PAYLOAD_TOO_LARGE',415:'UNSUPPORTED_MEDIA_TYPE',429:'CAPACITY',502:'UPSTREAM_ERROR',503:'UNAVAILABLE',504:'TIMEOUT'}
+// Failing again later can succeed, with no change to the request.
+const RETRYABLE = new Set(['TOKEN_INVALID','CAPACITY','STORAGE_UNAVAILABLE','SHUTTING_DOWN','UPSTREAM_ERROR','TIMEOUT','UNAVAILABLE'])
+const codeFor = (status, code) => ERROR_CODES.has(code) ? code : STATUS_CODES[status] || (status >= 500 ? 'INTERNAL' : 'VALIDATION')
+// The body of every JSON error. `fieldErrors` ({field: message}) is passed through when a domain
+// error supplies it; nothing does yet.
+function errorBody(status, message, code, extra = {}) {
+  const c = codeFor(status, code)
+  return {error:message, code:c, ...((extra.retryable ?? RETRYABLE.has(c)) ? {retryable:true} : {}), ...(extra.fieldErrors && typeof extra.fieldErrors === 'object' ? {fieldErrors:extra.fieldErrors} : {})}
+}
+// Identifies the frontend that is being served: the package version, plus a hash of the Vite
+// manifest when a build exists, so a rebuilt page reads as a new build without a version bump.
+const MANIFESTS = [path.join('.vite','manifest.json'),'manifest.json']
+const buildIdOf = manifest => `${VERSION}+${createHash('sha256').update(manifest).digest('hex').slice(0,12)}`
+function buildId(root = __dirname) {
+  for (const file of MANIFESTS) {
+    try { return buildIdOf(fs.readFileSync(path.join(root,'dist',file))) } catch {}
+  }
+  return VERSION
+}
 const MODEL_FALLBACK = [
   { value:'', displayName:'Fleet default', description:'Team manager model, or Opus 5.5 for a single agent; without [1m]' },
   { value:'opus', displayName:'Opus', description:'Most capable' },
   { value:'sonnet', displayName:'Sonnet', description:'Balanced' },
   { value:'haiku', displayName:'Haiku', description:'Fastest' },
 ]
-const PUBLIC = path.join(__dirname,'public')
-const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.webmanifest':'application/manifest+json'}
+const DIST = path.join(__dirname,'dist')
+const TYPES = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.webp':'image/webp','.woff2':'font/woff2','.webmanifest':'application/manifest+json'}
+const ICONS = ['/icons/fleet-192.png','/icons/fleet-512.png']
+const NOT_BUILT = dir => `Fleet's web app is not built (${path.join(dir,'.vite','manifest.json')} is missing). In a source checkout, run \`npm run build:frontend\`, then start Fleet again.`
 
-function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null, prStatus = createPrStatus()} = {}) {
+// The production web app: the Vite build in dist/, read once. Only index.html, the icons and
+// the hashed files the manifest lists are ever served, so nothing else on disk is reachable.
+// A process keeps serving the build it loaded: a page it handed out asks for that build's
+// files, which are read on first request and then held in memory. A rebuild or reinstall
+// under a running Fleet can still remove a file before it was first read; that request
+// 404s and the page's build check (buildId) sends it to reload against the new server.
+function loadFrontend(dir = DIST) {
+  let raw
+  for (const file of MANIFESTS) {
+    try { raw = fs.readFileSync(path.join(dir,file)); break } catch {}
+  }
+  if (!raw) return {built:false, error:NOT_BUILT(dir), buildId:VERSION, files:new Map()}
+  // A half-written build (a rebuild in progress, an interrupted install) is reported the
+  // same way as a missing one, with what went wrong.
+  try { return readBuild(dir, raw) } catch (error) {
+    return {built:false, error:`Fleet's web app in ${dir} could not be read (${error.message}). In a source checkout, run \`npm run build:frontend\`, then start Fleet again.`, buildId:VERSION, files:new Map()}
+  }
+}
+// A source checkout (frontend/ next to this file) whose sources changed after its last
+// build serves an old page. One stat walk at startup; an npm install has no frontend/ and
+// returns at once. Returns the warning to print, or null.
+function staleBuild(root = __dirname) {
+  if (!fs.existsSync(path.join(root,'frontend'))) return null
+  let built
+  try { built = fs.statSync(path.join(root,'dist','.vite','manifest.json')).mtimeMs } catch { return null }
+  const newer = file => { try { return fs.statSync(file).mtimeMs > built } catch { return false } }
+  const walk = dir => {
+    let entries
+    try { entries = fs.readdirSync(dir,{withFileTypes:true}) } catch { return null }
+    for (const entry of entries) {
+      const full = path.join(dir,entry.name)
+      const found = entry.isDirectory() ? walk(full) : newer(full) ? full : null
+      if (found) return found
+    }
+    return null
+  }
+  const changed = [path.join(root,'frontend','index.html'),path.join(root,'package-lock.json')].find(newer) || walk(path.join(root,'frontend','src'))
+  return changed ? `Fleet's web app in dist/ is older than ${path.relative(root,changed)}, so this page may be out of date. Run \`npm run build:frontend\`, then restart Fleet.` : null
+}
+function readBuild(dir, raw) {
+  const manifest = JSON.parse(raw.toString('utf8'))
+  const files = new Map()
+  const add = file => {
+    // Vite names its output assets/<name>-<hash>.<ext>. Anything else in a manifest is not ours to serve.
+    if (typeof file === 'string' && /^assets\/[\w.-]+$/.test(file) && TYPES[path.extname(file)]) files.set(`/${file}`, {file:path.join(dir,file), type:TYPES[path.extname(file)], immutable:true})
+  }
+  for (const entry of Object.values(manifest)) for (const file of [entry.file, ...(entry.css || []), ...(entry.assets || [])]) add(file)
+  const index = fs.readFileSync(path.join(dir,'index.html'))
+  for (const route of ['/','/index.html']) files.set(route, {data:index, type:TYPES['.html'], immutable:false})
+  for (const route of ICONS) files.set(route, {file:path.join(dir,route.slice(1)), type:TYPES['.png'], immutable:false})
+  return {built:true, buildId:buildIdOf(raw), files}
+}
+
+function createApp({manager = new ManagedSessions({externalSessions:()=>collect().sessions}), collectSessions = collect, collectCodex = codex.sessions, search = new SearchJobs(), archive = new Archive(), updater = new Updater(), restart = null, service = new Service(), handover = null, prStatus = createPrStatus(), frontend = loadFrontend()} = {}) {
   const connections=new Connections(manager)
   const token=randomBytes(32).toString('hex')
+  // New for every server process: a client that sees it change knows the server restarted.
+  const instanceId=randomUUID(), BUILD_ID=frontend.buildId
+  // Bytes of each served file, read on first request and kept for the life of the process.
+  const served=new Map()
   const clients=new Set(), changes=new Set()
   let eventTimer=null, storageError=null
   const broadcast=()=>{
@@ -147,12 +231,12 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
     return timingSafeEqual(Buffer.from(supplied),Buffer.from(token))
   }
   async function body(req, limit = 65536) {
-    if (!(req.headers['content-type'] || '').startsWith('application/json')) throw Object.assign(new Error('JSON content type is required.'),{status:415})
+    if (!(req.headers['content-type'] || '').startsWith('application/json')) throw Object.assign(new Error('JSON content type is required.'),{status:415,code:'UNSUPPORTED_MEDIA_TYPE'})
     let size=0, chunks=[]
-    for await(const chunk of req){size+=chunk.length;if(size>limit) throw Object.assign(new Error(limit > 256000 ? 'Attachments are too large for one message.' : 'Request is too large.'),{status:413});chunks.push(chunk)}
+    for await(const chunk of req){size+=chunk.length;if(size>limit) throw Object.assign(new Error(limit > 256000 ? 'Attachments are too large for one message.' : 'Request is too large.'),{status:413,code:'PAYLOAD_TOO_LARGE'});chunks.push(chunk)}
     let data
-    try{data=JSON.parse(Buffer.concat(chunks).toString('utf8'))}catch{throw Object.assign(new Error('Invalid JSON.'),{status:400})}
-    if(!data || typeof data!=='object' || Array.isArray(data)) throw Object.assign(new Error('Expected a JSON object.'),{status:400})
+    try{data=JSON.parse(Buffer.concat(chunks).toString('utf8'))}catch{throw Object.assign(new Error('Invalid JSON.'),{status:400,code:'INVALID_JSON'})}
+    if(!data || typeof data!=='object' || Array.isArray(data)) throw Object.assign(new Error('Expected a JSON object.'),{status:400,code:'INVALID_JSON'})
     return data
   }
   const server=http.createServer(async(req,res)=>{
@@ -163,16 +247,16 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
     try{
       const port=server.address()?.port
       const hosts=new Set([`127.0.0.1:${port}`,`localhost:${port}`])
-      if(!hosts.has(req.headers.host)) return json(res,403,{error:'Invalid host.'})
+      if(!hosts.has(req.headers.host)) return json(res,403,errorBody(403,'Invalid host.','FORBIDDEN_ORIGIN'))
       const origin=req.headers.origin
-      if(origin && origin!==`http://${req.headers.host}`) return json(res,403,{error:'Cross-origin requests are not allowed.'})
-      if(req.headers['sec-fetch-site']==='cross-site') return json(res,403,{error:'Cross-site requests are not allowed.'})
+      if(origin && origin!==`http://${req.headers.host}`) return json(res,403,errorBody(403,'Cross-origin requests are not allowed.','FORBIDDEN_ORIGIN'))
+      if(req.headers['sec-fetch-site']==='cross-site') return json(res,403,errorBody(403,'Cross-site requests are not allowed.','FORBIDDEN_ORIGIN'))
       const url=new URL(req.url,`http://${req.headers.host}`)
       if(req.method==='POST') {
-        if(!authorized(req)) return json(res,403,{error:'Reload Fleet before sending commands.'})
+        if(!authorized(req)) return json(res,403,errorBody(403,'Reload Fleet before sending commands.','TOKEN_INVALID'))
         // Stopping an agent and installing an update both stay available when the
         // session store is unwritable: one is an escape hatch, the other may be the fix.
-        if(storageError && url.pathname!=='/api/update' && !/^\/api\/managed\/[\w-]+\/stop$/.test(url.pathname)) return json(res,503,{error:storageError})
+        if(storageError && url.pathname!=='/api/update' && !/^\/api\/managed\/[\w-]+\/stop$/.test(url.pathname)) return json(res,503,errorBody(503,storageError,'STORAGE_UNAVAILABLE'))
         // Only the two endpoints that carry a message accept image-sized bodies.
         const carriesMessage=url.pathname==='/api/managed' || /^\/api\/managed\/[\w-]+\/messages$/.test(url.pathname)
         const data=await body(req, carriesMessage ? 40 * 1024 * 1024 : url.pathname==='/api/teams' ? 256000 : 65536)
@@ -181,7 +265,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           if(data.action==='save')return json(res,200,{gateway:settings.save(data.apiKey)})
           if(data.action==='remove')return json(res,200,{gateway:settings.remove()})
           if(data.action==='test')return json(res,200,{gateway:settings.status(),test:await settings.test()})
-          return json(res,400,{error:'Unknown settings action.'})
+          return json(res,400,errorBody(400,'Unknown settings action.','VALIDATION'))
         }
         if(url.pathname==='/api/connections') return json(res,200,{connections:await connections.request(data)})
         if(url.pathname==='/api/teams') return json(res,200,{team:manager.teams.save(data)})
@@ -229,7 +313,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
           return json(res,200,{service:status,restarting:handing})
         }
         const match=url.pathname.match(/^\/api\/managed\/([\w-]+)\/(messages|stop|mode|model|limits|close|day|project|name|approvals\/([\w-]+))$/)
-        if(!match) return json(res,404,{error:'Unknown action.'})
+        if(!match) return json(res,404,errorBody(404,'Unknown action.','NOT_FOUND'))
         const [,id,action,approvalId]=match
         if(action==='close') return json(res,200,{closed:await manager.remove(id)})
         if(action==='name') return json(res,200,{session:manager.detail(manager.setName(id,data).id)})
@@ -243,8 +327,11 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         else manager.decide(id,approvalId,data)
         return json(res,200,{session:manager.detail(id)})
       }
-      if(req.method!=='GET') return json(res,405,{error:'Method not allowed.'})
-      if(url.pathname==='/api/control') return json(res,200,{token,version:VERSION,codex:codex.available() ? {available:true,model:codex.defaultModel()} : {available:false},supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,defaultApprovalMode:manager.defaultApprovalMode,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      if(req.method!=='GET') return json(res,405,errorBody(405,'Method not allowed.','METHOD_NOT_ALLOWED'))
+      if(url.pathname==='/api/control'){
+        const codexAvailable=codex.available()
+        return json(res,200,{token,version:VERSION,apiVersion:API_VERSION,instanceId,buildId:BUILD_ID,capabilities:{engines:{claude:true,codex:codexAvailable},sessionReferences:true,structuredErrors:true,queue:true,days:true,projects:true,teams:true,search:true,worktrees:true,connections:true,gateway:true,service:!!service,update:!!restart},codex:codexAvailable ? {available:true,model:codex.defaultModel()} : {available:false},supportsSessionReferences:true,defaultCwd:defaultCwd(),maxConcurrent:manager.dispatch.limit,defaultApprovalMode:manager.defaultApprovalMode,queue:manager.queueState(),storageError,searchDays:SEARCH_DAYS,theme:{name:currentTheme().name,source:currentTheme().source}})
+      }
       if(url.pathname==='/api/update'){
         // Answer from the cache and refresh behind the request: a page load should
         // never wait on npm's registry, and the dashboard asks again shortly after.
@@ -274,7 +361,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         const id=url.searchParams.get('sessionId') || ''
         const row=/^[\w-]{1,64}$/.test(id) ? withCodex(collectSessions()).sessions.find(s=>s.sessionId===id) : null
         const file=row && (row.engine==='codex' ? row.transcript : transcriptFile(id))
-        if(!file) return json(res,404,{error:'No transcript for that session.'})
+        if(!file) return json(res,404,errorBody(404,'No transcript for that session.','NOT_FOUND'))
         const read=row.engine==='codex' ? codex.history : history
         return respond(req,res,{...read(file,{alive:!!row.alive}),alive:!!row.alive},{paths:['messages']})
       }
@@ -289,10 +376,10 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       // Each session's git checkout, with what is in it, for the Worktrees tab.
       if(url.pathname==='/api/worktrees') return json(res,200,await checkouts.collect(worktreeSessions()))
       const teamRoute=url.pathname.match(/^\/api\/teams\/([a-z][a-z0-9-]*)$/)
-      if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:{error:'Team not found.'})}
+      if(teamRoute) {const team=manager.teams.get(teamRoute[1]);return json(res,team ? 200:404,team ? {team}:errorBody(404,'Team not found.','NOT_FOUND'))}
       if(url.pathname==='/api/sessions') return respond(req,res,getSnapshot(),{paths:['sessions'],volatile:['generatedAt']})
       if(url.pathname==='/api/events') {
-        if(clients.size>=20) return json(res,429,{error:'Too many dashboard connections.'})
+        if(clients.size>=20) return json(res,429,errorBody(429,'Too many dashboard connections.','CAPACITY'))
         res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store','connection':'keep-alive','x-accel-buffering':'no'})
         res.write(': connected\n\n');clients.add(res)
         req.on('close',()=>clients.delete(res));return
@@ -305,7 +392,7 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
       if(attachment){
         let data
         try{ data=await fs.promises.readFile(path.join(manager.attachmentsDir,attachment[1])) }
-        catch{ return json(res,404,{error:'Attachment not found.'}) }
+        catch{ return json(res,404,errorBody(404,'Attachment not found.','NOT_FOUND')) }
         res.writeHead(200,{'content-type':TYPES['.'+attachment[2]],'cache-control':'private, max-age=31536000, immutable','content-length':data.length})
         return res.end(data)
       }
@@ -316,12 +403,21 @@ function createApp({manager = new ManagedSessions({externalSessions:()=>collect(
         if(holder) session.openElsewhere=holder
         return respond(req,res,{session},{paths:['session.messages','session.subagents']})
       }
-      const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/app.js':'app.js','/select.js':'select.js','/review.js':'review.js','/ui.js':'ui.js','/sync.js':'sync.js','/control.js':'control.js','/blocks.js':'blocks.js','/ask.js':'ask.js','/teams.js':'teams.js','/day.js':'day.js','/sounds.js':'sounds.js','/projects.js':'projects.js','/progress.js':'progress.js','/worktrees.js':'worktrees.js','/views.js':'views.js','/connections.js':'connections.js','/settings.js':'settings.js','/vendor/libs.js':path.join('vendor','libs.js'),'/icons/fleet-192.png':path.join('icons','fleet-192.png'),'/icons/fleet-512.png':path.join('icons','fleet-512.png')}
-      const file=files[url.pathname]
-      if(!file) return json(res,404,{error:'Not found.'})
-      const data=await fs.promises.readFile(path.join(PUBLIC,file))
-      res.writeHead(200,{'content-type':TYPES[path.extname(file)],'cache-control':'no-cache'});res.end(data)
-    }catch(error){if(!res.headersSent) json(res,error.status||500,{error:error.status ? error.message : 'Fleet could not complete the request. Check the server log.'});else res.end();if(!error.status) console.error(error)}
+      // The web app. A raw path with dot segments or encoded separators is refused before
+      // lookup (URL parsing would otherwise fold `/assets/../x` into `/x`); after that only an
+      // exact route from the loaded build matches, so no request reaches any other file.
+      const raw=req.url.split('?')[0]
+      if(/\/\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(raw)) return json(res,404,errorBody(404,'Not found.','NOT_FOUND'))
+      if(!frontend.built && (url.pathname==='/' || url.pathname==='/index.html')) return json(res,503,errorBody(503,frontend.error,'UNAVAILABLE'))
+      const asset=frontend.files.get(url.pathname)
+      if(!asset) return json(res,404,errorBody(404,'Not found.','NOT_FOUND'))
+      let data=asset.data || served.get(url.pathname)
+      if(!data){
+        try{data=await fs.promises.readFile(asset.file)}catch(error){if(error.code==='ENOENT') return json(res,404,errorBody(404,'Not found.','NOT_FOUND'));throw error}
+        served.set(url.pathname,data)
+      }
+      res.writeHead(200,{'content-type':asset.type,'cache-control':asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache','content-length':data.length});res.end(data)
+    }catch(error){if(!res.headersSent) json(res,error.status||500,error.status ? errorBody(error.status,error.message,error.code,error) : errorBody(500,'Fleet could not complete the request. Check the server log.','INTERNAL'));else res.end();if(!error.status) console.error(error)}
   })
   server.requestTimeout=15000
   server.headersTimeout=10000
@@ -357,6 +453,12 @@ function relaunch({entry,args,port,why,log=serverLog(),watchMs=4000,spawn=requir
 // in a `require.main` block: bin/claude-fleet.js calls this, which keeps argv[1]
 // pointing at the installed command that a restart needs to re-run.
 function main(){
+  // Without a build there is no page to serve: say so and how to fix it, rather than
+  // starting a server whose every page load fails.
+  const frontend=loadFrontend()
+  if(!frontend.built){console.error(`\n  ${frontend.error}\n`);process.exit(1)}
+  const stale=staleBuild()
+  if(stale) console.warn(`\n  ${stale}\n`)
   let app
   const service=new Service()
   // Hand the port to the version that was just installed. argv[1] is the entry npm
@@ -384,7 +486,7 @@ function main(){
     await relaunch({entry:process.argv[1],args:relaunchArgs(),port:app.server.address()?.port || port,why:'The service did not take over'}).settled
     process.exit(0)
   }
-  try{app=createApp({restart,service,handover})}catch(error){
+  try{app=createApp({restart,service,handover,frontend})}catch(error){
     // Already running is the everyday case, not a crash: put the window the operator
     // asked for on screen and leave quietly. Exiting 1 with no window was the whole
     // reason a second `claude-fleet` looked like a broken one.
@@ -422,4 +524,4 @@ function main(){
   return app
 }
 if(require.main===module) main()
-module.exports={createApp,main,relaunch}
+module.exports={createApp,main,relaunch,buildId,loadFrontend,staleBuild,errorBody,API_VERSION}

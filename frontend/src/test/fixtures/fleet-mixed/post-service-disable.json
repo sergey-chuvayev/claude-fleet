@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/service",
+    "body": {
+      "enabled": false
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "service": {
+        "supported": false,
+        "enabled": false,
+        "loaded": false,
+        "managed": false
+      },
+      "restarting": false
+    }
+  }
+}

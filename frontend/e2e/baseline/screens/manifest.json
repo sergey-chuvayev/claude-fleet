@@ -1,0 +1,85 @@
+{
+  "clock": "2026-10-06T10:00:00.000Z",
+  "viewports": [
+    "1440x900",
+    "1280x800",
+    "900x900",
+    "390x844"
+  ],
+  "shots": {
+    "sessions": {
+      "pack": "fleet-mixed",
+      "view": "sessions"
+    },
+    "sessions-approval": {
+      "pack": "fleet-mixed",
+      "view": "sessions"
+    },
+    "launch-modal": {
+      "pack": "fleet-mixed",
+      "view": "sessions"
+    },
+    "conversation": {
+      "pack": "conversation-heavy",
+      "view": "sessions"
+    },
+    "team-overview": {
+      "pack": "teams-heavy",
+      "view": "sessions"
+    },
+    "today": {
+      "pack": "day-full",
+      "view": "today"
+    },
+    "projects": {
+      "pack": "projects-collision",
+      "view": "projects"
+    },
+    "progress": {
+      "pack": "day-full",
+      "view": "progress"
+    },
+    "worktrees": {
+      "pack": "fleet-mixed",
+      "view": "worktrees"
+    }
+  },
+  "files": [
+    "screens/1280x800/conversation.png",
+    "screens/1280x800/launch-modal.png",
+    "screens/1280x800/progress.png",
+    "screens/1280x800/projects.png",
+    "screens/1280x800/sessions-approval.png",
+    "screens/1280x800/sessions.png",
+    "screens/1280x800/team-overview.png",
+    "screens/1280x800/today.png",
+    "screens/1280x800/worktrees.png",
+    "screens/1440x900/conversation.png",
+    "screens/1440x900/launch-modal.png",
+    "screens/1440x900/progress.png",
+    "screens/1440x900/projects.png",
+    "screens/1440x900/sessions-approval.png",
+    "screens/1440x900/sessions.png",
+    "screens/1440x900/team-overview.png",
+    "screens/1440x900/today.png",
+    "screens/1440x900/worktrees.png",
+    "screens/390x844/conversation.png",
+    "screens/390x844/launch-modal.png",
+    "screens/390x844/progress.png",
+    "screens/390x844/projects.png",
+    "screens/390x844/sessions-approval.png",
+    "screens/390x844/sessions.png",
+    "screens/390x844/team-overview.png",
+    "screens/390x844/today.png",
+    "screens/390x844/worktrees.png",
+    "screens/900x900/conversation.png",
+    "screens/900x900/launch-modal.png",
+    "screens/900x900/progress.png",
+    "screens/900x900/projects.png",
+    "screens/900x900/sessions-approval.png",
+    "screens/900x900/sessions.png",
+    "screens/900x900/team-overview.png",
+    "screens/900x900/today.png",
+    "screens/900x900/worktrees.png"
+  ]
+}

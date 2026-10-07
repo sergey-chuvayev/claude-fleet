@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/deliverable",
+    "body": {
+      "deliverableId": "00000004f1e1",
+      "state": "finished"
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "State must be one of: todo, doing, review, done.",
+      "code": "VALIDATION"
+    }
+  }
+}

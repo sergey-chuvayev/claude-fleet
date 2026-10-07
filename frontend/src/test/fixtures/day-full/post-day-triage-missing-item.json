@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "triage",
+      "itemId": "nope",
+      "status": "today"
+    }
+  },
+  "response": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": {
+      "error": "Item not found. Read the Day board.",
+      "code": "NOT_FOUND"
+    }
+  }
+}

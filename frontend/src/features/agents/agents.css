@@ -1,0 +1,73 @@
+/* Delegation rows under a team session and the read-only delegation detail (F05).
+   Ported from public/styles.css (0.54.0), legacy order. */
+
+.session-children-toggle {
+  display:flex;
+  align-items:center;
+  gap:var(--space-2);
+  width:100%;
+  min-height:var(--control-sm);
+  text-align:left;
+  border:0;
+  border-radius:10px;
+  padding:0 var(--space-3) 0 var(--title-inset);
+  background:transparent;
+  color:var(--faint);
+  font-size:var(--text-sm);
+}
+.session-children-toggle:hover { color:var(--muted); background:var(--hover) }
+.children-chevron {
+  display:inline-block;
+  flex:none;
+  width:9px;
+  text-align:center;
+  font-size:var(--text-md);
+  line-height:1;
+  transition:transform .12s ease;
+}
+.session-children-toggle[aria-expanded="true"] .children-chevron { transform:rotate(90deg) }
+.children-count { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.session-children { position:relative }
+.session-children::before {
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:var(--space-2);
+  left:var(--avatar-axis);
+  width:1px;
+  background:var(--line);
+  z-index:1;
+}
+.session.session-child { grid-template-columns:minmax(0,1fr); padding:var(--space-2) var(--space-3) var(--space-2) var(--title-inset); background:transparent }
+.session-child .session-name { color:var(--muted) }
+.session-child .session-title { font-size:var(--text-sm); font-weight:400; color:var(--faint) }
+@media(prefers-reduced-motion:reduce) { .children-chevron { transition:none } }
+.session-ancestor { background:color-mix(in oklab,var(--term-bg) 92%,var(--term-fg)) }
+.session-ancestor:hover { background:var(--hover) }
+.session-child-more { padding:var(--space-2) var(--space-3) var(--space-2) var(--title-inset); color:var(--faint); font-size:var(--text-xs) }
+
+.child-steps { list-style:none; margin:0; padding:0; font-size:var(--text-sm) }
+.child-step { display:flex; gap:10px; align-items:baseline; padding:7px 0; border-top:1px solid var(--line) }
+.child-step:first-child { border-top:0 }
+.child-step-tool { font-weight:600; flex:none }
+.child-step-target { color:var(--muted); overflow-wrap:anywhere; flex:1; min-width:0 }
+.child-step-state { color:var(--faint); flex:none }
+.child-step[data-status="running"] .child-step-state { color:var(--busy) }
+.child-step[data-status="error"] .child-step-state { color:var(--dead) }
+.child-step[data-status="interrupted"] .child-step-state { color:var(--stale) }
+.child-step[data-status="unreported"] .child-step-state { color:color-mix(in oklab,var(--term-blue) 56%,var(--term-fg)) }
+.child-step-time { color:var(--faint); font-variant-numeric:tabular-nums; flex:none }
+.child-approval-notice {
+  color:var(--text);
+  background:color-mix(in srgb,var(--stale) 14%,transparent);
+  border:1px solid var(--stale);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  margin-bottom:17px;
+}
+.child-step-detail { grid-column:1/-1; min-width:0 }
+.child-step-detail summary { cursor:pointer; color:var(--muted); padding:4px 0 }
+.child-step-detail pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:320px; overflow:auto; font-size:var(--text-md) }
+.child-step-detail h4 { margin:10px 0 4px; font-size:var(--text-md) }
+
+@media(max-width:720px) { .session-children-toggle { min-height:var(--touch) } }

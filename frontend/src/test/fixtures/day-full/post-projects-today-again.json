@@ -1,0 +1,63 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/today",
+    "body": {
+      "deliverableId": "00000002f1e1"
+    },
+    "note": "duplicate retry returns the existing item"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "item": {
+        "id": "00000004-f1e1-4000-8000-000000000000",
+        "title": "Reply to Thomas about the migration",
+        "source": "slack",
+        "links": [
+          "https://example.slack.com/archives/C1/p1"
+        ],
+        "context": "Thomas asked if the migration can ship Friday.",
+        "priority": "must",
+        "status": "in_progress",
+        "mode": "draft",
+        "estimateMin": null,
+        "needs": [
+          {
+            "id": "000000cc-f1e1-4000-8000-000000000000",
+            "kind": "approve",
+            "question": "Send this Slack reply to Thomas?",
+            "draft": "Hi Thomas, yes, Friday works if QA signs off by Thursday. I will confirm tomorrow morning.",
+            "at": 1791280800000,
+            "answer": "Not yet, ask Thomas first.",
+            "decision": "reply",
+            "answeredAt": 1791280800000
+          }
+        ],
+        "log": [
+          {
+            "at": 1791280800000,
+            "text": "You: Not yet, ask Thomas first."
+          }
+        ],
+        "createdAt": 1791280800000,
+        "by": "operator",
+        "carriedFrom": "2026-10-05",
+        "previousThread": {
+          "summary": "Agreed to ship Friday if QA signs off.",
+          "at": 1791208800000,
+          "sessionId": "thr-old"
+        },
+        "projectId": "00000001-f1e1-4000-8000-000000000000",
+        "deliverableId": "00000002f1e1",
+        "thread": {
+          "sessionId": "thr-today",
+          "at": 1791280800000,
+          "summary": "Fixture reply to: Summarise his last message."
+        }
+      },
+      "existing": true
+    }
+  }
+}

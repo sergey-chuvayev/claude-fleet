@@ -1,0 +1,56 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/projects/00000001-f1e1-4000-8000-000000000000/comment",
+    "body": {
+      "deliverableId": "0000000df1e1",
+      "message": "Please add the rollback plan to the brief.",
+      "requestId": "proj-comment-1"
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "0000003a-f1e1-4000-8000-000000000000",
+        "projectId": "00000001-f1e1-4000-8000-000000000000",
+        "sessionId": null,
+        "name": "Alpha launch",
+        "cwd": "/fixture/repos/projects-repo",
+        "createRequestId": "proj-comment-1",
+        "createdAt": 1791280800000,
+        "updatedAt": 1791280800000,
+        "status": "starting",
+        "approvalMode": "auto",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "0000003b-f1e1-4000-8000-000000000000",
+            "role": "user",
+            "text": "On \"Hand-added deliverable\": Please add the rollback plan to the brief.",
+            "at": 1791280800000,
+            "runPrompt": "Read the project with the project tool (status) first.\n\nThe operator commented on the deliverable \"Hand-added deliverable\" (deliverableId 0000000df1e1):\nPlease add the rollback plan to the brief.\n\nBring that task up to date with it: its brief (what it is, what was decided, scope, \"Done when\"), its links, and its state and note when the comment says where it stands. Record it under \"Decisions\" too when it concerns the whole project. If the comment is a question, answer it, and still record anything it settles. Then reply in one or two sentences with what you changed.",
+            "background": false
+          }
+        ],
+        "approvals": [],
+        "model": null,
+        "contextTokens": null,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [
+          "proj-comment-1"
+        ],
+        "queue": [],
+        "kind": "project",
+        "teamId": null,
+        "teamName": null,
+        "teamSnapshot": null,
+        "taskBoard": null,
+        "worktree": null,
+        "lastPrompt": "On \"Hand-added deliverable\": Please add the rollback plan to the brief."
+      }
+    }
+  }
+}

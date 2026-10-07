@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/day-today/day",
+    "body": {
+      "op": "add",
+      "item": {
+        "title": "x",
+        "source": "carrier-pigeon"
+      }
+    }
+  },
+  "response": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": {
+      "error": "Source must be one of: slack, linear, granola, github, calendar, me.",
+      "code": "VALIDATION"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/api/events"
+  },
+  "response": {
+    "status": 429,
+    "contentType": "application/json",
+    "body": {
+      "error": "Too many dashboard connections.",
+      "code": "CAPACITY",
+      "retryable": true
+    }
+  }
+}

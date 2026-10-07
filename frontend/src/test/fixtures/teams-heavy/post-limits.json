@@ -1,0 +1,293 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/managed/t-owner/limits",
+    "body": {
+      "maxAttempts": 4
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "session": {
+        "id": "t-owner",
+        "projectId": null,
+        "sessionId": "0000005e-0000-4000-8000-000000000031",
+        "name": "Owner + review: refund path",
+        "cwd": "/fixture/repos/owner-repo",
+        "createRequestId": "req-t-owner",
+        "createdAt": 1791277200000,
+        "updatedAt": 1791280800000,
+        "status": "idle",
+        "approvalMode": "ask",
+        "selectedModel": "",
+        "messages": [
+          {
+            "id": "to-u",
+            "role": "user",
+            "text": "Fix the refund path",
+            "at": 1791262800000
+          },
+          {
+            "id": "to-a",
+            "role": "assistant",
+            "text": "Fixed and verified by the reviewer.",
+            "at": 1791265200000
+          }
+        ],
+        "approvals": [],
+        "model": "claude-sonnet-fixture",
+        "contextTokens": 42000,
+        "error": null,
+        "currentTool": null,
+        "requestIds": [],
+        "queue": [],
+        "kind": "initiative",
+        "teamId": "owner-review",
+        "teamName": "Owner + review",
+        "teamSnapshot": {
+          "id": "owner-review",
+          "name": "Owner + review",
+          "description": "One persistent owner implements and finishes the request; one independent reviewer checks the committed changes.",
+          "manager": "owner",
+          "workflow": {
+            "mode": "owner-review",
+            "reviewers": [
+              "reviewer"
+            ],
+            "maxAttempts": 3
+          },
+          "roles": {
+            "owner": {
+              "description": "Owns implementation, tests, repairs and PR delivery in one session.",
+              "prompt": "Work on the user’s request with focused investigation and regression checks. Preserve context across repairs.",
+              "model": "claude-opus-5-5",
+              "maxTurns": 100,
+              "effort": "medium",
+              "tools": [
+                "Read",
+                "Glob",
+                "Grep",
+                "WebSearch",
+                "WebFetch",
+                "Bash",
+                "Write",
+                "Edit",
+                "MultiEdit",
+                "NotebookEdit"
+              ]
+            },
+            "reviewer": {
+              "description": "Independently checks correctness and required behavior.",
+              "prompt": "Review the actual committed diff against the original request and acceptance criteria.\nRead relevant project instructions and inspect the supplied base and snapshot. Check\nthat tests exercise the affected behavior; reproduce relevant checks where useful.\nDo not edit source, commit, move the worktree, or create a PR. Report PASS if there\nare no blocking correctness, regression or required-evidence gaps. Report FAIL only\nfor concrete blocking findings, with file locations, evidence and a repair direction.\nSeparate optional improvements from blocking findings; optional suggestions do not\nturn a PASS into a FAIL. If verification cannot run, return REVIEW_ERROR and explain\nthe execution problem instead of inventing a defect. Keep review proportional to\nthe request; on re-review focus on repairs and their affected behavior.",
+              "model": "sonnet",
+              "maxTurns": 25,
+              "effort": "medium",
+              "tools": [
+                "Read",
+                "Glob",
+                "Grep",
+                "WebSearch",
+                "WebFetch",
+                "Bash"
+              ]
+            }
+          }
+        },
+        "taskBoard": {
+          "tasks": [
+            {
+              "id": "0000007b-0000-4000-8000-000000000001",
+              "title": "Implement the request",
+              "owner": "owner",
+              "criteria": [
+                "Behavior matches the request",
+                "Tests pass"
+              ],
+              "dependencies": [],
+              "status": "verified",
+              "attempt": 2,
+              "reviews": {
+                "reviewer": {
+                  "verdict": "PASS",
+                  "delegationId": "000000d2-0000-4000-8000-000000000002",
+                  "attempt": 2
+                }
+              },
+              "blocker": null,
+              "createdAt": 1791262800000,
+              "snapshot": {
+                "commit": "876361053ae10c7044e49bf314364f066bd35904",
+                "tree": "da54425c49bd8f02f06f2d219988013de6bd64d5",
+                "dirty": false
+              },
+              "evidence": "npm test: 120 passed; manual check of the checkout path done."
+            }
+          ],
+          "delegations": [
+            {
+              "id": "000000d2-0000-4000-8000-000000000001",
+              "taskId": "0000007b-0000-4000-8000-000000000001",
+              "role": "reviewer",
+              "attempt": 1,
+              "status": "completed",
+              "startedAt": 1791262800000,
+              "finishedAt": 1791263040000,
+              "prompt": "Review the refund change.",
+              "report": "FAIL: the refund total ignores shipping. Add a test and fix it.",
+              "snapshot": {
+                "commit": "876361053ae10c7044e49bf314364f066bd35904",
+                "tree": "da54425c49bd8f02f06f2d219988013de6bd64d5",
+                "dirty": false
+              },
+              "steps": [
+                {
+                  "id": "o1-step-0",
+                  "tool": "Read",
+                  "target": "src/file-0.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-0.ts"
+                  },
+                  "result": "step 0 ok",
+                  "ms": 0,
+                  "truncated": true,
+                  "at": 1791262800000
+                },
+                {
+                  "id": "o1-step-1",
+                  "tool": "Grep",
+                  "target": "src/file-1.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-1.ts"
+                  },
+                  "result": "step 1 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791262801000
+                },
+                {
+                  "id": "o1-step-2",
+                  "tool": "Edit",
+                  "target": "src/file-2.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-2.ts"
+                  },
+                  "result": "step 2 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791262802000
+                },
+                {
+                  "id": "o1-step-3",
+                  "tool": "Bash",
+                  "target": "src/file-3.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-3.ts"
+                  },
+                  "result": "step 3 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791262803000
+                },
+                {
+                  "id": "o1-step-4",
+                  "tool": "Read",
+                  "target": "src/file-4.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-4.ts"
+                  },
+                  "result": "step 4 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791262804000
+                }
+              ]
+            },
+            {
+              "id": "000000d2-0000-4000-8000-000000000002",
+              "taskId": "0000007b-0000-4000-8000-000000000001",
+              "role": "reviewer",
+              "attempt": 2,
+              "status": "completed",
+              "startedAt": 1791264600000,
+              "finishedAt": 1791264840000,
+              "prompt": "Review the repaired refund change.",
+              "report": "PASS: shipping is now included, covered by refund.test.ts, suite green.",
+              "snapshot": {
+                "commit": "876361053ae10c7044e49bf314364f066bd35904",
+                "tree": "da54425c49bd8f02f06f2d219988013de6bd64d5",
+                "dirty": false
+              },
+              "steps": [
+                {
+                  "id": "o2-step-0",
+                  "tool": "Read",
+                  "target": "src/file-0.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-0.ts"
+                  },
+                  "result": "step 0 ok",
+                  "ms": 0,
+                  "truncated": true,
+                  "at": 1791264600000
+                },
+                {
+                  "id": "o2-step-1",
+                  "tool": "Grep",
+                  "target": "src/file-1.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-1.ts"
+                  },
+                  "result": "step 1 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791264601000
+                },
+                {
+                  "id": "o2-step-2",
+                  "tool": "Edit",
+                  "target": "src/file-2.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-2.ts"
+                  },
+                  "result": "step 2 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791264602000
+                },
+                {
+                  "id": "o2-step-3",
+                  "tool": "Bash",
+                  "target": "src/file-3.ts",
+                  "status": "done",
+                  "input": {
+                    "file_path": "src/file-3.ts"
+                  },
+                  "result": "step 3 ok",
+                  "ms": 0,
+                  "truncated": false,
+                  "at": 1791264603000
+                }
+              ]
+            }
+          ]
+        },
+        "worktree": null,
+        "reviewBaseCommit": "876361053ae10c7044e49bf314364f066bd35904",
+        "ownerRequest": "Fix the refund path.",
+        "limits": {
+          "maxAttempts": 4
+        }
+      }
+    }
+  }
+}
